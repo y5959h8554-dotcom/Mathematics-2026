@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Division Euclidienne</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f7f5f0;
+    --surface: #ffffff;
+    --border: #e0dcd4;
+    --text: #1a1916;
+    --text-muted: #6b6860;
+    /* Dividende — dark purple */
+    --div-light: #ede4f5;
+    --div-mid: #7c3aed;
+    --div-dark: #4c1d95;
+    /* Quotient / grouping — orange */
+    --quo-light: #fff0e0;
+    --quo-mid: #d45f00;
+    --quo-dark: #7a2e00;
+    /* Diviseur — dark green */
+    --dis-light: #d4f0e6;
+    --dis-mid: #15803d;
+    --dis-dark: #14532d;
+    /* Reste — dark red */
+    --res-light: #fde8e8;
+    --res-mid: #b91c1c;
+    --res-dark: #7f1d1d;
+    --sq: 24px;
+    --gap: 16px;
+    --radius: 5px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 48px 12px 80px;
+  }
+
+  header {
+    text-align: center;
+    margin-bottom: 48px;
+  }
+
+  header h1 {
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 10px;
+  }
+
+  header p {
+    font-size: 28px;
+    font-weight: 300;
+    color: var(--text);
+    letter-spacing: -0.02em;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 36px 40px;
+    width: 100%;
+    max-width: 1200px;
+  }
+
+  /* Inputs row */
+  .inputs {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 36px;
+    align-items: center;
+  }
+
+  .input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .input-group label {
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+
+  .input-group label span {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    margin-left: 4px;
+    opacity: 0.6;
+  }
+
+  .input-group input[type="number"] {
+    font-family: 'DM Mono', monospace;
+    font-size: 22px;
+    font-weight: 500;
+    width: 90px;
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 12px;
+    background: var(--bg);
+    color: var(--text);
+    outline: none;
+    transition: border-color 0.15s;
+    -moz-appearance: textfield;
+  }
+
+  .input-group input[type="number"]::-webkit-inner-spin-button,
+  .input-group input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; }
+
+  .input-group input[type="number"]:focus {
+    border-color: var(--text-muted);
+  }
+
+  #inp-a {
+    color: var(--div-dark);
+    border-color: var(--div-mid);
+    background: var(--div-light);
+  }
+  #inp-a:focus { border-color: var(--div-dark); }
+
+  #inp-b {
+    color: var(--dis-dark);
+    border-color: var(--dis-mid);
+    background: var(--dis-light);
+  }
+  #inp-b:focus { border-color: var(--dis-dark); }
+
+  .input-group input[type="number"].has-divisor {
+    border-color: var(--blue-mid);
+  }
+
+  .btn-go {
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 10px 22px;
+    border-radius: 8px;
+    border: 1.5px solid var(--dis-mid);
+    background: var(--dis-light);
+    color: var(--dis-dark);
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+    flex-shrink: 0;
+  }
+
+  .btn-go:hover { background: #bbddc8; border-color: var(--dis-dark); }
+  .btn-go:active { background: #a0ceae; }
+  .btn-go:disabled { opacity: 0.35; cursor: default; }
+
+
+  .stick-section {
+    margin-bottom: 32px;
+  }
+
+  .stick-label {
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 10px;
+  }
+
+  .stick-scroll {
+    overflow: visible;
+    padding: 10px 0 14px 0;
+  }
+
+  .stick {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: var(--gap);
+    align-items: center;
+    min-height: calc(var(--sq) + 8px);
+  }
+
+  /* Individual squares */
+  .sq {
+    width: var(--sq);
+    height: var(--sq);
+    border-radius: var(--radius);
+    flex-shrink: 0;
+    transition: background 0.3s, border-color 0.3s, transform 0.2s;
+  }
+
+  /* Default: dividend-only coloring */
+  .sq.dividend {
+    background: var(--div-light);
+    border: 1.5px solid var(--div-mid);
+  }
+
+  /* Groups: wrapper around b squares */
+  .group-wrapper {
+    display: flex;
+    gap: var(--gap);
+    align-items: center;
+    padding: 0;
+    border-radius: 7px;
+    flex-shrink: 0;
+    outline: 2px solid transparent;
+    outline-offset: 5px;
+    transition: outline-color 0.2s, background 0.2s;
+    background: transparent;
+  }
+
+  .group-wrapper.quotient-group {
+    outline-color: var(--quo-mid);
+    background: transparent;
+  }
+
+  .group-wrapper.quotient-group .sq {
+    background: var(--dis-light);
+    border: 1.5px solid var(--dis-mid);
+  }
+
+  .group-wrapper.remainder-group {
+    outline: 2px dashed var(--res-mid);
+    outline-offset: 5px;
+    background: transparent;
+  }
+
+  .group-wrapper.remainder-group .sq {
+    background: var(--res-light);
+    border: 1.5px solid var(--res-mid);
+  }
+
+  /* Group count badge */
+  .group-count {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    font-weight: 500;
+    color: var(--blue-dark);
+    margin-left: -2px;
+    margin-right: 2px;
+    opacity: 0.7;
+    user-select: none;
+  }
+
+  /* Result formula */
+  .result {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    padding: 20px 24px;
+    background: var(--bg);
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    font-family: 'DM Mono', monospace;
+    opacity: 0;
+    transform: translateY(6px);
+    transition: opacity 0.4s, transform 0.4s;
+  }
+
+  .result.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .result-term {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .result-op {
+    font-size: 18px;
+    color: var(--text-muted);
+    padding-top: 6px;
+    line-height: 1;
+    align-self: flex-start;
+    padding-top: 10px;
+  }
+
+  .result-term-label {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    white-space: nowrap;
+  }
+
+  .badge {
+    padding: 3px 10px;
+    border-radius: 5px;
+    font-weight: 500;
+    font-size: 14px;
+  }
+
+  .badge-q {
+    background: var(--quo-light);
+    color: var(--quo-dark);
+    border: 1px solid var(--quo-mid);
+  }
+
+  .badge-r {
+    background: var(--res-light);
+    color: var(--res-dark);
+    border: 1px dashed var(--res-mid);
+  }
+
+  .badge-a {
+    background: var(--div-light);
+    color: var(--div-dark);
+    border: 1px solid var(--div-mid);
+  }
+
+  .badge-b {
+    background: var(--dis-light);
+    color: var(--dis-dark);
+    border: 1px solid var(--dis-mid);
+  }
+
+  /* Divider */
+  hr.divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 28px 0;
+  }
+
+  /* Placeholder message */
+  .placeholder {
+    font-size: 13px;
+    color: var(--text-muted);
+    font-style: italic;
+    min-height: 32px;
+    display: flex;
+    align-items: center;
+  }
+
+  /* Stagger animation for squares appearing */
+  @keyframes pop-in {
+    from { opacity: 0; transform: scale(0.6); }
+    to   { opacity: 1; transform: scale(1); }
+  }
+
+  .sq.animate {
+    animation: pop-in 0.2s ease backwards;
+  }
+
+  /* Error state */
+  .input-group input.error {
+    border-color: #e05050;
+  }
+
+  .error-msg {
+    font-size: 11px;
+    color: #c03030;
+    margin-top: 2px;
+    min-height: 14px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Mathématiques — 6e</h1>
+  <p>Division euclidienne</p>
+</header>
+
+<div class="card">
+
+  <!-- Input row -->
+  <div class="inputs">
+    <div class="input-group">
+      <label>Dividende <span></span></label>
+      <input type="number" id="inp-a" min="1" max="800" placeholder="" autocomplete="off">
+      <div class="error-msg" id="err-a"></div>
+    </div>
+    <div class="input-group">
+      <label>Diviseur <span></span></label>
+      <input type="number" id="inp-b" min="1" max="40" placeholder="" autocomplete="off">
+      <div class="error-msg" id="err-b"></div>
+    </div>
+    <button class="btn-go" id="btn-go" disabled>Go</button>
+  </div>
+
+  <!-- Dividend stick -->
+  <div class="stick-section" id="section-a" style="display:none">
+    <div class="stick-scroll">
+      <div class="stick" id="stick-a"></div>
+    </div>
+  </div>
+
+  <hr class="divider" id="hr-result" style="display:none">
+
+  <!-- Result formula -->
+  <div class="result" id="result-box">
+    <div class="result-term">
+      <span class="badge badge-a" id="res-a">–</span>
+      <span class="result-term-label">Dividende</span>
+    </div>
+    <span class="result-op">=</span>
+    <div class="result-term">
+      <span class="badge badge-q" id="res-q">–</span>
+      <span class="result-term-label">Quotient</span>
+    </div>
+    <span class="result-op">×</span>
+    <div class="result-term">
+      <span class="badge badge-b" id="res-b">–</span>
+      <span class="result-term-label">Diviseur</span>
+    </div>
+    <span class="result-op">+</span>
+    <div class="result-term">
+      <span class="badge badge-r" id="res-r">–</span>
+      <span class="result-term-label">Reste</span>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const inpA = document.getElementById('inp-a');
+const inpB = document.getElementById('inp-b');
+const errA = document.getElementById('err-a');
+const errB = document.getElementById('err-b');
+const btnGo = document.getElementById('btn-go');
+const sectionA = document.getElementById('section-a');
+const stickA = document.getElementById('stick-a');
+const resultBox = document.getElementById('result-box');
+const hrResult = document.getElementById('hr-result');
+
+let currentA = null;
+let currentB = null;
+
+function makeSq(classes, delay = 0) {
+  const d = document.createElement('div');
+  d.className = 'sq animate ' + classes;
+  d.style.animationDelay = delay + 'ms';
+  return d;
+}
+
+function updateGoButton() {
+  btnGo.disabled = !(currentA && currentB && currentB < currentA);
+}
+
+function scaleStick() {
+  const container = sectionA.querySelector('.stick-scroll');
+  stickA.style.transform = 'none';
+  const available = container.clientWidth;
+  const natural = stickA.scrollWidth;
+  if (natural > available && available > 0) {
+    const scale = available / natural;
+    stickA.style.transform = `scale(${scale})`;
+    stickA.style.transformOrigin = 'left center';
+    container.style.height = (stickA.offsetHeight * scale + 24) + 'px';
+  } else {
+    stickA.style.transform = 'none';
+    container.style.height = '';
+  }
+}
+
+function renderDividendOnly(a) {
+  stickA.innerHTML = '';
+  for (let i = 0; i < a; i++) {
+    stickA.appendChild(makeSq('dividend', i * 18));
+  }
+  sectionA.style.display = '';
+  resultBox.classList.remove('visible');
+  hrResult.style.display = 'none';
+  requestAnimationFrame(scaleStick);
+}
+
+function renderWithDivisor(a, b) {
+  const q = Math.floor(a / b);
+  const r = a % b;
+
+  stickA.innerHTML = '';
+  for (let g = 0; g < q; g++) {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'group-wrapper quotient-group';
+    for (let j = 0; j < b; j++) {
+      wrapper.appendChild(makeSq(''));
+    }
+    stickA.appendChild(wrapper);
+  }
+  if (r > 0) {
+    const remWrapper = document.createElement('div');
+    remWrapper.className = 'group-wrapper remainder-group';
+    for (let j = 0; j < r; j++) {
+      remWrapper.appendChild(makeSq(''));
+    }
+    stickA.appendChild(remWrapper);
+  }
+
+  hrResult.style.display = '';
+  document.getElementById('res-a').textContent = a;
+  document.getElementById('res-q').textContent = q;
+  document.getElementById('res-b').textContent = b;
+  document.getElementById('res-r').textContent = r;
+  setTimeout(() => resultBox.classList.add('visible'), 200);
+  requestAnimationFrame(scaleStick);
+}
+
+function validate(val, max, errEl) {
+  if (val === '' || val === null) { errEl.textContent = ''; return null; }
+  const n = parseInt(val);
+  if (isNaN(n) || n < 1) { errEl.textContent = 'Entier ≥ 1 requis.'; return null; }
+  if (n > max) { errEl.textContent = 'Maximum : ' + max + '.'; return null; }
+  errEl.textContent = '';
+  return n;
+}
+
+inpA.addEventListener('input', () => {
+  const a = validate(inpA.value, 800, errA);
+  currentA = a;
+  if (!a) {
+    sectionA.style.display = 'none';
+    resultBox.classList.remove('visible');
+    hrResult.style.display = 'none';
+    updateGoButton();
+    return;
+  }
+  renderDividendOnly(a);
+  if (currentB && currentB >= a) {
+    errB.textContent = 'Diviseur doit être < dividende.';
+    currentB = null;
+    inpB.value = '';
+  }
+  updateGoButton();
+});
+
+inpB.addEventListener('input', () => {
+  const b = validate(inpB.value, 40, errB);
+  currentB = b;
+  if (b && currentA && b >= currentA) {
+    errB.textContent = 'Diviseur doit être < dividende.';
+    currentB = null;
+  }
+  updateGoButton();
+});
+
+btnGo.addEventListener('click', () => {
+  if (currentA && currentB && currentB < currentA) {
+    renderWithDivisor(currentA, currentB);
+  }
+});
+
+window.addEventListener('resize', () => { if (currentA) scaleStick(); });
+</script>
+</body>
+</html>

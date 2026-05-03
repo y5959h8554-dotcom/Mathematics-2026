@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mathématiques</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f7f5f0;
+    --surface: #ffffff;
+    --border: #e0dcd4;
+    --text: #1a1916;
+    --text-muted: #6b6860;
+    --div-light: #ede4f5;
+    --div-mid: #7c3aed;
+    --div-dark: #4c1d95;
+    --quo-light: #fff0e0;
+    --quo-mid: #d45f00;
+    --quo-dark: #7a2e00;
+    --dis-light: #d4f0e6;
+    --dis-mid: #15803d;
+    --dis-dark: #14532d;
+    --res-light: #fde8e8;
+    --res-mid: #b91c1c;
+    --res-dark: #7f1d1d;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 48px 12px 80px;
+  }
+
+  header {
+    text-align: center;
+    margin-bottom: 48px;
+  }
+
+  header h1 {
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 10px;
+  }
+
+  header p {
+    font-size: 28px;
+    font-weight: 300;
+    color: var(--text);
+    letter-spacing: -0.02em;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 36px 40px;
+    width: 100%;
+    max-width: 1200px;
+  }
+
+  .section-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 16px;
+  }
+
+  .activities {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .activity-link {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    border-radius: 10px;
+    border: 1.5px solid var(--div-mid);
+    background: var(--div-light);
+    color: var(--div-dark);
+    text-decoration: none;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 16px;
+    font-weight: 400;
+    transition: background 0.15s, border-color 0.15s, transform 0.1s;
+    cursor: pointer;
+  }
+
+  .activity-link:hover {
+    background: #e2d4f0;
+    border-color: var(--div-dark);
+    transform: translateX(3px);
+  }
+
+  .activity-link:active {
+    transform: translateX(1px);
+  }
+
+  .activity-link .arrow {
+    font-family: 'DM Mono', monospace;
+    font-size: 14px;
+    opacity: 0.5;
+    transition: opacity 0.15s, transform 0.15s;
+  }
+
+  .activity-link:hover .arrow {
+    opacity: 1;
+    transform: translateX(3px);
+  }
+
+  .activity-tag {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 2px 8px;
+    border-radius: 4px;
+    background: var(--div-mid);
+    color: white;
+    margin-left: 12px;
+    opacity: 0.8;
+  }
+
+  .activity-title {
+    display: flex;
+    align-items: center;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Mathématiques — 6e</h1>
+  <p>Activités interactives</p>
+</header>
+
+<div class="card">
+  <div class="section-label">Chapitres</div>
+  <div class="activities">
+    <a class="activity-link" href="division_euclidienne.html">
+      <div class="activity-title">
+        Division euclidienne
+        <span class="activity-tag">Arithmétique</span>
+      </div>
+      <span class="arrow">→</span>
+    </a>
+  </div>
+</div>
+
+</body>
+</html>

@@ -152,7 +152,7 @@ body {
 
 /* Drag sources */
 .srcs { display:flex; gap:10px; align-items:flex-end; flex-shrink:0; flex-wrap:nowrap; }
-.src { display:flex; flex-direction:column; align-items:center; gap:5px; cursor:grab; user-select:none; }
+.src { display:flex; flex-direction:column; align-items:center; gap:5px; cursor:grab; user-select:none; touch-action:none; }
 .src svg { border: 2px solid var(--border); border-radius: 8px; display:block; transition: border-color .15s, box-shadow .15s; }
 .src:hover svg { border-color: var(--red); box-shadow: 0 2px 8px rgba(0,0,0,.12); }
 .src.placed svg { opacity:.28; }
@@ -572,16 +572,20 @@ function onSVGMove(e){
 const ghostSvg=document.getElementById('ghost-svg');
 function startGhost(e,what,charId){
   S.ghostWhat=what;
+  S.ghostPointerId=e.pointerId;
   ghostSvg.style.display='block';
   ghostSvg.innerHTML='';
   ghostSvg.setAttribute('viewBox','-22 -68 44 80');
   if(charId)buildCharSVG(ghostSvg,charId,false);
   else buildDoorSVG(ghostSvg,0,0,24,52);
   moveGhost(e);
-  document.addEventListener('pointermove',onGMove);
+  // Use document-level capture so touch drag follows finger off element
+  document.addEventListener('pointermove',onGMove,{passive:false});
   document.addEventListener('pointerup',onGUp);
+  document.addEventListener('pointercancel',onGUp);
 }
 function moveGhost(e){
+  e.preventDefault(); // critical: prevents scroll hijacking on touch
   ghostSvg.style.left=(e.clientX-40)+'px';
   ghostSvg.style.top=(e.clientY-80)+'px';
   // preview
@@ -593,11 +597,17 @@ function moveGhost(e){
   } else { S.preview=null; }
   drawScene(S.ap,S.bp,S.doorP,S.aVel,S.bVel,0,320,false,S.preview);
 }
-function onGMove(e){moveGhost(e);}
+function onGMove(e){
+  if(S.ghostPointerId!==undefined&&e.pointerId!==S.ghostPointerId)return;
+  moveGhost(e);
+}
 function onGUp(e){
+  if(S.ghostPointerId!==undefined&&e.pointerId!==S.ghostPointerId)return;
   ghostSvg.style.display='none';
   document.removeEventListener('pointermove',onGMove);
   document.removeEventListener('pointerup',onGUp);
+  document.removeEventListener('pointercancel',onGUp);
+  S.ghostPointerId=undefined;
   const rect=svg.getBoundingClientRect();
   if(e.clientX>=rect.left&&e.clientX<=rect.right&&e.clientY>=rect.top&&e.clientY<=rect.bottom){
     const x=(e.clientX-rect.left)*(VW/rect.width);
@@ -630,9 +640,9 @@ function updateAnim(){
   if(!isFinite(tc)){
     const raw=rawCatchT();
     if(isFinite(raw)&&raw<0){
-      sol.textContent=`→ t = ${raw.toFixed(2)}s : croisement dans le passé — ils ne se rejoignent plus.`;
+      sol.textContent=`→ t = ${raw.toFixed(2)}s`;
     } else {
-      sol.textContent='→ Les positions ne se croisent pas (vitesses identiques ou parallèles).';
+      sol.textContent='→ pas de solution';
     }
   }
   else if(S.doorOn&&S.doorP&&td<tc){sol.textContent=`→ t = ${td.toFixed(2)}s : ${CHARS[S.chasee].name} atteint la porte`;sol.classList.add('e');}

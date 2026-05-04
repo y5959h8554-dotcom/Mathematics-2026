@@ -355,7 +355,7 @@ function g(attrs={}){return el('g',attrs);}
 const S={
   chaser:'demogorgon', chasee:null,
   ap:null, bp:null, doorP:null,
-  doorOn:false, aVel:8, bVel:3,
+  doorOn:true, aVel:8, bVel:3,
   preview:null, dragWhat:null, ghostWhat:null,
   t:0, playing:false, spd:1,
   raf:null, lastTs:null, maxT:80,
@@ -702,9 +702,11 @@ function startFly(){
   const tc=catchT();
   const maxM=maxPosNow();
   const catchX=mToX(pB(tc),maxM);
-  const scFly=Math.max(1.2,Math.min(3.5,(FLOOR_Y-CEIL_Y)/80))*0.88;
+  const charH=FLOOR_Y-CEIL_Y;
+  const charScale=Math.max(1.2,Math.min(3.5,charH/80));
+  const scFly=charScale*0.88;
   const footYFly=FLOOR_Y-9*scFly;
-  S.fly={x:catchX,y:footYFly,vy:-8,gy:0.4,rot:0,alpha:1,startTs:null};
+  S.fly={x:catchX,y:footYFly,vy:-8,gy:0.4,rot:0,alpha:1,startTs:null,scale:scFly};
   S.raf=requestAnimationFrame(flyLoop);
 }
 function flyLoop(ts){
@@ -723,7 +725,7 @@ function flyLoop(ts){
   // Draw flying chasee in SVG
   const flyG=svg.querySelector('#fly-char');
   if(flyG)flyG.remove();
-  const fg=g({id:'fly-char',opacity:S.fly.alpha,transform:`translate(${S.fly.x},${newY}) rotate(${S.fly.rot*57.3}) scale(0.85)`});
+  const fg=g({id:'fly-char',opacity:S.fly.alpha,transform:`translate(${S.fly.x},${newY}) rotate(${S.fly.rot*57.3}) scale(${S.fly.scale})`});
   buildCharSVG(fg,S.chasee,false);
   svg.appendChild(fg);
 

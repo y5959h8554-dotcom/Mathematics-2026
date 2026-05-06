@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8"></head><body style="background:#0a0a0f;padding:8px;">
+<div id="ui" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px;">
+  <button id="spawn" style="padding:4px 12px;background:#333;color:#fff;border:1px solid #555;border-radius:5px;cursor:pointer;">Spawn</button>
+  <button id="minus" style="padding:4px 10px;background:#333;color:#fff;border:1px solid #555;border-radius:5px;cursor:pointer;">-</button>
+  <span id="sepval" style="color:#fff;min-width:24px;text-align:center;">20</span>
+  <button id="plus" style="padding:4px 10px;background:#333;color:#fff;border:1px solid #555;border-radius:5px;cursor:pointer;">+</button>
+  <button onclick="setSpeed(1)" style="padding:4px 10px;background:#333;color:#fff;border:1px solid #555;border-radius:5px;cursor:pointer;">1x</button>
+  <button onclick="setSpeed(2)" style="padding:4px 10px;background:#333;color:#fff;border:1px solid #555;border-radius:5px;cursor:pointer;">2x</button>
+  <button onclick="setSpeed(5)" style="padding:4px 10px;background:#333;color:#fff;border:1px solid #555;border-radius:5px;cursor:pointer;">5x</button>
+  <button onclick="setSpeed(10)" style="padding:4px 10px;background:#333;color:#fff;border:1px solid #555;border-radius:5px;cursor:pointer;">10x</button>
+  <button id="pluton" style="padding:4px 12px;background:#1a1a2e;color:#7fff00;border:1px solid #4a9900;border-radius:5px;cursor:pointer;">Enable Plutonium</button>
+</div>
+<p id="count" style="color:#aaa;font-size:50px;position:fixed;top:5%;left:2%;">particles: 0</p>
+<canvas id="c" width="900" height="600" style="display:block;width:100%;background:#0c0c12;border-radius:6px;"></canvas>
+<script>
+var canvas=document.getElementById('c');
+var ctx=canvas.getContext('2d');
+var W=900,H=400;
+var sep=20,speedMult=1;
+var particles=[];
+var plutoniumOn=false;
+var glowPhase=0;
+
+document.getElementById('pluton').onclick=function(){
+  plutoniumOn=!plutoniumOn;
+  this.textContent=plutoniumOn?'Disable Plutonium':'Enable Plutonium';
+  this.style.background=plutoniumOn?'#0a2a0a':'#1a1a2e';
+  this.style.color=plutoniumOn?'#00ff88':'#7fff00';
+  this.style.borderColor=plutoniumOn?'#00cc66':'#4a9900';
+};
+
+function Particle(x,y){
+  var angle=Math.random()*Math.PI*2;
+  this.x=x; this.y=y;
+  this.vx = Math.cos(angle) * 2 * speedMult + Math.sign(Math.cos(angle)) * 0.1;
+  this.vy = Math.sin(angle) * 2 * speedMult + Math.sign(Math.sin(angle)) * 0.1;
+  this.alive=true;
+}
+
+window.setSpeed=function(mult){
+  speedMult=mult;
+  for(var i=0;i<particles.length;i++){
+    var p=particles[i];
+    var s=Math.sqrt(p.vx*p.vx+p.vy*p.vy);
+    p.vx=p.vx/s*2*mult;
+    p.vy=p.vy/s*2*mult;
+  }
+};
+
+document.getElementById('spawn').onclick=function(){
+  for(var i=0;i<10;i++) particles.push(new Particle(W/2-25,H/2));
+};
+
+function startHold(fn) {
+  
+  return setInterval(fn, 80);
+}
+
+let holdInterval = null;
+
+document.getElementById('plus').addEventListener('mousedown', () => {
+  holdInterval = startHold(() => {
+    sep += 1;
+    document.getElementById('sepval').textContent = sep;
+  });
+});
+
+document.getElementById('minus').addEventListener('mousedown', () => {
+  holdInterval = startHold(() => {
+    sep = Math.max(0, sep - 1);
+    document.getElementById('sepval').textContent = sep;
+  });
+});
+
+document.addEventListener('mouseup', () => clearInterval(holdInterval));
+document.addEventListener('mouseleave', () => clearInterval(holdInterval));
+
+function draw(){
+  ctx.clearRect(0,0,W,600);
+  glowPhase+=0.07;
+  var cx=W/2, cy=H/2;
+  var bw=220,bh=150,thick=14;
+  var L=cx-bw/2,R=cx+bw/2;
+  var bTop=cy-bh,bBot=cy+bh;
+
+  ctx.fillStyle='#2979FF';
+  ctx.fillRect(L,bTop-sep,bw,thick);
+  ctx.fillRect(L,bTop-sep,thick,bh);
+  ctx.fillRect(R-thick,bTop-sep,thick,bh);
+  ctx.fillRect(L,bBot+sep,bw,thick);
+  ctx.fillRect(L,cy+sep,thick,bh);
+  ctx.fillRect(R-thick,cy+sep,thick,bh);
+
+  var coreR=44;
+  if(plutoniumOn){
+    var pulse=0.6+0.4*Math.sin(glowPhase);
+    ctx.save();
+    ctx.shadowColor='rgba(0,255,100,'+pulse+')';
+    ctx.shadowBlur=30*pulse;
+    ctx.beginPath();
+    ctx.arc(cx,cy,coreR,0,Math.PI*2);
+    ctx.fillStyle='rgba(0,'+(180+Math.floor(75*pulse))+',60,1)';
+    ctx.fill();
+    ctx.restore();
+    // inner bright spot
+    ctx.beginPath();
+    ctx.arc(cx-8,cy-8,10,0,Math.PI*2);
+    ctx.fillStyle='rgba(180,255,180,'+(0.3*pulse)+')';
+    ctx.fill();
+  } 
+
+  var next=[];
+  for(var i=0;i<particles.length;i++){
+    var p=particles[i];
+    p.x+=p.vx; p.y+=p.vy;
+    var x=p.x,y=p.y;
+    if(x>L&&x<R&&y>bTop-sep&&y<bTop-sep+thick){p.vy*=-1;p.y+=2;}
+    if(x>L&&x<R&&y>bBot+sep&&y<bBot+sep+thick){p.vy*=-1;p.y-=2;}
+    if(y>bTop-sep&&y<cy-sep&&x>L&&x<L+thick){p.vx*=-1;p.x+=2;}
+    if(y>bTop-sep&&y<cy-sep&&x>R-thick&&x<R){p.vx*=-1;p.x-=2;}
+    if(y>cy+sep&&y<bBot+sep&&x>L&&x<L+thick){p.vx*=-1;p.x+=2;}
+    if(y>cy+sep&&y<bBot+sep&&x>R-thick&&x<R){p.vx*=-1;p.x-=2;}
+    if(x<10||x>W-10||y<10||y>H-10){p.alive=false;}
+
+    var spawnRate = plutoniumOn ? 0.02 : 0.00;
+    if(Math.random()<spawnRate&&(x-cx)*(x-cx)+(y-cy)*(y-cy)<coreR*coreR){
+      particles.push(new Particle(x,y));
+    }
+
+    ctx.beginPath();
+    ctx.arc(x,y,4,0,Math.PI*2);
+    ctx.fillStyle= plutoniumOn ? '#88ffcc' : 'white';
+    ctx.fill();
+    if(p.alive) next.push(p);
+  }
+  particles=next;
+  document.getElementById('count').textContent='particles: '+particles.length;
+}
+
+function loop(){draw();requestAnimationFrame(loop);}
+loop();
+</script>
+</body></html>

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Lancer d'un dé</title>
+  <title>Lancer de dé</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -140,20 +140,7 @@
     }
 
     /* Shimmer sweep on higher ranks (gold and up) */
-    .action-stack button.lancer.tier-3::after,
-    .action-stack button.lancer.tier-4::after,
-    .action-stack button.lancer.tier-5::after {
-      content: ''; position: absolute; top: 0; left: -100%; width: 50%; height: 100%;
-      background: linear-gradient(100deg, transparent 0%, rgba(255, 255, 255, 0.45) 50%, transparent 100%);
-      animation: rankShimmer 2.4s ease-in-out infinite;
-      pointer-events: none;
-    }
-    .action-stack button.lancer.tier-4::after { animation-duration: 1.8s; }
-    .action-stack button.lancer.tier-5::after { animation-duration: 1.3s; background: linear-gradient(100deg, transparent 0%, rgba(255, 255, 255, 0.7) 50%, transparent 100%); }
-    @keyframes rankShimmer {
-      0%, 100% { left: -60%; }
-      50%      { left: 110%; }
-    }
+
     /* Achievement popup */
     .ach-backdrop {
       position: fixed; inset: 0; background: rgba(40, 28, 16, 0.35);

@@ -8,188 +8,167 @@
 <style>
   :root {
     --bg: #f7f5f0;
-    --surface: #ffffff;
-    --border: #e0dcd4;
     --text: #1a1916;
     --text-muted: #6b6860;
-    --div-light: #ede4f5;
-    --div-mid: #7c3aed;
-    --div-dark: #4c1d95;
-    --quo-light: #fff0e0;
-    --quo-mid: #d45f00;
-    --quo-dark: #7a2e00;
-    --dis-light: #d4f0e6;
-    --dis-mid: #15803d;
-    --dis-dark: #14532d;
-    --res-light: #fde8e8;
-    --res-mid: #b91c1c;
-    --res-dark: #7f1d1d;
+
+    --arith-light: #ede4f5;
+    --arith-light-hover: #e2d4f0;
+    --arith-mid: #7c3aed;
+    --arith-dark: #4c1d95;
+
+    --prob-light: #fff0e0;
+    --prob-light-hover: #ffe4c8;
+    --prob-mid: #d45f00;
+    --prob-dark: #7a2e00;
+
+    --model-light: #d4f0e6;
+    --model-light-hover: #c1e7d6;
+    --model-mid: #15803d;
+    --model-dark: #14532d;
   }
-
   * { box-sizing: border-box; margin: 0; padding: 0; }
-
   body {
     font-family: 'DM Sans', sans-serif;
     background: var(--bg);
     color: var(--text);
     min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 48px 12px 80px;
+    padding: 64px 16px 96px;
   }
-
   header {
     text-align: center;
-    margin-bottom: 48px;
+    margin-bottom: 56px;
   }
-
-  header h1 {
-    font-family: 'DM Mono', monospace;
-    font-size: 13px;
-    font-weight: 500;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: var(--text-muted);
-    margin-bottom: 10px;
-  }
-
   header p {
-    font-size: 28px;
+    font-size: 32px;
     font-weight: 300;
-    color: var(--text);
     letter-spacing: -0.02em;
   }
-
-  .card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 36px 40px;
-    width: 100%;
-    max-width: 1200px;
+  .wrap {
+    max-width: 1000px;
+    margin: 0 auto;
   }
-
+  .section {
+    margin-bottom: 40px;
+  }
   .section-label {
     font-family: 'DM Mono', monospace;
     font-size: 11px;
     font-weight: 500;
-    letter-spacing: 0.12em;
+    letter-spacing: 0.14em;
     text-transform: uppercase;
     color: var(--text-muted);
     margin-bottom: 16px;
+    padding-left: 4px;
   }
-
-  .activities {
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, 260px);
+    gap: 14px;
+  }
+  .tile {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    justify-content: space-between;
+    min-height: 140px;
+    padding: 22px 24px;
+    border-radius: 14px;
+    text-decoration: none;
+    transition: transform 0.15s, background 0.15s;
+    cursor: pointer;
   }
+  .tile:hover { transform: translateY(-2px); }
+  .tile:active { transform: translateY(0); }
 
-  .activity-link {
+  .tile-arith {
+    background: var(--arith-light);
+    border: 1.5px solid var(--arith-mid);
+    color: var(--arith-dark);
+  }
+  .tile-arith:hover { background: var(--arith-light-hover); }
+
+  .tile-prob {
+    background: var(--prob-light);
+    border: 1.5px solid var(--prob-mid);
+    color: var(--prob-dark);
+  }
+  .tile-prob:hover { background: var(--prob-light-hover); }
+
+  .tile-model {
+    background: var(--model-light);
+    border: 1.5px solid var(--model-mid);
+    color: var(--model-dark);
+  }
+  .tile-model:hover { background: var(--model-light-hover); }
+
+  .tile-title {
+    font-size: 19px;
+    font-weight: 400;
+    letter-spacing: -0.01em;
+    line-height: 1.25;
+  }
+  .tile-footer {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 16px 20px;
-    border-radius: 10px;
-    border: 1.5px solid var(--div-mid);
-    background: var(--div-light);
-    color: var(--div-dark);
-    text-decoration: none;
-    font-family: 'DM Sans', sans-serif;
-    font-size: 16px;
-    font-weight: 400;
-    transition: background 0.15s, border-color 0.15s, transform 0.1s;
-    cursor: pointer;
+    margin-top: 18px;
   }
-
-  .activity-link:hover {
-    background: #e2d4f0;
-    border-color: var(--div-dark);
-    transform: translateX(3px);
-  }
-
-  .activity-link:active {
-    transform: translateX(1px);
-  }
-
-  .activity-link .arrow {
+  .tile-number {
     font-family: 'DM Mono', monospace;
-    font-size: 14px;
+    font-size: 11px;
+    opacity: 0.55;
+    letter-spacing: 0.06em;
+  }
+  .tile-arrow {
+    font-family: 'DM Mono', monospace;
+    font-size: 15px;
     opacity: 0.5;
     transition: opacity 0.15s, transform 0.15s;
   }
-
-  .activity-link:hover .arrow {
+  .tile:hover .tile-arrow {
     opacity: 1;
     transform: translateX(3px);
-  }
-
-  .activity-tag {
-    font-family: 'DM Mono', monospace;
-    font-size: 10px;
-    font-weight: 500;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    padding: 2px 8px;
-    border-radius: 4px;
-    background: var(--div-mid);
-    color: white;
-    margin-left: 12px;
-    opacity: 0.8;
-  }
-
-  .activity-title {
-    display: flex;
-    align-items: center;
   }
 </style>
 </head>
 <body>
-
 <header>
-  <h1>Mathématiques — 6e</h1>
   <p>Activités interactives</p>
 </header>
 
-<div class="card">
-  <div class="section-label">Chapitres</div>
-  <div class="activities">
-    <a class="activity-link" href="division_euclidienne.html">
-      <div class="activity-title">
-        Division euclidienne
-        <span class="activity-tag">Arithmétique</span>
-      </div>
-      <span class="arrow">→</span>
-    </a>
+<div class="wrap">
+  <div class="section">
+    <div class="section-label">Arithmétique</div>
+    <div class="grid">
+      <a class="tile tile-arith" href="division_euclidienne.html">
+        <div class="tile-title">Division euclidienne</div>
+        <div class="tile-footer"><span class="tile-number">01</span><span class="tile-arrow">→</span></div>
+      </a>
+      <a class="tile tile-arith" href="demon_core.html">
+        <div class="tile-title">Demon core</div>
+        <div class="tile-footer"><span class="tile-number">02</span><span class="tile-arrow">→</span></div>
+      </a>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-label">Probabilités</div>
+    <div class="grid">
+      <a class="tile tile-prob" href="dice_roller.html">
+        <div class="tile-title">Lancer de dés</div>
+        <div class="tile-footer"><span class="tile-number">03</span><span class="tile-arrow">→</span></div>
+      </a>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-label">Modélisation</div>
+    <div class="grid">
+      <a class="tile tile-model" href="demogorgon_equation.html">
+        <div class="tile-title">Eleven, Will et le Demogorgon</div>
+        <div class="tile-footer"><span class="tile-number">04</span><span class="tile-arrow">→</span></div>
+      </a>
+    </div>
   </div>
 </div>
-
-<div class="card">
-  <div class="section-label">Chapitres</div>
-  <div class="activities">
-    <a class="activity-link" href="demon_core.html">
-      <div class="activity-title">
-        Demon core
-        <span class="activity-tag">Arithmétique</span>
-      </div>
-      <span class="arrow">→</span>
-    </a>
-  </div>
-</div>
-
-<div class="card">
-  <div class="section-label">Chapitres</div>
-  <div class="activities">
-    <a class="activity-link" href="demogorgon_equation.html">
-      <div class="activity-title">
-        Eleven, Will et le Demogorgon
-        <span class="activity-tag">Modélisation</span>
-      </div>
-      <span class="arrow">→</span>
-    </a>
-  </div>
-</div>
-
 </body>
 </html>

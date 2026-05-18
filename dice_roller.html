@@ -59,9 +59,101 @@
     }
     .action-stack button:hover:not(:disabled) { background: #c9a877; }
     .action-stack button:active:not(:disabled) { transform: translateY(1px); }
-    .action-stack button.lancer { background: #c9a566; border-color: #8a6a35; font-size: 17px; }
-    .action-stack button.lancer:hover:not(:disabled) { background: #b8954f; }
+    .action-stack button.lancer { font-size: 17px; position: relative; z-index: 2; overflow: hidden; }
+    .action-stack button.lancer:hover:not(:disabled) { filter: brightness(1.08); }
 
+    /* Container — kept for layout consistency, no fire effects */
+    .lancer-wrap { position: relative; width: 100%; }
+
+    /* ============ Rank tiers (LoL-inspired: copper, silver, gold, platinum, diamond) ============ */
+    /* Each tier replaces the button's background, border, glow, and label color. */
+
+    /* Tier 1 — default copper/bronze (the starting "rank") */
+    .action-stack button.lancer.tier-1 {
+      background: linear-gradient(180deg, #d4956a 0%, #a8714a 50%, #7a4a28 100%);
+      border: 1px solid #5a3818;
+      color: #2a1808;
+      text-shadow: 0 1px 0 rgba(255, 220, 180, 0.4);
+      box-shadow: 0 2px 0 #5a3818, 0 4px 10px rgba(122, 74, 40, 0.4);
+    }
+
+    /* Tier 2 — silver */
+    .action-stack button.lancer.tier-2 {
+      background: linear-gradient(180deg, #e0e6ec 0%, #9aa8b4 50%, #5e6c78 100%);
+      border: 1px solid #4a5662;
+      color: #1a2530;
+      text-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
+      box-shadow: 0 2px 0 #4a5662, 0 0 14px rgba(154, 168, 180, 0.5), 0 4px 12px rgba(94, 108, 120, 0.4);
+    }
+
+    /* Tier 3 — gold */
+    .action-stack button.lancer.tier-3 {
+      background: linear-gradient(180deg, #ffe089 0%, #d4a542 50%, #8a6418 100%);
+      border: 1px solid #6a4a10;
+      color: #2a1a02;
+      text-shadow: 0 1px 0 rgba(255, 240, 180, 0.5);
+      box-shadow: 0 2px 0 #6a4a10, 0 0 18px rgba(212, 165, 66, 0.65), 0 4px 14px rgba(138, 100, 24, 0.5);
+      animation: rankBreatheGold 2.6s ease-in-out infinite;
+    }
+    @keyframes rankBreatheGold {
+      0%, 100% { box-shadow: 0 2px 0 #6a4a10, 0 0 18px rgba(212, 165, 66, 0.55), 0 4px 14px rgba(138, 100, 24, 0.5); }
+      50%      { box-shadow: 0 2px 0 #6a4a10, 0 0 26px rgba(212, 165, 66, 0.85), 0 4px 16px rgba(138, 100, 24, 0.65); }
+    }
+
+    /* Tier 4 — platinum */
+    .action-stack button.lancer.tier-4 {
+      background: linear-gradient(180deg, #d8f0ec 0%, #7fc4c0 50%, #3a7a76 100%);
+      border: 1px solid #2a5a56;
+      color: #0a2a26;
+      text-shadow: 0 1px 0 rgba(220, 250, 245, 0.6);
+      box-shadow: 0 2px 0 #2a5a56, 0 0 22px rgba(127, 196, 192, 0.75), 0 4px 16px rgba(58, 122, 118, 0.55);
+      animation: rankBreathePlatinum 2.2s ease-in-out infinite;
+    }
+    @keyframes rankBreathePlatinum {
+      0%, 100% { box-shadow: 0 2px 0 #2a5a56, 0 0 22px rgba(127, 196, 192, 0.65), 0 4px 16px rgba(58, 122, 118, 0.5); transform: scale(1); }
+      50%      { box-shadow: 0 2px 0 #2a5a56, 0 0 32px rgba(127, 196, 192, 0.95), 0 4px 20px rgba(58, 122, 118, 0.65); transform: scale(1.02); }
+    }
+
+    /* Tier 5 — diamond */
+    .action-stack button.lancer.tier-5 {
+      background: linear-gradient(180deg, #e8f6ff 0%, #5fb8e8 45%, #2a7ab8 100%);
+      border: 1px solid #1a5088;
+      color: #061a3a;
+      text-shadow: 0 1px 0 rgba(220, 240, 255, 0.7);
+      box-shadow:
+        0 2px 0 #1a5088,
+        0 0 28px rgba(95, 184, 232, 0.95),
+        0 0 0 2px rgba(180, 220, 255, 0.6),
+        0 6px 20px rgba(42, 122, 184, 0.6);
+      animation: rankBreatheDiamond 1.6s ease-in-out infinite;
+      font-weight: 700;
+    }
+    @keyframes rankBreatheDiamond {
+      0%, 100% {
+        box-shadow: 0 2px 0 #1a5088, 0 0 28px rgba(95, 184, 232, 0.8), 0 0 0 2px rgba(180, 220, 255, 0.5), 0 6px 20px rgba(42, 122, 184, 0.5);
+        transform: scale(1);
+      }
+      50% {
+        box-shadow: 0 2px 0 #1a5088, 0 0 42px rgba(95, 184, 232, 1.0), 0 0 0 3px rgba(220, 240, 255, 0.8), 0 6px 24px rgba(42, 122, 184, 0.7);
+        transform: scale(1.03);
+      }
+    }
+
+    /* Shimmer sweep on higher ranks (gold and up) */
+    .action-stack button.lancer.tier-3::after,
+    .action-stack button.lancer.tier-4::after,
+    .action-stack button.lancer.tier-5::after {
+      content: ''; position: absolute; top: 0; left: -100%; width: 50%; height: 100%;
+      background: linear-gradient(100deg, transparent 0%, rgba(255, 255, 255, 0.45) 50%, transparent 100%);
+      animation: rankShimmer 2.4s ease-in-out infinite;
+      pointer-events: none;
+    }
+    .action-stack button.lancer.tier-4::after { animation-duration: 1.8s; }
+    .action-stack button.lancer.tier-5::after { animation-duration: 1.3s; background: linear-gradient(100deg, transparent 0%, rgba(255, 255, 255, 0.7) 50%, transparent 100%); }
+    @keyframes rankShimmer {
+      0%, 100% { left: -60%; }
+      50%      { left: 110%; }
+    }
     /* Achievement popup */
     .ach-backdrop {
       position: fixed; inset: 0; background: rgba(40, 28, 16, 0.35);
@@ -130,6 +222,12 @@
       25%  { opacity: 0.95; }
       100% { opacity: 0.85; }
     }
+    @keyframes incPop {
+      0%   { opacity: 0; }
+      10%  { opacity: 1; }
+      85%  { opacity: 1; }
+      100% { opacity: 0; }
+    }
   </style>
 </head>
 <body>
@@ -160,11 +258,9 @@
   </div>
 
     <div class="action-stack">
-      <button id="btn-roll" class="lancer" onclick="rollOnce()"><i class="ti ti-dice"></i> Lancer</button>
-      <button id="btn-x10" onclick="rollMany(10)" style="display:none;">×10</button>
-      <button id="btn-x100" onclick="rollMany(100)" style="display:none;">×100</button>
-      <button id="btn-x1000" onclick="rollMany(1000)" style="display:none;">×1000</button>
-      <button id="btn-x10000" onclick="rollMany(10000)" style="display:none;">×10000</button>
+      <div class="lancer-wrap" id="lancer-wrap">
+        <button id="btn-roll" class="lancer tier-1" onclick="rollCurrent()"><i class="ti ti-dice"></i> <span id="btn-roll-label">Lancer</span></button>
+      </div>
     </div>
   </div>
 
@@ -186,6 +282,7 @@
   const counts = [0, 0, 0, 0, 0, 0]; // index 0 -> outcome 1
   let total = 0;
   let isRolling = false;
+  let currentRollSize = 1; // How many dice the main button rolls; grows with unlocks
 
   // ============ 3D cube target orientations ============
   // For each face value 1-6, the rotation that brings that face to the TOP
@@ -374,6 +471,20 @@
       countText.textContent = '0';
       g.appendChild(countText);
 
+      // Increment indicator (shown briefly after multi-roll batches)
+      const incText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      incText.setAttribute('id', `inc-${value}`);
+      incText.setAttribute('x', pos.x + OUTCOME_RADIUS + 8);
+      incText.setAttribute('y', pos.y + 22);
+      incText.setAttribute('text-anchor', 'start');
+      incText.setAttribute('font-family', 'system-ui, sans-serif');
+      incText.setAttribute('font-size', '13');
+      incText.setAttribute('font-weight', '600');
+      incText.setAttribute('fill', '#2d8a3e');
+      incText.setAttribute('opacity', '0');
+      incText.textContent = '';
+      g.appendChild(incText);
+
       svg.appendChild(g);
     }
   }
@@ -447,14 +558,45 @@
       x1000:  "Vous pouvez maintenant lancer 1000 dés !",
       x10000: "Vous pouvez maintenant lancer 10000 dés !",
     };
+    // Highest unlocked tier determines roll size and button look
+    let tier = 1, size = 1, label = 'Lancer';
+    if (unlocked.x10000)      { tier = 5; size = 10000; label = '×10000'; }
+    else if (unlocked.x1000)  { tier = 4; size = 1000;  label = '×1000'; }
+    else if (unlocked.x100)   { tier = 3; size = 100;   label = '×100'; }
+    else if (unlocked.x10)    { tier = 2; size = 10;    label = '×10'; }
+    currentRollSize = size;
+    document.getElementById('btn-roll-label').textContent = label;
+    const btn = document.getElementById('btn-roll');
+    btn.classList.remove('tier-1', 'tier-2', 'tier-3', 'tier-4', 'tier-5');
+    btn.classList.add(`tier-${tier}`);
+
+    // Fire achievement popups on new unlocks (not on page load / not on rebuilds)
     for (const key of ['x10', 'x100', 'x1000', 'x10000']) {
-      const btn = document.getElementById(`btn-${key}`);
-      btn.style.display = unlocked[key] ? '' : 'none';
       if (unlocked[key] && !prevUnlocked[key]) {
         showAchievement(messages[key]);
       }
     }
     prevUnlocked = unlocked;
+  }
+
+  // Dispatcher for the main Lancer button — uses the currently-unlocked roll size
+  function rollCurrent() {
+    if (currentRollSize === 1) return rollOnce();
+    return rollMany(currentRollSize);
+  }
+
+  // Show green "+N" increment indicators next to each outcome briefly
+  function showIncrements(deltas) {
+    for (let i = 0; i < 6; i++) {
+      const el = document.getElementById(`inc-${i + 1}`);
+      if (!el) continue;
+      el.style.animation = 'none';
+      void el.getBoundingClientRect();
+      el.textContent = `+${deltas[i]}`;
+      // Dim grey for +0, vivid green for positive
+      el.setAttribute('fill', deltas[i] > 0 ? '#2d8a3e' : '#a0a0a0');
+      el.style.animation = 'incPop 4s ease-out forwards';
+    }
   }
 
   function showAchievement(message) {
@@ -519,6 +661,8 @@
     if (isRolling) return;
     isRolling = true;
     document.getElementById('btn-roll').disabled = true;
+    // Snapshot counts to compute per-outcome deltas for the green "+N" indicators
+    const startCounts = counts.slice();
     // Speed up batch rolls significantly so larger batches feel snappy.
     if (n <= 10) {
       // ×10: quick per-roll tumble
@@ -545,8 +689,6 @@
       let processed = 0;
 
       // Cube chaos: spin the cube continuously, with intensity scaled to n.
-      // ×100: moderate tumble. ×1000: faster. ×10000: frenetic.
-      // Per-step angular delta (degrees). Pick X/Y/Z all to make it look 3D-chaotic.
       const chaosDeg = n >= 10000 ? 220 : (n >= 1000 ? 140 : 80);
       cube.style.transition = `transform ${STEP_MS}ms linear`;
       let chaosX = currentRotation.x, chaosY = currentRotation.y, chaosZ = currentRotation.z;
@@ -558,22 +700,18 @@
           total++;
         }
         processed = stepEnd;
-        // Drive the cube with a jittered chaotic delta on each axis
         chaosX += chaosDeg * (0.7 + Math.random() * 0.6);
         chaosY += chaosDeg * (0.7 + Math.random() * 0.6) * (Math.random() < 0.5 ? 1 : -1);
         chaosZ += (chaosDeg * 0.4) * (Math.random() < 0.5 ? 1 : -1);
         cube.style.transform = `rotateX(${chaosX}deg) rotateY(${chaosY}deg) rotateZ(${chaosZ}deg)`;
-        // Pick a flicker outcome from this chunk for the visible glow
         const flickerVal = allValues[Math.min(stepEnd - 1, n - 2)];
         flickerOutcome(flickerVal);
         updateLabels();
         await new Promise(r => setTimeout(r, STEP_MS));
       }
-      // Sync currentRotation so the final landing rollAnimate computes deltas correctly.
       currentRotation.x = chaosX;
       currentRotation.y = chaosY;
       currentRotation.z = chaosZ;
-      // Final roll: animated cube tumble + proper pulse glow
       const finalValue = allValues[n - 1];
       await rollAnimate(finalValue, 200);
       counts[finalValue - 1]++;
@@ -581,6 +719,9 @@
       highlightOutcome(finalValue);
       updateLabels();
     }
+    // Compute deltas and show "+N" green indicators
+    const deltas = counts.map((c, i) => c - startCounts[i]);
+    showIncrements(deltas);
     document.getElementById('btn-roll').disabled = false;
     isRolling = false;
   }

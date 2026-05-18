@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lancer de dé</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, -apple-system, sans-serif; background: #ede4d8; color: #3d2e1e; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 2rem 1rem; }
+    #app { width: 100%; max-width: 980px; }
+    .main-row { display: flex; gap: 16px; align-items: flex-start; }
+    .main-row .stage { flex: 1; min-width: 0; }
+    h1 { font-size: 18px; font-weight: 500; color: #3d2e1e; margin-bottom: 14px; }
+
+    .stage { border-radius: 8px; border: 1.5px solid #c9b99a; background: #fdf6ec; overflow: hidden; }
+
+    /* Top half: the 3D dice arena */
+    .arena { position: relative; width: 100%; height: 240px; display: flex; align-items: center; justify-content: center; background: #fdf6ec; border-bottom: 1px solid #e0d4bf; perspective: 800px; }
+
+    /* Outcome panel */
+    .outcomes { position: relative; width: 100%; height: 420px; background: #fdf6ec; }
+    .outcomes svg { display: block; width: 100%; height: 100%; }
+
+    /* 3D cube */
+    .scene { width: 80px; height: 80px; perspective: 800px; }
+    .cube-tilt { width: 80px; height: 80px; transform-style: preserve-3d; transform: rotateX(-25deg) rotateY(-30deg); }
+    .cube { position: relative; width: 80px; height: 80px; transform-style: preserve-3d; transition: transform 0.05s linear; }
+    .cube.rolling { transition: none; }
+    .face { position: absolute; width: 80px; height: 80px; background: #f7eedd; border: 1.5px solid #b09878; border-radius: 10px; display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr); padding: 10px; gap: 4px; box-shadow: inset 0 0 6px rgba(176,152,120,0.12); }
+    .pip { background: #3d2e1e; border-radius: 50%; align-self: center; justify-self: center; width: 11px; height: 11px; }
+    .pip.invisible { background: transparent; }
+
+    /* Cube faces: 1=front, 6=back, 2=right, 5=left, 3=top, 4=bottom */
+    .face.f1 { transform: translateZ(40px); }
+    .face.f6 { transform: rotateY(180deg) translateZ(40px); }
+    .face.f2 { transform: rotateY(90deg) translateZ(40px); }
+    .face.f5 { transform: rotateY(-90deg) translateZ(40px); }
+    .face.f3 { transform: rotateX(90deg) translateZ(40px); }
+    .face.f4 { transform: rotateX(-90deg) translateZ(40px); }
+
+    /* Controls */
+    .btn-row { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; align-items: center; }
+    button { font-size: 13px; font-family: inherit; color: #3d2e1e; border: 0.5px solid #c9b99a; background: #f5ece0; border-radius: 8px; padding: 5px 12px; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; transition: background 0.15s; }
+    button:hover:not(:disabled) { background: #ede0d0; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* Action button stack on the right of the stage */
+    .action-stack {
+      display: flex; flex-direction: column; gap: 10px;
+      width: 130px; padding-top: 80px;
+    }
+    .action-stack button {
+      font-size: 16px; padding: 10px 0; width: 100%;
+      background: #d4b88a; border: 1px solid #a78759; color: #3d2e1e;
+      border-radius: 8px; font-weight: 600;
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+      transition: background 0.15s, transform 0.1s;
+    }
+    .action-stack button:hover:not(:disabled) { background: #c9a877; }
+    .action-stack button:active:not(:disabled) { transform: translateY(1px); }
+    .action-stack button.lancer { background: #c9a566; border-color: #8a6a35; font-size: 17px; }
+    .action-stack button.lancer:hover:not(:disabled) { background: #b8954f; }
+
+    /* Achievement popup */
+    .ach-backdrop {
+      position: fixed; inset: 0; background: rgba(40, 28, 16, 0.35);
+      opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
+      z-index: 999;
+    }
+    .ach-backdrop.show { opacity: 1; pointer-events: auto; }
+    .achievement {
+      position: fixed; top: 50%; left: 50%;
+      transform: translate(-50%, -50%) scale(0.7);
+      background: linear-gradient(135deg, #fdf6ec 0%, #f5e8d0 100%);
+      border: 3px solid #c9a566; border-radius: 18px;
+      box-shadow: 0 16px 48px rgba(60, 40, 20, 0.35), 0 0 0 6px rgba(201, 165, 102, 0.18);
+      padding: 36px 40px 28px; text-align: center;
+      min-width: 420px; max-width: 92vw;
+      z-index: 1000;
+      transition: transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.3s ease;
+      opacity: 0; pointer-events: none;
+    }
+    .achievement.show {
+      transform: translate(-50%, -50%) scale(1);
+      opacity: 1; pointer-events: auto;
+    }
+    .achievement .ach-icon {
+      width: 80px; height: 80px; border-radius: 50%; margin: 0 auto 18px;
+      background: radial-gradient(circle at 30% 30%, #ffe49a 0%, #d4a04a 65%, #8a5a18 100%);
+      box-shadow: inset 0 -3px 6px rgba(120, 70, 20, 0.5), 0 4px 14px rgba(201, 144, 70, 0.55);
+      display: flex; align-items: center; justify-content: center;
+      color: #5a3a10; font-size: 44px;
+    }
+    .achievement .ach-title {
+      font-size: 13px; color: #a78759; font-weight: 700;
+      letter-spacing: 2px; text-transform: uppercase; margin-bottom: 8px;
+    }
+    .achievement .ach-msg {
+      font-size: 17px; color: #3d2e1e; font-weight: 500;
+      margin-bottom: 24px; line-height: 1.4;
+    }
+    .achievement .ach-ok {
+      font-size: 15px; padding: 9px 32px; border-radius: 8px;
+      background: #c9a566; border: 1px solid #8a6a35; color: #3d2e1e;
+      font-weight: 600; cursor: pointer; font-family: inherit;
+      transition: background 0.15s;
+    }
+    .achievement .ach-ok:hover { background: #b8954f; }
+    .achievement.show .ach-icon { animation: iconPulse 0.7s ease-out; }
+    @keyframes iconPulse {
+      0% { transform: scale(0.3) rotate(-20deg); }
+      55% { transform: scale(1.25) rotate(8deg); }
+      100% { transform: scale(1) rotate(0); }
+    }
+    button.toggle-on { background: #e8d5b7; color: #3d2e1e; border-color: #b09070; }
+    .icon-btn { padding: 5px 8px; color: #8a7060; font-size: 18px; line-height: 1; display: flex; align-items: center; }
+    .icon-btn:hover:not(:disabled) { background: #ede0d0; }
+
+    .label { font-size: 12px; color: #8a7060; font-style: italic; }
+    .total-tag { position: absolute; bottom: 12px; right: 16px; font-size: 12px; color: #8a7060; font-style: italic; }
+
+    @keyframes haloPulse {
+      0%   { opacity: 0; }
+      25%  { opacity: 1; }
+      100% { opacity: 1; }
+    }
+    @keyframes haloPulseOuter {
+      0%   { opacity: 0; }
+      25%  { opacity: 0.95; }
+      100% { opacity: 0.85; }
+    }
+  </style>
+</head>
+<body>
+<div id="app">
+  <h1>Lancer de dé</h1>
+
+  <div class="main-row">
+  <div class="stage">
+    <div class="arena">
+      <div class="scene">
+        <div class="cube-tilt">
+          <div class="cube" id="cube">
+          <div class="face f1"><span class="pip invisible"></span><span class="pip invisible"></span><span class="pip invisible"></span><span class="pip invisible"></span><span class="pip"></span><span class="pip invisible"></span><span class="pip invisible"></span><span class="pip invisible"></span><span class="pip invisible"></span></div>
+          <div class="face f2"><span class="pip"></span><span class="pip invisible"></span><span class="pip invisible"></span><span class="pip invisible"></span><span class="pip invisible"></span><span class="pip invisible"></span><span class="pip invisible"></span><span class="pip invisible"></span><span class="pip"></span></div>
+          <div class="face f3"><span class="pip"></span><span class="pip invisible"></span><span class="pip invisible"></span><span class="pip invisible"></span><span class="pip"></span><span class="pip invisible"></span><span class="pip invisible"></span><span class="pip invisible"></span><span class="pip"></span></div>
+          <div class="face f4"><span class="pip"></span><span class="pip invisible"></span><span class="pip"></span><span class="pip invisible"></span><span class="pip invisible"></span><span class="pip invisible"></span><span class="pip"></span><span class="pip invisible"></span><span class="pip"></span></div>
+          <div class="face f5"><span class="pip"></span><span class="pip invisible"></span><span class="pip"></span><span class="pip invisible"></span><span class="pip"></span><span class="pip invisible"></span><span class="pip"></span><span class="pip invisible"></span><span class="pip"></span></div>
+          <div class="face f6"><span class="pip"></span><span class="pip invisible"></span><span class="pip"></span><span class="pip"></span><span class="pip invisible"></span><span class="pip"></span><span class="pip"></span><span class="pip invisible"></span><span class="pip"></span></div>
+        </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="outcomes">
+      <span class="total-tag" id="total-tag">0 lancers</span>
+      <svg id="omega-svg" viewBox="0 0 820 420" preserveAspectRatio="xMidYMid meet"></svg>
+    </div>
+  </div>
+
+    <div class="action-stack">
+      <button id="btn-roll" class="lancer" onclick="rollOnce()"><i class="ti ti-dice"></i> Lancer</button>
+      <button id="btn-x10" onclick="rollMany(10)" style="display:none;">×10</button>
+      <button id="btn-x100" onclick="rollMany(100)" style="display:none;">×100</button>
+      <button id="btn-x1000" onclick="rollMany(1000)" style="display:none;">×1000</button>
+      <button id="btn-x10000" onclick="rollMany(10000)" style="display:none;">×10000</button>
+    </div>
+  </div>
+
+  <div class="btn-row">
+    <button onclick="reset()"><i class="ti ti-refresh"></i> réinitialiser</button>
+  </div>
+</div>
+
+<div class="ach-backdrop" id="ach-backdrop" onclick="dismissAchievement()"></div>
+<div class="achievement" id="achievement">
+  <div class="ach-icon"><i class="ti ti-trophy-filled"></i></div>
+  <div class="ach-title">Succès débloqué</div>
+  <div class="ach-msg" id="ach-msg"></div>
+  <button class="ach-ok" onclick="dismissAchievement()">OK</button>
+</div>
+
+<script>
+  // ============ State ============
+  const counts = [0, 0, 0, 0, 0, 0]; // index 0 -> outcome 1
+  let total = 0;
+  let isRolling = false;
+
+  // ============ 3D cube target orientations ============
+  // For each face value 1-6, the rotation that brings that face to the TOP
+  // (where face 3 starts). The resting perspective tilt is handled by the
+  // .cube-tilt wrapper, so we only need the intrinsic face-to-top rotation here.
+  // Faces in HTML: 1=front, 6=back, 2=right, 5=left, 3=top, 4=bottom
+  const FACE_ROTATIONS = {
+    1: { x: 90,  y: 0, z: 0   },   // front -> top
+    2: { x: 0,   y: 0, z: -90 },   // right -> top
+    3: { x: 0,   y: 0, z: 0   },   // already on top
+    4: { x: 180, y: 0, z: 0   },   // bottom -> top
+    5: { x: 0,   y: 0, z: 90  },   // left -> top
+    6: { x: -90, y: 0, z: 0   },   // back -> top
+  };
+
+  const cube = document.getElementById('cube');
+
+  // ============ Omega visualization (SVG) ============
+  const SVG_W = 820, SVG_H = 420;
+  const svg = document.getElementById('omega-svg');
+  const totalTag = document.getElementById('total-tag');
+
+  // Six outcome positions arranged in an oval (echoes the Ω space)
+  // Center the oval in the SVG.
+  const ovalCx = SVG_W / 2, ovalCy = SVG_H / 2;
+  const ovalRx = 245, ovalRy = 110;
+
+  // Position the 6 outcome dots evenly around the oval.
+  // Shifted one slot to the left compared to clockwise-from-top:
+  // 1 at top-left, 2 at top, 3 at top-right, 4 at bottom-right, 5 at bottom, 6 at bottom-left
+  const OUTCOME_POSITIONS = [];
+  const angles = [150, 90, 30, -30, -90, -150]; // for outcomes 1..6
+  for (let i = 0; i < 6; i++) {
+    const a = angles[i] * Math.PI / 180;
+    OUTCOME_POSITIONS.push({
+      x: ovalCx + ovalRx * Math.cos(a),
+      y: ovalCy - ovalRy * Math.sin(a) // SVG y is flipped
+    });
+  }
+
+  const OUTCOME_RADIUS = 36;
+
+  // Pip layouts within a small die-face dot (for the outcome circle's interior, scaled)
+  // Each outcome's circle shows the corresponding die face as pips arranged in a 3x3 grid.
+  const PIP_LAYOUTS = {
+    1: [[1,1]],
+    2: [[0,0],[2,2]],
+    3: [[0,0],[1,1],[2,2]],
+    4: [[0,0],[2,0],[0,2],[2,2]],
+    5: [[0,0],[2,0],[1,1],[0,2],[2,2]],
+    6: [[0,0],[2,0],[0,1],[2,1],[0,2],[2,2]],
+  };
+
+  function buildOmegaSVG() {
+    // Clear
+    while (svg.firstChild) svg.removeChild(svg.firstChild);
+
+    // Defs: glow filter for highlighting the rolled outcome
+    const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+    defs.innerHTML = `
+      <filter id="glow" x="-150%" y="-150%" width="400%" height="400%">
+        <feGaussianBlur stdDeviation="18" result="blur"/>
+        <feMerge>
+          <feMergeNode in="blur"/>
+          <feMergeNode in="blur"/>
+          <feMergeNode in="blur"/>
+          <feMergeNode in="blur"/>
+          <feMergeNode in="SourceGraphic"/>
+        </feMerge>
+      </filter>
+      <filter id="glow-outer" x="-200%" y="-200%" width="500%" height="500%">
+        <feGaussianBlur stdDeviation="28" result="blur"/>
+        <feMerge>
+          <feMergeNode in="blur"/>
+          <feMergeNode in="blur"/>
+          <feMergeNode in="blur"/>
+        </feMerge>
+      </filter>
+      <radialGradient id="halo-grad">
+        <stop offset="0%" stop-color="#ffffff" stop-opacity="1"/>
+        <stop offset="40%" stop-color="#fff5d6" stop-opacity="0.95"/>
+        <stop offset="100%" stop-color="#ffd97a" stop-opacity="0.6"/>
+      </radialGradient>
+    `;
+    svg.appendChild(defs);
+
+    // Background oval representing Ω
+    const oval = document.createElementNS('http://www.w3.org/2000/svg', 'ellipse');
+    oval.setAttribute('cx', ovalCx);
+    oval.setAttribute('cy', ovalCy);
+    oval.setAttribute('rx', ovalRx + 90);
+    oval.setAttribute('ry', ovalRy + 70);
+    oval.setAttribute('fill', '#faf2e3');
+    oval.setAttribute('stroke', '#d4c4a8');
+    oval.setAttribute('stroke-width', '1.5');
+    svg.appendChild(oval);
+
+    // Ω label — placed just outside the ellipse at its upper-left
+    // Compute position from the ellipse geometry so it stays anchored if dimensions change
+    const omegaAngle = 135 * Math.PI / 180; // upper-left
+    const omegaOuterRx = (ovalRx + 90) + 22;
+    const omegaOuterRy = (ovalRy + 70) + 18;
+    const omegaX = ovalCx + omegaOuterRx * Math.cos(omegaAngle);
+    const omegaY = ovalCy - omegaOuterRy * Math.sin(omegaAngle);
+    const omegaLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    omegaLabel.setAttribute('x', omegaX);
+    omegaLabel.setAttribute('y', omegaY);
+    omegaLabel.setAttribute('text-anchor', 'middle');
+    omegaLabel.setAttribute('dominant-baseline', 'middle');
+    omegaLabel.setAttribute('font-family', 'system-ui, sans-serif');
+    omegaLabel.setAttribute('font-size', '22');
+    omegaLabel.setAttribute('font-style', 'italic');
+    omegaLabel.setAttribute('fill', '#8a7060');
+    omegaLabel.textContent = 'Ω';
+    svg.appendChild(omegaLabel);
+
+    // Each outcome circle
+    for (let i = 0; i < 6; i++) {
+      const value = i + 1;
+      const pos = OUTCOME_POSITIONS[i];
+      const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      g.setAttribute('id', `outcome-${value}`);
+
+      // Outer warm halo (very diffuse, large)
+      const haloOuter = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      haloOuter.setAttribute('id', `halo-outer-${value}`);
+      haloOuter.setAttribute('cx', pos.x);
+      haloOuter.setAttribute('cy', pos.y);
+      haloOuter.setAttribute('r', OUTCOME_RADIUS + 25);
+      haloOuter.setAttribute('fill', '#ffd97a');
+      haloOuter.setAttribute('opacity', '0');
+      haloOuter.setAttribute('filter', 'url(#glow-outer)');
+      haloOuter.style.transition = 'opacity 0.25s ease';
+      g.appendChild(haloOuter);
+
+      // Inner bright halo (white core)
+      const halo = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      halo.setAttribute('id', `halo-${value}`);
+      halo.setAttribute('cx', pos.x);
+      halo.setAttribute('cy', pos.y);
+      halo.setAttribute('r', OUTCOME_RADIUS + 15);
+      halo.setAttribute('fill', 'url(#halo-grad)');
+      halo.setAttribute('opacity', '0');
+      halo.setAttribute('filter', 'url(#glow)');
+      halo.style.transition = 'opacity 0.25s ease';
+      g.appendChild(halo);
+
+      // Outer ring
+      const ring = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      ring.setAttribute('id', `ring-${value}`);
+      ring.setAttribute('cx', pos.x);
+      ring.setAttribute('cy', pos.y);
+      ring.setAttribute('r', OUTCOME_RADIUS);
+      ring.setAttribute('fill', '#fdf6ec');
+      ring.setAttribute('stroke', '#b09878');
+      ring.setAttribute('stroke-width', '1.8');
+      ring.style.transition = 'stroke 0.3s ease, stroke-width 0.3s ease';
+      g.appendChild(ring);
+
+      // Pips for the face value
+      const layout = PIP_LAYOUTS[value];
+      const cellSize = OUTCOME_RADIUS * 1.0;
+      const cell = cellSize / 3;
+      const pipRadius = 4.2;
+      const startX = pos.x - cellSize / 2 + cell / 2;
+      const startY = pos.y - cellSize / 2 + cell / 2;
+      for (const [cx, cy] of layout) {
+        const pip = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        pip.setAttribute('cx', startX + cx * cell);
+        pip.setAttribute('cy', startY + cy * cell);
+        pip.setAttribute('r', pipRadius);
+        pip.setAttribute('fill', '#3d2e1e');
+        g.appendChild(pip);
+      }
+
+      // Count label to the RIGHT of the circle
+      const countText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      countText.setAttribute('id', `count-${value}`);
+      countText.setAttribute('x', pos.x + OUTCOME_RADIUS + 8);
+      countText.setAttribute('y', pos.y + 6);
+      countText.setAttribute('text-anchor', 'start');
+      countText.setAttribute('font-family', 'system-ui, sans-serif');
+      countText.setAttribute('font-size', '18');
+      countText.setAttribute('font-weight', '600');
+      countText.setAttribute('fill', '#3d2e1e');
+      countText.textContent = '0';
+      g.appendChild(countText);
+
+      svg.appendChild(g);
+    }
+  }
+
+  buildOmegaSVG();
+
+  // ============ Highlight a result with a glow ============
+  let activeGlow = null;
+
+  // Lightweight flicker: snap opacity on/off without animation. Used during batch rolls.
+  function flickerOutcome(value) {
+    if (activeGlow !== null && activeGlow !== value) {
+      const prevInner = document.getElementById(`halo-${activeGlow}`);
+      const prevOuter = document.getElementById(`halo-outer-${activeGlow}`);
+      if (prevInner) { prevInner.style.animation = 'none'; prevInner.setAttribute('opacity', '0'); }
+      if (prevOuter) { prevOuter.style.animation = 'none'; prevOuter.setAttribute('opacity', '0'); }
+    }
+    const halo = document.getElementById(`halo-${value}`);
+    const haloOuter = document.getElementById(`halo-outer-${value}`);
+    if (halo) { halo.style.animation = 'none'; halo.setAttribute('opacity', '1'); }
+    if (haloOuter) { haloOuter.style.animation = 'none'; haloOuter.setAttribute('opacity', '0.9'); }
+    activeGlow = value;
+  }
+
+  function highlightOutcome(value) {
+    // Clear any previous glow immediately
+    if (activeGlow !== null) {
+      const prevInner = document.getElementById(`halo-${activeGlow}`);
+      const prevOuter = document.getElementById(`halo-outer-${activeGlow}`);
+      if (prevInner) { prevInner.setAttribute('opacity', '0'); prevInner.style.animation = 'none'; }
+      if (prevOuter) { prevOuter.setAttribute('opacity', '0'); prevOuter.style.animation = 'none'; }
+    }
+    const halo = document.getElementById(`halo-${value}`);
+    const haloOuter = document.getElementById(`halo-outer-${value}`);
+    if (haloOuter) {
+      haloOuter.style.animation = 'none';
+      void haloOuter.offsetWidth; // force reflow to restart animation
+      haloOuter.style.animation = 'haloPulseOuter 0.5s ease-out forwards';
+    }
+    if (halo) {
+      halo.style.animation = 'none';
+      void halo.offsetWidth;
+      halo.style.animation = 'haloPulse 0.45s ease-out forwards';
+    }
+    activeGlow = value;
+  }
+
+  function updateLabels() {
+    totalTag.textContent = total + (total === 1 ? ' lancer' : ' lancers');
+    for (let i = 0; i < 6; i++) {
+      const value = i + 1;
+      document.getElementById(`count-${value}`).textContent = counts[i];
+    }
+    updateBatchButtons();
+  }
+
+  // Track which thresholds were unlocked at the last update,
+  // so we can fire the achievement popup on the transition from locked to unlocked.
+  let prevUnlocked = { x10: false, x100: false, x1000: false, x10000: false };
+
+  function updateBatchButtons() {
+    const unlocked = {
+      x10:    total >= 10,
+      x100:   total >= 100,
+      x1000:  total >= 1000,
+      x10000: total >= 10000,
+    };
+    const messages = {
+      x10:    "Vous pouvez maintenant lancer 10 dés !",
+      x100:   "Vous pouvez maintenant lancer 100 dés !",
+      x1000:  "Vous pouvez maintenant lancer 1000 dés !",
+      x10000: "Vous pouvez maintenant lancer 10000 dés !",
+    };
+    for (const key of ['x10', 'x100', 'x1000', 'x10000']) {
+      const btn = document.getElementById(`btn-${key}`);
+      btn.style.display = unlocked[key] ? '' : 'none';
+      if (unlocked[key] && !prevUnlocked[key]) {
+        showAchievement(messages[key]);
+      }
+    }
+    prevUnlocked = unlocked;
+  }
+
+  function showAchievement(message) {
+    const el = document.getElementById('achievement');
+    const backdrop = document.getElementById('ach-backdrop');
+    document.getElementById('ach-msg').textContent = message;
+    el.classList.remove('show');
+    backdrop.classList.remove('show');
+    void el.offsetWidth; // force reflow to restart animation
+    requestAnimationFrame(() => {
+      el.classList.add('show');
+      backdrop.classList.add('show');
+    });
+  }
+
+  function dismissAchievement() {
+    document.getElementById('achievement').classList.remove('show');
+    document.getElementById('ach-backdrop').classList.remove('show');
+  }
+
+  // ============ Rolling logic ============
+  let currentRotation = { x: 0, y: 0, z: 0 };
+
+  function rollAnimate(targetValue, duration) {
+    return new Promise(resolve => {
+      const target = FACE_ROTATIONS[targetValue];
+      // Add extra spins so it actually tumbles. 2-3 full turns plus the target.
+      const spinsX = (Math.floor(Math.random() * 2) + 2) * 360;
+      const spinsY = (Math.floor(Math.random() * 2) + 2) * 360;
+      const baseX = currentRotation.x;
+      const baseY = currentRotation.y;
+      // Final rotations: keep accumulating to feel smooth; land on the right modular target
+      const finalX = baseX + spinsX + ((target.x - (baseX % 360)) + 360) % 360;
+      const finalY = baseY + spinsY + ((target.y - (baseY % 360)) + 360) % 360;
+      const finalZ = target.z; // Z just snaps to target; X/Y tumble does the visual work
+
+      cube.style.transition = `transform ${duration}ms cubic-bezier(0.25, 0.1, 0.25, 1)`;
+      cube.style.transform = `rotateX(${finalX}deg) rotateY(${finalY}deg) rotateZ(${finalZ}deg)`;
+      currentRotation.x = finalX;
+      currentRotation.y = finalY;
+      currentRotation.z = finalZ;
+
+      setTimeout(resolve, duration);
+    });
+  }
+
+  async function rollOnce() {
+    if (isRolling) return;
+    isRolling = true;
+    document.getElementById('btn-roll').disabled = true;
+    const value = Math.floor(Math.random() * 6) + 1;
+    await rollAnimate(value, 700);
+    counts[value - 1]++;
+    total++;
+    highlightOutcome(value);
+    updateLabels();
+    document.getElementById('btn-roll').disabled = false;
+    isRolling = false;
+  }
+
+  async function rollMany(n) {
+    if (isRolling) return;
+    isRolling = true;
+    document.getElementById('btn-roll').disabled = true;
+    // Speed up batch rolls significantly so larger batches feel snappy.
+    if (n <= 10) {
+      // ×10: quick per-roll tumble
+      for (let i = 0; i < n; i++) {
+        const value = Math.floor(Math.random() * 6) + 1;
+        await rollAnimate(value, 90);
+        counts[value - 1]++;
+        total++;
+        highlightOutcome(value);
+        updateLabels();
+      }
+    } else {
+      // ×100, ×1000, ×10000: tally all silently, but flicker the glow + live-update
+      // counters during a fixed visible burst so it FEELS like lots of rolling.
+      const allValues = new Array(n);
+      for (let i = 0; i < n; i++) {
+        allValues[i] = Math.floor(Math.random() * 6) + 1;
+      }
+      // Flicker burst: ~25 visible steps, each step shows a sampled outcome and
+      // ticks counters forward by a chunk so the totals climb visibly.
+      const STEPS = 25;
+      const STEP_MS = 28;
+      const chunk = Math.floor((n - 1) / STEPS);
+      let processed = 0;
+
+      // Cube chaos: spin the cube continuously, with intensity scaled to n.
+      // ×100: moderate tumble. ×1000: faster. ×10000: frenetic.
+      // Per-step angular delta (degrees). Pick X/Y/Z all to make it look 3D-chaotic.
+      const chaosDeg = n >= 10000 ? 220 : (n >= 1000 ? 140 : 80);
+      cube.style.transition = `transform ${STEP_MS}ms linear`;
+      let chaosX = currentRotation.x, chaosY = currentRotation.y, chaosZ = currentRotation.z;
+
+      for (let s = 0; s < STEPS; s++) {
+        const stepEnd = (s === STEPS - 1) ? (n - 1) : (processed + chunk);
+        for (let k = processed; k < stepEnd; k++) {
+          counts[allValues[k] - 1]++;
+          total++;
+        }
+        processed = stepEnd;
+        // Drive the cube with a jittered chaotic delta on each axis
+        chaosX += chaosDeg * (0.7 + Math.random() * 0.6);
+        chaosY += chaosDeg * (0.7 + Math.random() * 0.6) * (Math.random() < 0.5 ? 1 : -1);
+        chaosZ += (chaosDeg * 0.4) * (Math.random() < 0.5 ? 1 : -1);
+        cube.style.transform = `rotateX(${chaosX}deg) rotateY(${chaosY}deg) rotateZ(${chaosZ}deg)`;
+        // Pick a flicker outcome from this chunk for the visible glow
+        const flickerVal = allValues[Math.min(stepEnd - 1, n - 2)];
+        flickerOutcome(flickerVal);
+        updateLabels();
+        await new Promise(r => setTimeout(r, STEP_MS));
+      }
+      // Sync currentRotation so the final landing rollAnimate computes deltas correctly.
+      currentRotation.x = chaosX;
+      currentRotation.y = chaosY;
+      currentRotation.z = chaosZ;
+      // Final roll: animated cube tumble + proper pulse glow
+      const finalValue = allValues[n - 1];
+      await rollAnimate(finalValue, 200);
+      counts[finalValue - 1]++;
+      total++;
+      highlightOutcome(finalValue);
+      updateLabels();
+    }
+    document.getElementById('btn-roll').disabled = false;
+    isRolling = false;
+  }
+
+  function reset() {
+    for (let i = 0; i < 6; i++) counts[i] = 0;
+    total = 0;
+    activeGlow = null;
+    prevUnlocked = { x10: false, x100: false, x1000: false, x10000: false };
+    buildOmegaSVG();
+    updateLabels();
+  }
+
+  updateLabels();
+</script>
+</body>
+</html>

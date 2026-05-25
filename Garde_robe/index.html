@@ -1,0 +1,1900 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Atelier Tenue</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg: #f4f1ec;
+  --bg-elev: #ffffff;
+  --ink: #1a1a1f;
+  --ink-soft: #5a5a64;
+  --ink-mute: #9a9aa3;
+  --line: #e2ddd4;
+  --line-strong: #c9c2b6;
+  --accent: #c8472e;
+  --shadow: 0 1px 2px rgba(20,18,15,.04), 0 10px 30px rgba(20,18,15,.06);
+}
+
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  min-height:100vh;
+  font-family:'Inter', system-ui, sans-serif;
+  font-size:15px;
+  color:var(--ink);
+  background:var(--bg);
+  -webkit-font-smoothing:antialiased;
+  line-height:1.5;
+}
+
+img{ image-rendering:pixelated; image-rendering:crisp-edges; user-select:none; -webkit-user-drag:none }
+
+.page{ padding:12px 28px 12px }
+
+/* ─── Header ─── */
+.header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  border-bottom:1px solid var(--line);
+  padding-bottom:10px;
+  margin-bottom:14px;
+}
+
+/* ─── Mode toggle ─── */
+.mode-toggle{
+  display:inline-flex;
+  background:var(--bg-elev);
+  border:1px solid var(--line-strong);
+  border-radius:6px;
+  padding:2px;
+  box-shadow:var(--shadow);
+}
+.mode-btn{
+  font-family:inherit;
+  font-size:12px;
+  font-weight:500;
+  letter-spacing:0.04em;
+  padding:6px 14px;
+  border:none;
+  background:transparent;
+  border-radius:4px;
+  cursor:pointer;
+  color:var(--ink-soft);
+  transition:background .12s ease, color .12s ease;
+}
+.mode-btn:hover{ color:var(--ink) }
+.mode-btn.active{
+  background:var(--ink);
+  color:var(--bg-elev);
+}
+.mode-btn:focus-visible{ outline:2px solid var(--accent); outline-offset:2px }
+
+/* ─── Banner used at the top of each mode (cream strip with nav buttons) ─── */
+/* For activity modes, `.activity-prompt` IS this banner with the prompt inside.
+   For Atelier/Arbre, `.mode-banner` is a plain cream banner with just title + nav. */
+.mode-banner{
+  display:flex;
+  align-items:center;
+  gap:14px;
+  background:#fbf3e6;
+  color:#000;
+  padding:16px 24px;
+  margin:-14px -22px 16px;
+  border-bottom:2px solid var(--accent);
+  border-radius:6px 6px 0 0;
+  font-size:18px;
+  font-weight:600;
+  box-shadow:0 1px 3px rgba(0,0,0,0.04);
+}
+.mode-banner .banner-title{
+  flex:1;
+  font-family:'Fraunces', serif;
+  font-weight:500;
+  font-size:22px;
+  color:#000;
+}
+/* The Atelier section is a .showcase (white bg, no padding); give the banner
+   its proper inset there. */
+.showcase.only-atelier{ display:flex; flex-direction:column; }
+.showcase.only-atelier .mode-banner{
+  margin:0 0 0 0;
+  border-radius:6px 6px 0 0;
+}
+
+/* Banner-nav: Retour + Continuer buttons inside any banner (cream context). */
+.banner-nav{
+  display:flex;
+  gap:10px;
+  align-items:center;
+  flex-shrink:0;
+}
+.banner-nav .btn{
+  font-size:14px;
+  padding:8px 16px;
+  font-weight:500;
+  border:1px solid var(--line-strong);
+  background:#fff;
+  color:var(--ink);
+  border-radius:6px;
+  cursor:pointer;
+  font-family:inherit;
+  transition:background .15s ease, transform .08s ease, border-color .15s ease;
+}
+.banner-nav .btn:hover:not(:disabled){
+  border-color:var(--ink-soft);
+}
+.banner-nav .btn:active:not(:disabled){
+  transform:translateY(1px);
+}
+.banner-nav .btn.primary{
+  background:var(--accent);
+  color:#fff;
+  border-color:var(--accent);
+  font-weight:600;
+}
+.banner-nav .btn.primary:hover:not(:disabled){
+  background:#b03d28;
+  border-color:#b03d28;
+}
+.banner-nav .btn:disabled{
+  opacity:0.4;
+  cursor:not-allowed;
+}
+.banner-nav .btn[hidden]{
+  display:none !important;
+}
+
+/* ─── Mode-specific visibility ─── */
+body.mode-atelier .only-arbre,
+body.mode-atelier .only-act1,
+body.mode-atelier .only-act2,
+body.mode-atelier .only-act3{ display:none !important }
+body.mode-arbre .only-atelier,
+body.mode-arbre .only-act1,
+body.mode-arbre .only-act2,
+body.mode-arbre .only-act3{ display:none !important }
+body.mode-act1 .only-atelier,
+body.mode-act1 .only-arbre,
+body.mode-act1 .only-act2,
+body.mode-act1 .only-act3{ display:none !important }
+body.mode-act2 .only-atelier,
+body.mode-act2 .only-arbre,
+body.mode-act2 .only-act1,
+body.mode-act2 .only-act3{ display:none !important }
+body.mode-act3 .only-atelier,
+body.mode-act3 .only-arbre,
+body.mode-act3 .only-act1,
+body.mode-act3 .only-act2{ display:none !important }
+
+/* ─── Atelier mode layout: sidebar left, big avatar right ─── */
+body.mode-atelier .app{
+  grid-template-columns: 220px 1fr;
+}
+
+/* ─── Arbre mode layout: tree only, no sidebar ─── */
+body.mode-arbre .app{
+  grid-template-columns: 1fr;
+}
+body.mode-arbre .sidebar{ display:none }
+
+/* ─── Activity modes: tree only, no sidebar ─── */
+body.mode-act1 .app,
+body.mode-act2 .app,
+body.mode-act3 .app{
+  grid-template-columns: 1fr;
+}
+body.mode-act1 .sidebar,
+body.mode-act2 .sidebar,
+body.mode-act3 .sidebar{ display:none }
+
+/* ─── Big showcase (atelier mode) ─── */
+.showcase{
+  background:var(--bg-elev);
+  border:1px solid var(--line);
+  border-radius:6px;
+  padding:22px 26px 20px;
+  position:relative;
+  display:flex;
+  flex-direction:column;
+  box-shadow:var(--shadow);
+}
+.stage{
+  flex:1;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  position:relative;
+  padding:8px 0;
+  min-height:620px;
+}
+.stage::before{
+  content:'';
+  position:absolute;
+  bottom:28px;
+  left:50%;
+  transform:translateX(-50%);
+  width:280px;
+  height:14px;
+  background:radial-gradient(ellipse at center, rgba(20,18,15,.14), transparent 70%);
+  filter:blur(2px);
+}
+.avatar{
+  position:relative;
+  width:384px;
+  height:768px;
+  transform:scale(0.7);
+  transform-origin:center center;
+  margin:-115px 0;
+}
+.avatar img{
+  position:absolute;
+  left:0; top:0;
+  width:64px;
+  height:128px;
+  transform:scale(6);
+  transform-origin:top left;
+}
+.avatar .hairBack  { z-index:2 }
+.avatar .base      { z-index:5 }
+.avatar .pants     { z-index:10 }
+.avatar .top       { z-index:12 }
+.avatar .shoes     { z-index:14 }
+.avatar .hairFront { z-index:15 }
+.avatar img.hidden{ visibility:hidden }
+.brand{
+  font-family:'Fraunces', serif;
+  font-size:26px;
+  font-weight:500;
+  letter-spacing:-0.02em;
+  font-variation-settings: "opsz" 144;
+}
+.brand em{
+  font-style:italic;
+  font-weight:400;
+  color:var(--accent);
+}
+.tag{
+  font-size:11px;
+  text-transform:uppercase;
+  letter-spacing:0.16em;
+  color:var(--ink-mute);
+}
+
+.app{
+  display:grid;
+  gap:24px;
+  align-items:start;
+}
+
+/* ─── Sidebar (controls, on the LEFT) ─── */
+.sidebar{
+  display:flex;
+  flex-direction:column;
+  gap:20px;
+}
+.panel{
+  background:var(--bg-elev);
+  border:1px solid var(--line);
+  border-radius:6px;
+  padding:14px 16px;
+  box-shadow:var(--shadow);
+}
+.panel-title{
+  font-size:11px;
+  text-transform:uppercase;
+  letter-spacing:0.16em;
+  color:var(--ink-mute);
+  margin:0 0 10px;
+  font-weight:600;
+}
+
+.cat{
+  padding:10px 0;
+  border-bottom:1px solid var(--line);
+}
+.cat:first-of-type{padding-top:2px}
+.cat:last-of-type{border-bottom:0; padding-bottom:2px}
+
+.cat-head{
+  display:flex;
+  justify-content:space-between;
+  align-items:baseline;
+  margin-bottom:8px;
+}
+.cat-name{
+  font-family:'Fraunces', serif;
+  font-size:16px;
+  font-weight:500;
+  letter-spacing:-0.01em;
+}
+.cat-count{
+  font-size:11px;
+  color:var(--ink-mute);
+  letter-spacing:0.04em;
+  font-variant-numeric: tabular-nums;
+}
+
+.cat-row{
+  display:grid;
+  grid-template-columns: 28px 64px 28px;
+  gap:8px;
+  align-items:center;
+  justify-content:center;
+}
+
+.thumb{
+  height:56px;
+  border:1px solid var(--line);
+  border-radius:4px;
+  background:var(--bg);
+  position:relative;
+  overflow:hidden;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+.thumb img{
+  width:64px;
+  height:128px;
+  position:absolute;
+}
+/* sprites are 64×128. Crop region per category so the thumb shows only that item. */
+.thumb.hat   img { top:-2px;   left:50%; transform:translateX(-50%) scale(1.2); transform-origin:top center }
+.thumb.top   img { top:-26px;  left:50%; transform:translateX(-50%) scale(1.0); transform-origin:top center }
+.thumb.pants img { top:-58px;  left:50%; transform:translateX(-50%) scale(0.95); transform-origin:top center }
+.thumb.shoes img { top:-128px; left:50%; transform:translateX(-50%) scale(1.5); transform-origin:top center }
+
+.nav-btn{
+  height:28px;
+  width:28px;
+  border-radius:4px;
+  border:1px solid var(--line);
+  background:var(--bg-elev);
+  color:var(--ink);
+  cursor:pointer;
+  font-size:13px;
+  display:grid;
+  place-items:center;
+  font-family:inherit;
+  transition:background .12s ease, border-color .12s ease, color .12s ease;
+}
+.nav-btn:hover{ background:var(--ink); color:var(--bg-elev); border-color:var(--ink) }
+.nav-btn:active{ transform:translateY(1px) }
+.nav-btn:focus-visible{ outline:2px solid var(--accent); outline-offset:2px }
+
+.dots{
+  display:flex;
+  gap:5px;
+  margin-top:10px;
+  justify-content:center;
+}
+.dot{
+  width:6px; height:6px;
+  border-radius:50%;
+  background:var(--line-strong);
+  transition:background .15s ease, width .15s ease;
+}
+.dot.active{ background:var(--accent); width:18px; border-radius:3px }
+
+.actions{
+  display:grid;
+  grid-template-columns: 1fr;
+  gap:10px;
+  margin-top:4px;
+}
+.btn{
+  padding:9px 12px;
+  border-radius:4px;
+  border:1px solid var(--line-strong);
+  background:var(--bg-elev);
+  font-family:inherit;
+  font-size:12px;
+  font-weight:500;
+  color:var(--ink);
+  cursor:pointer;
+  transition: background .12s ease, color .12s ease, border-color .12s ease;
+}
+.btn:hover{ background:var(--ink); color:var(--bg-elev); border-color:var(--ink) }
+.btn:focus-visible{ outline:2px solid var(--accent); outline-offset:2px }
+.btn.primary{
+  background:var(--accent);
+  color:#fff;
+  border-color:var(--accent);
+}
+.btn.primary:hover{ background:#a23a25; border-color:#a23a25 }
+
+.help{
+  font-size:11px;
+  color:var(--ink-mute);
+  margin-top:12px;
+  line-height:1.55;
+}
+.help kbd{
+  font-family:inherit;
+  font-size:10px;
+  padding:1px 5px;
+  background:var(--bg);
+  border:1px solid var(--line-strong);
+  border-radius:3px;
+  color:var(--ink-soft);
+}
+
+
+/* ─── Mini avatar (inside wardrobe panel) ─── */
+.mini-stage{
+  display:flex;
+  justify-content:center;
+  align-items:flex-end;
+  padding:4px 0 12px;
+  margin-bottom:8px;
+  border-bottom:1px solid var(--line);
+  min-height:200px;
+  position:relative;
+}
+.mini-stage::before{
+  content:'';
+  position:absolute;
+  bottom:14px;
+  left:50%;
+  transform:translateX(-50%);
+  width:100px;
+  height:6px;
+  background:radial-gradient(ellipse at center, rgba(20,18,15,.12), transparent 70%);
+  filter:blur(1.5px);
+}
+.mini-avatar{
+  position:relative;
+  width:96px;
+  height:192px;
+}
+.mini-avatar img{
+  position:absolute;
+  left:0; top:0;
+  width:64px;
+  height:128px;
+  transform:scale(1.5);
+  transform-origin:top left;
+}
+.mini-avatar .hairBack  { z-index:2 }
+.mini-avatar .base      { z-index:5 }
+.mini-avatar .pants     { z-index:10 }
+.mini-avatar .top       { z-index:12 }
+.mini-avatar .shoes     { z-index:14 }
+.mini-avatar .hairFront { z-index:15 }
+
+/* ─── Tree panel (now a direct child of .app, not wrapped in .tree-section) ─── */
+.tree-panel{
+  background:var(--bg-elev);
+  border:1px solid var(--line);
+  border-radius:6px;
+  padding:14px 22px 90px;
+  box-shadow:var(--shadow);
+}
+.tree-head{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:8px;
+}
+.tree-head-right{
+  margin-left:auto;
+  display:flex;
+  align-items:center;
+  gap:16px;
+}
+.tree-random-btn{
+  padding:6px 14px !important;
+  font-size:12px !important;
+}
+.tree-title{
+  font-family:'Fraunces', serif;
+  font-size:18px;
+  font-weight:500;
+  letter-spacing:-0.01em;
+  margin:0;
+}
+.tree-legend{
+  font-size:11px;
+  color:var(--ink-mute);
+  display:flex;
+  align-items:center;
+  gap:6px;
+}
+.legend-dot{
+  display:inline-block;
+  width:10px;
+  height:2px;
+  background:var(--accent);
+  border-radius:1px;
+}
+.tree-wrap{
+  display:flex;
+  align-items:stretch;
+  position:relative;
+}
+.tree-axis{
+  position:relative;
+  border-right:1px solid var(--line);
+  margin-right:12px;
+  font-size:11px;
+  text-transform:uppercase;
+  letter-spacing:0.14em;
+  color:var(--ink-mute);
+  min-width:90px;
+}
+.tree-axis span{
+  position:absolute;
+  right:12px;
+  transform:translateY(-50%);
+  line-height:1;
+  white-space:nowrap;
+}
+.tree-svg-wrap{
+  flex:1;
+  overflow-x:auto;
+  position:relative;
+}
+#tree,
+.activity-tree{
+  display:block;
+  width:100%;
+  max-width:1400px;
+  height:auto;
+  margin:0 auto;
+}
+
+/* leaf-avatar: small dressed character that appears under the active leaf in arbre mode */
+.leaf-avatar{
+  position:absolute;
+  width:64px;
+  height:128px;
+  pointer-events:none;
+  opacity:0;
+  transition:opacity .15s ease, left .25s ease, top .25s ease;
+  transform:scale(0.85);
+  transform-origin:top center;
+  margin-left:-32px;
+  z-index:10;
+}
+.leaf-avatar.visible{ opacity:1 }
+.leaf-avatar img{
+  position:absolute;
+  left:0; top:0;
+  width:64px;
+  height:128px;
+  image-rendering:pixelated;
+}
+.leaf-avatar .hairBack  { z-index:2 }
+.leaf-avatar .base      { z-index:5 }
+.leaf-avatar .pants     { z-index:10 }
+.leaf-avatar .top       { z-index:12 }
+.leaf-avatar .shoes     { z-index:14 }
+.leaf-avatar .hairFront { z-index:15 }
+.leaf-avatar img.hidden{ visibility:hidden }
+
+/* Selector thumb undecided state — show ? */
+.thumb-q{
+  position:absolute;
+  font-family:'Fraunces', serif;
+  font-size:28px;
+  font-weight:500;
+  color:var(--ink-mute);
+  display:none;
+  pointer-events:none;
+}
+.thumb.undecided .thumb-img{ display:none }
+.thumb.undecided .thumb-q{ display:block }
+.thumb.undecided{
+  background:var(--bg);
+  border-style:dashed;
+}
+
+/* SVG tree node styles (apply to both #tree and any .activity-tree) */
+#tree .link,
+.activity-tree .link{
+  stroke:var(--line-strong);
+  stroke-width:1;
+  fill:none;
+}
+#tree .link.active,
+.activity-tree .link.active{
+  stroke:var(--accent);
+  stroke-width:1.5;
+}
+#tree .node-dot,
+.activity-tree .node-dot{
+  fill:var(--accent);
+}
+#tree .node-icon-bg,
+.activity-tree .node-icon-bg{
+  fill:var(--bg-elev);
+  stroke:var(--line-strong);
+  stroke-width:0.75;
+}
+#tree .node-icon-bg.active,
+.activity-tree .node-icon-bg.active{
+  stroke:var(--accent);
+  stroke-width:1.5;
+}
+#tree .node-clickable,
+.activity-tree .node-clickable{
+  cursor:pointer;
+}
+#tree .node-clickable:hover,
+.activity-tree .node-clickable:hover{
+  stroke:var(--ink-soft);
+  stroke-width:1;
+}
+#tree .node-icon-bg.active.node-clickable:hover,
+.activity-tree .node-icon-bg.active.node-clickable:hover{
+  stroke:var(--accent);
+}
+
+/* ─── Activity-mode shared styles ─── */
+/* Each activity tab gets extra bottom space for the row of mini-avatars. */
+body.mode-act1 .tree-panel,
+body.mode-act2 .tree-panel,
+body.mode-act3 .tree-panel{
+  padding-bottom:140px;
+}
+/* Wrapper used to auto-scale the activity panel to fit the viewport height.
+   The wrapper's height is set in JS to match the section's scaled height so
+   downstream layout doesn't leave a gap. The section gets transform:scale()
+   with origin top center; --fit-scale is set in JS. */
+.activity-fit-wrap{
+  width:100%;
+}
+.activity-fit-wrap .tree-panel{
+  transform-origin: top center;
+  transform: scale(var(--fit-scale, 1));
+}
+/* Container is just a wrapper; its child .leaf-avatar elements are
+   absolutely positioned and offset relative to .tree-wrap (which is
+   position:relative). */
+.activity-leaf-avatars{ pointer-events:none; }
+/* Selected nodes (before verification) */
+#tree .node-icon-bg.selected,
+.activity-tree .node-icon-bg.selected{
+  stroke:var(--accent);
+  stroke-width:2;
+  fill:#fdeee9;
+}
+/* Verification result colors */
+.activity-tree .node-icon-bg.verified-correct{
+  stroke:#2d8a4a;
+  stroke-width:2;
+  fill:#e3f3e8;
+}
+
+/* Edge fraction labels (Activité 3) */
+.activity-tree .edge-label-bg{
+  fill:var(--bg-elev);
+  stroke:#000;
+  stroke-width:0.6;
+}
+.activity-tree .edge-label-num,
+.activity-tree .edge-label-den{
+  font-family:'Inter', sans-serif;
+  font-size:11px;
+  font-weight:500;
+  fill:var(--ink);
+}
+.activity-tree .edge-label-bar{
+  stroke:var(--ink);
+  stroke-width:1.2;
+  stroke-linecap:round;
+}
+.activity-tree .edge-label.active .edge-label-num,
+.activity-tree .edge-label.active .edge-label-den{
+  fill:var(--accent);
+  font-weight:700;
+}
+.activity-tree .edge-label.active .edge-label-bar{
+  stroke:var(--accent);
+  stroke-width:1.4;
+}
+
+/* Screenshake animation for wrong answer */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-6px); }
+  20%, 40%, 60%, 80% { transform: translateX(6px); }
+}
+.shake { animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both; }
+
+.activity-prompt{
+  display:flex;
+  align-items:center;
+  gap:14px;
+  background:#fbf3e6;            /* warm cream that matches the page tone */
+  color:#000;
+  padding:18px 24px;
+  margin:-14px -22px 16px;       /* break out of the panel's padding to span full-width */
+  border-bottom:2px solid var(--accent);
+  border-radius:6px 6px 0 0;
+  font-size:24px;
+  line-height:1.4;
+  font-weight:700;
+  box-shadow:0 1px 3px rgba(0,0,0,0.04);
+}
+.activity-prompt .badge{
+  display:inline-block;
+  flex-shrink:0;
+  background:var(--accent);
+  color:#fff;
+  padding:6px 12px;
+  border-radius:4px;
+  font-family:'Fraunces', serif;
+  font-weight:500;
+  font-size:16px;
+  letter-spacing:0.02em;
+}
+.activity-prompt .prompt-text{
+  flex:1;
+}
+/* Fraction input: two stacked number boxes with a divider line.
+   The bar is wider than the inputs to reinforce the fraction reading. */
+.fraction-input{
+  display:inline-flex;
+  flex-direction:column;
+  align-items:center;
+  flex-shrink:0;
+  width:72px;
+  line-height:1;
+}
+.fraction-input input.frac-num,
+.fraction-input input.frac-den{
+  width:48px;          /* narrower than the column so the bar protrudes */
+  box-sizing:border-box;
+  text-align:center;
+  font-family:'Inter', sans-serif;
+  font-weight:700;
+  font-size:22px;
+  color:#000;
+  background:#fff;
+  border:1px solid var(--line-strong);
+  border-radius:3px;
+  padding:4px 6px;
+}
+.fraction-input input.frac-num:focus,
+.fraction-input input.frac-den:focus{
+  outline:none;
+  border-color:var(--accent);
+  box-shadow:0 0 0 2px rgba(200,71,46,0.25);
+}
+.fraction-input .frac-bar{
+  display:block;
+  width:100%;          /* fills the 72px column → extends past 48px inputs */
+  height:2px;
+  background:#000;
+  margin:4px 0;
+  border-radius:1px;
+}
+.activity-controls{
+  display:flex;
+  gap:10px;
+  align-items:center;
+  flex-wrap:wrap;
+}
+.activity-status{
+  font-size:13px;
+  color:var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+.activity-status .ok{ color:#2d8a4a; font-weight:500 }
+.activity-status .bad{ color:var(--accent); font-weight:500 }
+.activity-status.perfect{
+  color:#2d8a4a;
+  font-weight:500;
+}
+
+/* responsive */
+@media (max-width:900px){
+  .app{
+    grid-template-columns:1fr;
+    padding:20px;
+    gap:24px;
+  }
+  .sidebar{ position:static; order:2 }
+  .showcase{ order:1 }
+  .stage{ min-height:480px }
+  .avatar{ transform:scale(0.62); margin:-140px 0 }
+  .header{ flex-direction:column; align-items:flex-start; gap:8px }
+}
+</style>
+</head>
+<body class="mode-atelier">
+
+<div class="page">
+
+<main class="app">
+
+  <!-- Wardrobe panel (used in both modes; CSS positions it) -->
+  <aside class="sidebar">
+    <div class="panel wardrobe-panel">
+      <h3 class="panel-title">Garde-robe</h3>
+      <div id="controls"></div>
+      <div class="actions" style="margin-top:16px">
+        <button class="btn primary" id="random-btn">Tirage aléatoire</button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Atelier mode: large avatar showcase -->
+  <section class="showcase only-atelier">
+    <div class="mode-banner">
+      <span class="banner-title">La garde-robe d'Éloïse</span>
+      <div class="banner-nav">
+        <button class="btn nav-back-btn" aria-label="Précédent">← Retour</button>
+        <button class="btn primary nav-continue-btn" aria-label="Suivant">Continuer →</button>
+      </div>
+    </div>
+    <div class="stage">
+      <div class="avatar" id="big-avatar">
+        <img class="hairBack" src="assets/hair_back.png" alt="">
+        <img class="base" src="assets/base_body_face.png" alt="">
+        <img class="pants" alt="">
+        <img class="top" alt="">
+        <img class="shoes" alt="">
+        <img class="hairFront" src="assets/hair_front.png" alt="">
+      </div>
+    </div>
+  </section>
+
+  <!-- Arbre mode: tree -->
+  <section class="tree-panel only-arbre">
+    <div class="mode-banner">
+      <span class="banner-title">Arbre des tenues</span>
+      <div class="banner-nav">
+        <button class="btn nav-back-btn" aria-label="Précédent">← Retour</button>
+        <button class="btn primary nav-continue-btn" aria-label="Suivant">Continuer →</button>
+      </div>
+    </div>
+    <div class="tree-head">
+      <div class="tree-head-right">
+        <button class="btn primary tree-random-btn" id="tree-random-btn">Tirage aléatoire</button>
+      </div>
+    </div>
+    <div class="tree-wrap">
+      <div class="tree-axis">
+        <span style="top:30px">Départ</span>
+        <span style="top:180px">Haut</span>
+        <span style="top:340px">Bas</span>
+        <span style="top:500px">Chaussures</span>
+      </div>
+      <div class="tree-svg-wrap">
+        <svg id="tree" xmlns="http://www.w3.org/2000/svg"></svg>
+      </div>
+      <div id="leaf-avatar" class="leaf-avatar">
+        <img class="hairBack" src="assets/hair_back.png" alt="">
+        <img class="base" src="assets/base_body_face.png" alt="">
+        <img class="pants" alt="">
+        <img class="top" alt="">
+        <img class="shoes" alt="">
+        <img class="hairFront" src="assets/hair_front.png" alt="">
+      </div>
+    </div>
+  </section>
+
+  <!-- Activité 1 mode: multi-select on the tree -->
+  <div class="only-act1 activity-fit-wrap">
+  <section class="tree-panel" data-activity-id="act1">
+    <div class="activity-prompt">
+      <span class="badge">Activité 1</span>
+      <span class="prompt-text">Sélectionne toutes les tenues possibles dans lesquelles Éloïse porte une jupe.</span>
+      <div class="banner-nav">
+        <button class="btn nav-back-btn" aria-label="Précédent">← Retour</button>
+        <button class="btn primary nav-continue-btn" aria-label="Suivant">Continuer →</button>
+      </div>
+    </div>
+    <div class="tree-head">      <div class="tree-head-right activity-controls">
+        <span class="activity-status">0 tenue sélectionnée</span>
+        <button class="btn activity-reset-btn">Recommencer</button>
+        <button class="btn primary activity-verify-btn">Vérifier</button>
+      </div>
+    </div>
+    <div class="tree-wrap">
+      <div class="tree-axis">
+        <span style="top:30px">Départ</span>
+        <span style="top:180px">Haut</span>
+        <span style="top:340px">Bas</span>
+        <span style="top:500px">Chaussures</span>
+      </div>
+      <div class="tree-svg-wrap">
+        <svg class="activity-tree" xmlns="http://www.w3.org/2000/svg"></svg>
+      </div>
+      <div class="activity-leaf-avatars"></div>
+    </div>
+  </section>
+  </div>
+
+  <!-- Activité 2 mode: multi-select on the tree -->
+  <div class="only-act2 activity-fit-wrap">
+  <section class="tree-panel" data-activity-id="act2">
+    <div class="activity-prompt">
+      <span class="badge">Activité 2</span>
+      <span class="prompt-text">Sélectionne toutes les tenues où Éloïse porte deux articles de la même couleur.</span>
+      <div class="banner-nav">
+        <button class="btn nav-back-btn" aria-label="Précédent">← Retour</button>
+        <button class="btn primary nav-continue-btn" aria-label="Suivant">Continuer →</button>
+      </div>
+    </div>
+    <div class="tree-head">      <div class="tree-head-right activity-controls">
+        <span class="activity-status">0 tenue sélectionnée</span>
+        <button class="btn activity-reset-btn">Recommencer</button>
+        <button class="btn primary activity-verify-btn">Vérifier</button>
+      </div>
+    </div>
+    <div class="tree-wrap">
+      <div class="tree-axis">
+        <span style="top:30px">Départ</span>
+        <span style="top:180px">Haut</span>
+        <span style="top:340px">Bas</span>
+        <span style="top:500px">Chaussures</span>
+      </div>
+      <div class="tree-svg-wrap">
+        <svg class="activity-tree" xmlns="http://www.w3.org/2000/svg"></svg>
+      </div>
+      <div class="activity-leaf-avatars"></div>
+    </div>
+  </section>
+  </div>
+
+  <!-- Activité 3 mode: probability calculation with fraction input -->
+  <div class="only-act3 activity-fit-wrap">
+  <section class="tree-panel" data-activity-id="act3">
+    <div class="activity-prompt">
+      <span class="badge">Activité 3</span>
+      <span class="prompt-text">Quelle est la probabilité qu'Éloïse porte deux articles de la même couleur ?</span>
+      <span class="fraction-input" aria-label="Réponse sous forme de fraction">
+        <input class="frac-num" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="3" aria-label="numérateur" placeholder="—">
+        <span class="frac-bar"></span>
+        <input class="frac-den" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="3" aria-label="dénominateur" placeholder="—">
+      </span>
+      <div class="banner-nav">
+        <button class="btn nav-back-btn" aria-label="Précédent">← Retour</button>
+        <button class="btn primary nav-continue-btn" aria-label="Suivant">Continuer →</button>
+      </div>
+    </div>
+    <div class="tree-head">      <div class="tree-head-right activity-controls">
+        <span class="activity-status"></span>
+        <button class="btn primary activity-verify-btn">Vérifier</button>
+      </div>
+    </div>
+    <div class="tree-wrap">
+      <div class="tree-axis">
+        <span style="top:30px">Départ</span>
+        <span style="top:180px">Haut</span>
+        <span style="top:340px">Bas</span>
+        <span style="top:500px">Chaussures</span>
+      </div>
+      <div class="tree-svg-wrap">
+        <svg class="activity-tree" xmlns="http://www.w3.org/2000/svg"></svg>
+      </div>
+      <div class="activity-leaf-avatars"></div>
+    </div>
+  </section>
+  </div>
+
+</main>
+
+</div>
+
+<script>
+const assets = {
+  top:   ["assets/top_black_crop.png", "assets/top_green_crop.png", "assets/top_yellow_jacket.png", "assets/top_purple_hoodie.png"],
+  pants: ["assets/pants_green_skirt.png", "assets/pants_blue_jeans.png", "assets/pants_pink_shorts.png"],
+  shoes: ["assets/shoes_red.png", "assets/shoes_blue.png"]
+};
+const cats   = ["top","pants","shoes"];
+const labels = { top:"Haut", pants:"Bas", shoes:"Chaussures" };
+// state values can be null (= category not yet decided, displays ?)
+const state  = { top:0, pants:0, shoes:0 };
+
+// ─── Activities ────────────────────────────────────────────────────────────
+// Each activity is a config: id, prompt (declared in HTML), and expected(): the
+// set of leaf keys the student should select to be correct.
+//
+// To add a new activity:
+//   1. Add a button: <button class="mode-btn" data-mode="actN">Activité N</button>
+//   2. Add a <section class="tree-panel only-actN" data-activity-id="actN">…</section>
+//   3. Add an entry below with id matching the button's data-mode.
+//
+// The render/click/verify logic is shared and reads from `activities[id].state`.
+
+// Identify items by filename, robust to reordering.
+const skirtIdx     = assets.pants.findIndex(p => /skirt/i.test(p));
+const greenTopIdx  = assets.top.findIndex(t   => /green/i.test(t));
+const greenPantIdx = assets.pants.findIndex(p => /green/i.test(p));
+const bluePantIdx  = assets.pants.findIndex(p => /blue/i.test(p));
+const blueShoeIdx  = assets.shoes.findIndex(s => /blue/i.test(s));
+
+function leafKey(t, p, s){ return `t${t}p${p}s${s}`; }
+
+const ACTIVITIES = {
+  act1: {
+    id: "act1",
+    // All tenues with the skirt.
+    expected: () => {
+      const out = new Set();
+      for (let t = 0; t < assets.top.length; t++)
+        for (let s = 0; s < assets.shoes.length; s++)
+          out.add(leafKey(t, skirtIdx, s));
+      return out;
+    }
+  },
+  act2: {
+    id: "act2",
+    // All tenues where at least two of the three items share a color.
+    // In this catalog the only matching pairs are: top-green/pants-green and
+    // pants-blue/shoes-blue. We union the two sets (no triple match exists).
+    expected: () => {
+      const out = new Set();
+      for (let s = 0; s < assets.shoes.length; s++) out.add(leafKey(greenTopIdx, greenPantIdx, s));
+      for (let t = 0; t < assets.top.length;   t++) out.add(leafKey(t, bluePantIdx, blueShoeIdx));
+      return out;
+    }
+  },
+  act3: {
+    id: "act3",
+    // Same set of "favorable" leaves as Activité 2, pre-selected.
+    expected: () => ACTIVITIES.act2.expected(),
+    // Activity-3-specific behaviour flags:
+    readOnly: true,             // student cannot toggle leaves
+    showEdgeProbabilities: true,// fractions written along each edge
+    hideResetButton: true,      // Recommencer removed
+    fractionInput: true,        // a fraction-shaped input appears in the prompt
+    prePopulate: () => {
+      // Pre-fill `selected` so the favourable subtree paths are highlighted on arrival.
+      // Returns the set of chain keys to install.
+      const keys = new Set();
+      const leaves = ACTIVITIES.act2.expected();
+      for (const lk of leaves){
+        const m = /^t(\d+)p(\d+)s(\d+)$/.exec(lk);
+        if (!m) continue;
+        const t = +m[1], p = +m[2], s = +m[3];
+        keys.add(nodeKey(3, t, p, s));
+      }
+      return keys;
+    },
+    // Verify the fraction input: accept any positive fraction equal to 6/24 = 1/4.
+    // Both numerator and denominator must be positive integers and num/den === 1/4.
+    verifyFraction: (num, den) => {
+      if (!Number.isInteger(num) || !Number.isInteger(den)) return false;
+      if (den <= 0 || num <= 0) return false;
+      // Compare cross-products to avoid float issues: num/den === 1/4 iff 4*num === den.
+      return 4 * num === den;
+    }
+  }
+};
+
+// Per-activity state. Each entry mirrors what the old single `activity` held.
+const activities = {};
+for (const id of Object.keys(ACTIVITIES)){
+  activities[id] = {
+    selected: new Set(),
+    // After Vérifier: { correct:Set<leafKey> } on success; { wrong:true } on failure; null = unchecked.
+    verdict: null,
+    // Fraction input state, only used by activities with `fractionInput: true`.
+    fraction: { num: "", den: "" },
+    // Has the pre-population already been applied? Done once on first entry.
+    prePopulated: false
+  };
+}
+
+function nodeKey(level, t, p, s){
+  if (level === 0) return "L0";
+  if (level === 1) return `L1.t${t}`;
+  if (level === 2) return `L2.t${t}p${p}`;
+  return `L3.t${t}p${p}s${s}`;
+}
+// Path prefix used for cascade deselect. Returns the (t/p/s) part of a chain key
+// at the given level (matches the suffix of nodeKey after the "L{n}." prefix).
+function pathPrefix(level, t, p, s){
+  if (level === 1) return `t${t}`;
+  if (level === 2) return `t${t}p${p}`;
+  return `t${t}p${p}s${s}`;
+}
+// True if chain key `k` represents a node whose path begins with `prefix`.
+function chainStartsWith(k, prefix){
+  const dot = k.indexOf(".");
+  if (dot < 0) return false;
+  const tail = k.slice(dot + 1);
+  if (tail === prefix) return true;
+  if (!tail.startsWith(prefix)) return false;
+  const next = tail[prefix.length];
+  return next === "p" || next === "s";
+}
+// Extract the set of selected leaf keys (level-3 entries only) for verification.
+function selectedLeafKeys(actId){
+  const out = new Set();
+  for (const k of activities[actId].selected){
+    const m = /^L3\.t(\d+)p(\d+)s(\d+)$/.exec(k);
+    if (m) out.add(leafKey(+m[1], +m[2], +m[3]));
+  }
+  return out;
+}
+// Return the activity id corresponding to the current mode, or null if not in an activity.
+function currentActivityId(){
+  return mode in ACTIVITIES ? mode : null;
+}
+
+let mode = "atelier"; // "atelier" | "arbre" | "act1" | "act2"
+
+// Linear flow order. The Continue/Back buttons step through this list.
+const MODE_ORDER = ["atelier", "arbre", "act1", "act2", "act3"];
+
+function setMode(newMode){
+  mode = newMode;
+  document.body.classList.remove("mode-atelier","mode-arbre","mode-act1","mode-act2","mode-act3");
+  document.body.classList.add("mode-" + mode);
+  document.querySelectorAll(".mode-btn").forEach(btn => {
+    btn.classList.toggle("active", btn.dataset.mode === mode);
+  });
+  // Switching to atelier requires a fully-decided state (no nulls), so fill in defaults.
+  if (mode === "atelier"){
+    cats.forEach(cat => { if (state[cat] === null) state[cat] = 0; });
+  }
+  // First entry to an activity with pre-population: install the initial selection.
+  if (mode in ACTIVITIES){
+    const a = activities[mode];
+    const cfg = ACTIVITIES[mode];
+    if (cfg.prePopulate && !a.prePopulated){
+      const keys = cfg.prePopulate();
+      a.selected = new Set(keys);
+      a.prePopulated = true;
+    }
+  }
+  render();
+  updateNavButtons();
+}
+
+// Show/hide and enable/disable all Continue and Back buttons based on
+// current mode and (for activities) verdict. There is one button instance per
+// mode banner, but they all behave identically — we update them uniformly.
+function updateNavButtons(){
+  const idx = MODE_ORDER.indexOf(mode);
+  const backHidden = (idx <= 0);
+  const fwdHidden = (idx < 0 || idx >= MODE_ORDER.length - 1);
+  let fwdDisabled;
+  if (mode in ACTIVITIES){
+    const a = activities[mode];
+    fwdDisabled = !(a && a.verdict && a.verdict.correct);
+  } else {
+    fwdDisabled = false;
+  }
+  document.querySelectorAll(".nav-back-btn").forEach(b => { b.hidden = backHidden; });
+  document.querySelectorAll(".nav-continue-btn").forEach(b => { b.hidden = fwdHidden; b.disabled = fwdDisabled; });
+}
+
+function navContinue(){
+  const idx = MODE_ORDER.indexOf(mode);
+  if (idx >= 0 && idx < MODE_ORDER.length - 1) setMode(MODE_ORDER[idx + 1]);
+}
+function navBack(){
+  const idx = MODE_ORDER.indexOf(mode);
+  if (idx > 0) setMode(MODE_ORDER[idx - 1]);
+}
+
+function makeControls(){
+  const c = document.querySelector("#controls");
+  c.innerHTML = "";
+  cats.forEach(cat=>{
+    const el = document.createElement("div");
+    el.className = "cat";
+    el.dataset.cat = cat;
+    el.tabIndex = 0;
+    el.innerHTML = `
+      <div class="cat-head">
+        <span class="cat-name">${labels[cat]}</span>
+        <span class="cat-count"><span class="cur">1</span>⁄${assets[cat].length}</span>
+      </div>
+      <div class="cat-row">
+        <button class="nav-btn prev" aria-label="${labels[cat]} précédent">←</button>
+        <div class="thumb ${cat}">
+          <img alt="" class="thumb-img">
+          <span class="thumb-q">?</span>
+        </div>
+        <button class="nav-btn next" aria-label="${labels[cat]} suivant">→</button>
+      </div>
+      <div class="dots">
+        ${assets[cat].map(()=>'<span class="dot"></span>').join("")}
+      </div>
+    `;
+    el.querySelector(".prev").onclick = ()=> change(cat, -1);
+    el.querySelector(".next").onclick = ()=> change(cat,  1);
+    c.appendChild(el);
+  });
+}
+
+function change(cat, d){
+  const n = assets[cat].length;
+  const cur = state[cat] === null ? 0 : state[cat];
+  // If category was null and user clicks an arrow, land on a defined value.
+  state[cat] = d === 0 ? cur : (cur + d + n) % n;
+  // In atelier mode, arrow clicks here only change this category. In arbre mode,
+  // user may want to "fill in" undecided categories by arrow-cycling; same behavior.
+  render();
+}
+
+function randomize(){
+  cats.forEach(cat=>{
+    state[cat] = Math.floor(Math.random() * assets[cat].length);
+  });
+  render();
+}
+
+function setAvatarLayers(avatarEl){
+  // Render the avatar layers. Hide layers for null categories.
+  cats.forEach(cat=>{
+    const layer = avatarEl.querySelector(`.${cat}`);
+    if (state[cat] === null){
+      layer.classList.add("hidden");
+      layer.removeAttribute("src");
+    } else {
+      layer.classList.remove("hidden");
+      layer.src = assets[cat][state[cat]];
+    }
+  });
+}
+
+function render(){
+  // Update big avatar (atelier mode) and leaf avatar (arbre mode, set later in renderTree).
+  setAvatarLayers(document.querySelector("#big-avatar"));
+  setAvatarLayers(document.querySelector("#leaf-avatar"));
+
+  // Update selectors: thumbnail + dots + counter; "?" if null.
+  document.querySelectorAll(".cat").forEach(el=>{
+    const cat = el.dataset.cat;
+    const idx = state[cat];
+    const thumb = el.querySelector(".thumb");
+    const img   = el.querySelector(".thumb-img");
+    if (idx === null){
+      thumb.classList.add("undecided");
+      img.removeAttribute("src");
+      el.querySelector(".cur").textContent = "?";
+    } else {
+      thumb.classList.remove("undecided");
+      img.src = assets[cat][idx];
+      el.querySelector(".cur").textContent = idx + 1;
+    }
+    el.querySelectorAll(".dot").forEach((d,i)=>{
+      d.classList.toggle("active", i === idx);
+    });
+  });
+
+  renderTree("#tree", "arbre", null);
+  for (const id of Object.keys(ACTIVITIES)){
+    const section = document.querySelector(`[data-activity-id="${id}"]`);
+    if (!section) continue;
+    const svg = section.querySelector(".activity-tree");
+    renderTree(svg, "activity", id);
+  }
+  renderActivityStatuses();
+}
+
+/* ─── Probability tree ─── */
+const treeIconCfg = {
+  top:   { size:48, srcX: 12, srcY: 30, srcW: 40, srcH: 28 },
+  pants: { size:48, srcX: 16, srcY: 62, srcW: 32, srcH: 34 },
+  shoes: { size:40, srcX: 14, srcY: 96, srcW: 36, srcH: 22 }
+};
+
+function renderTree(svgOrSelector, treeMode, activityId){
+  const svg = (typeof svgOrSelector === "string") ? document.querySelector(svgOrSelector) : svgOrSelector;
+  if (!svg) return;
+  // For activity mode, read the corresponding per-activity state.
+  const actState = (treeMode === "activity") ? activities[activityId] : null;
+  const nTop   = assets.top.length;
+  const nPants = assets.pants.length;
+  const nShoes = assets.shoes.length;
+  const nLeaves = nTop * nPants * nShoes;
+
+  const leafStep  = 50;
+  const padLeft   = 30;
+  const padRight  = 30;
+  const W = padLeft + (nLeaves - 1) * leafStep + padRight;
+
+  const rowY = {
+    root:  30,
+    top:   180,
+    pants: 340,
+    shoes: 500
+  };
+  const H = rowY.shoes + 50;
+
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  svg.setAttribute("preserveAspectRatio", "xMidYMid meet");
+  svg.removeAttribute("width");
+  svg.removeAttribute("height");
+
+  // Reposition axis labels for current SVG scale.
+  requestAnimationFrame(() => {
+    const svgRect = svg.getBoundingClientRect();
+    if (svgRect.width === 0) return;
+    const scale = svgRect.width / W;
+    // Find the .tree-axis inside the same .tree-panel as this svg
+    const panel = svg.closest(".tree-panel");
+    if (!panel) return;
+    const axis = panel.querySelector(".tree-axis");
+    if (!axis) return;
+    const labels = axis.querySelectorAll("span");
+    const yCoords = [rowY.root, rowY.top, rowY.pants, rowY.shoes];
+    labels.forEach((label, i) => {
+      label.style.top = (yCoords[i] * scale) + "px";
+    });
+    // Position the leaf-avatar overlay (only for arbre mode)
+    if (treeMode === "arbre") positionLeafAvatar(scale);
+  });
+
+  // Build leaves, then parents (geometry is identical across modes).
+  const shoeNodes = [];
+  let leafX = padLeft;
+  for (let t = 0; t < nTop; t++){
+    for (let p = 0; p < nPants; p++){
+      for (let s = 0; s < nShoes; s++){
+        shoeNodes.push({ level:3, cat:"shoes", idx:s, x:leafX, y:rowY.shoes, path:{top:t,pants:p,shoes:s} });
+        leafX += leafStep;
+      }
+    }
+  }
+  const pantsNodes = [];
+  for (let i = 0; i < shoeNodes.length; i += nShoes){
+    const group = shoeNodes.slice(i, i + nShoes);
+    const meanX = (group[0].x + group[group.length-1].x) / 2;
+    const path = { ...group[0].path };
+    pantsNodes.push({ level:2, cat:"pants", idx:path.pants, x:meanX, y:rowY.pants, path });
+  }
+  const topNodes = [];
+  for (let i = 0; i < pantsNodes.length; i += nPants){
+    const group = pantsNodes.slice(i, i + nPants);
+    const meanX = (group[0].x + group[group.length-1].x) / 2;
+    const path = { ...group[0].path };
+    topNodes.push({ level:1, cat:"top", idx:path.top, x:meanX, y:rowY.top, path });
+  }
+  const rootX = (topNodes[0].x + topNodes[topNodes.length-1].x) / 2;
+  const rootNode = { level:0, cat:null, idx:null, x:rootX, y:rowY.root, path:null };
+
+  // ─── Per-mode "active link" logic ───
+  // Arbre mode: a single active path defined by the current state (with click-to-deselect).
+  // Activité mode: many active paths, one per selected leaf.
+
+  const activeLinkPredicate = (() => {
+    if (treeMode === "activity"){
+      // A node/link at `level` is active iff some selected chain at depth ≥ level
+      // passes through it. Produces upward-only highlighting (root→chain endpoint).
+      return (path, level) => {
+        if (level === 0) return actState.selected.size > 0;
+        for (const key of actState.selected){
+          let m;
+          if ((m = /^L1\.t(\d+)$/.exec(key)))                       { var depth = 1, t = +m[1], p = NaN, s = NaN; }
+          else if ((m = /^L2\.t(\d+)p(\d+)$/.exec(key)))            { depth = 2; t = +m[1]; p = +m[2]; s = NaN; }
+          else if ((m = /^L3\.t(\d+)p(\d+)s(\d+)$/.exec(key)))      { depth = 3; t = +m[1]; p = +m[2]; s = +m[3]; }
+          else continue;
+          if (level > depth) continue;
+          if (level >= 1 && path.top   !== t) continue;
+          if (level >= 2 && path.pants !== p) continue;
+          if (level >= 3 && path.shoes !== s) continue;
+          return true;
+        }
+        return false;
+      };
+    }
+    // Arbre: depth of current selection
+    const activeDepth = (state.top !== null ? 1 : 0)
+                      + (state.pants !== null ? 1 : 0)
+                      + (state.shoes !== null ? 1 : 0);
+    return (path, level) => {
+      if (level === 0) return true;
+      if (level > activeDepth) return false;
+      if (level >= 1 && state.top   !== null && path.top   !== state.top)   return false;
+      if (level >= 2 && state.pants !== null && path.pants !== state.pants) return false;
+      if (level >= 3 && state.shoes !== null && path.shoes !== state.shoes) return false;
+      return true;
+    };
+  })();
+
+  // Build links. Each link carries its level (1=root→top, 2=top→pants, 3=pants→shoes).
+  const links = [];
+  topNodes.forEach(n => links.push({ level:1, x1:rootNode.x, y1:rootNode.y, x2:n.x, y2:n.y, active: activeLinkPredicate(n.path, 1) }));
+  topNodes.forEach((tN, ti) => {
+    for (let p = 0; p < nPants; p++){
+      const pN = pantsNodes[ti * nPants + p];
+      links.push({ level:2, x1:tN.x, y1:tN.y, x2:pN.x, y2:pN.y, active: activeLinkPredicate(pN.path, 2) });
+    }
+  });
+  pantsNodes.forEach((pN, pi) => {
+    for (let s = 0; s < nShoes; s++){
+      const sN = shoeNodes[pi * nShoes + s];
+      links.push({ level:3, x1:pN.x, y1:pN.y, x2:sN.x, y2:sN.y, active: activeLinkPredicate(sN.path, 3) });
+    }
+  });
+
+  // Should we draw uniform-probability fraction labels on each edge?
+  const showProbs = (treeMode === "activity") && ACTIVITIES[activityId] && ACTIVITIES[activityId].showEdgeProbabilities;
+  // Per-level denominators for uniform probability: 1/nTop, 1/nPants, 1/nShoes.
+  const probDen = { 1: nTop, 2: nPants, 3: nShoes };
+
+  let out = "";
+  const sorted = [...links].sort((a,b) => (a.active?1:0) - (b.active?1:0));
+  sorted.forEach(l => {
+    const my = (l.y1 + l.y2) / 2;
+    const d = `M ${l.x1} ${l.y1} C ${l.x1} ${my}, ${l.x2} ${my}, ${l.x2} ${l.y2}`;
+    out += `<path class="link${l.active?' active':''}" d="${d}"/>`;
+  });
+
+  // Edge labels (uniform probability fractions). Drawn after the links so they sit
+  // above them. Each label is an SVG group with a numerator, a horizontal bar, and
+  // a denominator, placed near the midpoint of the edge.
+  if (showProbs){
+    links.forEach(l => {
+      const den = probDen[l.level];
+      // Place the label at the geometric midpoint of the edge. No horizontal offset:
+      // the previous offset pushed middle children off-axis from their parent node,
+      // which looked wrong on 3-child branches where the middle edge is vertical.
+      const cx = (l.x1 + l.x2) / 2;
+      const cy = (l.y1 + l.y2) / 2;
+      const cls = l.active ? "edge-label active" : "edge-label";
+      out += `<g class="${cls}" transform="translate(${cx}, ${cy})">`;
+      out += `<rect class="edge-label-bg" x="-8" y="-12" width="16" height="24" rx="2"/>`;
+      out += `<text class="edge-label-num" x="0" y="-2" text-anchor="middle">1</text>`;
+      out += `<line class="edge-label-bar" x1="-5" y1="1" x2="5" y2="1"/>`;
+      out += `<text class="edge-label-den" x="0" y="11" text-anchor="middle">${den}</text>`;
+      out += `</g>`;
+    });
+  }
+
+  // Root: in arbre and activity modes it's clickable.
+  const rootCls = (treeMode === "arbre" || treeMode === "activity") ? "node-dot active node-clickable" : "node-dot active";
+  out += `<circle class="${rootCls}" cx="${rootNode.x}" cy="${rootNode.y}" r="6" data-level="0"/>`;
+
+  // Per-node state in activity mode (for selection/verification styling).
+  function leafStateClass(node){
+    if (treeMode !== "activity") return "";
+    // After a correct verification, color the correct leaves green.
+    if (node.level === 3 && actState.verdict && actState.verdict.correct){
+      const k = leafKey(node.path.top, node.path.pants, node.path.shoes);
+      if (actState.verdict.correct.has(k)) return " verified-correct";
+    }
+    // Highlight any clicked node (any level).
+    const nk = nodeKey(node.level, node.path.top, node.path.pants, node.path.shoes);
+    return actState.selected.has(nk) ? " selected" : "";
+  }
+
+  function renderNode(n){
+    const active = activeLinkPredicate(n.path, n.level);
+    const cfg = treeIconCfg[n.cat];
+    const src  = assets[n.cat][n.idx];
+    const size = cfg.size;
+    const scale = size / cfg.srcW;
+    const imgW = 64 * scale;
+    const imgH = 128 * scale;
+    const tx = n.x - size/2 - cfg.srcX * scale;
+    const ty = n.y - size/2 - cfg.srcY * scale;
+    // Clip IDs must be unique per SVG; include activityId so two activity trees don't collide.
+    const scope = (treeMode === "activity") ? `act-${activityId}` : "arbre";
+    const clipId = `clip-${scope}-${n.level}-${Math.round(n.x*10)}-${Math.round(n.y*10)}`;
+    out += `<defs><clipPath id="${clipId}"><rect x="${n.x - size/2}" y="${n.y - size/2}" width="${size}" height="${size}" rx="3"/></clipPath></defs>`;
+
+    let cls = "node-icon-bg";
+    if (active) cls += " active";
+    if (n.level === 3) cls += " leaf";
+    cls += leafStateClass(n);
+    cls += " node-clickable";
+
+    out += `<rect class="${cls}" x="${n.x - size/2 - 1}" y="${n.y - size/2 - 1}" width="${size+2}" height="${size+2}" rx="3" data-cat="${n.cat}" data-t="${n.path.top}" data-p="${n.path.pants}" data-s="${n.path.shoes}" data-level="${n.level}"/>`;
+    out += `<image href="${src}" x="${tx}" y="${ty}" width="${imgW}" height="${imgH}" clip-path="url(#${clipId})" style="image-rendering:pixelated; pointer-events:none"/>`;
+  }
+
+  topNodes.forEach(renderNode);
+  pantsNodes.forEach(renderNode);
+  shoeNodes.forEach(renderNode);
+
+  svg.innerHTML = out;
+
+  // ─── Click handlers ───
+  if (treeMode === "arbre"){
+    svg.querySelectorAll(".node-clickable").forEach(el => {
+      el.addEventListener("click", () => {
+        const lvl = parseInt(el.dataset.level, 10);
+        const t = parseInt(el.dataset.t), p = parseInt(el.dataset.p), s = parseInt(el.dataset.s);
+        const isAlreadyActive =
+          (lvl === 0) ||
+          (lvl === 1 && state.top === t) ||
+          (lvl === 2 && state.top === t && state.pants === p) ||
+          (lvl === 3 && state.top === t && state.pants === p && state.shoes === s);
+        if (isAlreadyActive){
+          if (lvl <= 0) { state.top = null; state.pants = null; state.shoes = null; }
+          else if (lvl === 1) { state.top = null; state.pants = null; state.shoes = null; }
+          else if (lvl === 2) { state.pants = null; state.shoes = null; }
+          else if (lvl === 3) { state.shoes = null; }
+        } else {
+          state.top   = lvl >= 1 ? t : null;
+          state.pants = lvl >= 2 ? p : null;
+          state.shoes = lvl >= 3 ? s : null;
+        }
+        render();
+      });
+    });
+  } else if (treeMode === "activity"){
+    const isReadOnly = ACTIVITIES[activityId] && ACTIVITIES[activityId].readOnly;
+    if (isReadOnly){
+      // Read-only activity: no click handling, no clickable cursor either.
+      svg.querySelectorAll(".node-clickable").forEach(el => {
+        el.classList.remove("node-clickable");
+      });
+    } else {
+      svg.querySelectorAll(".node-clickable").forEach(el => {
+        el.addEventListener("click", () => {
+          const lvl = parseInt(el.dataset.level, 10);
+          const t = el.dataset.t !== undefined ? parseInt(el.dataset.t) : NaN;
+          const p = el.dataset.p !== undefined ? parseInt(el.dataset.p) : NaN;
+          const s = el.dataset.s !== undefined ? parseInt(el.dataset.s) : NaN;
+          actState.verdict = null;
+          if (lvl === 0){
+            actState.selected.clear();
+          } else {
+            const key = nodeKey(lvl, t, p, s);
+            if (actState.selected.has(key)){
+              const prefix = pathPrefix(lvl, t, p, s);
+              for (const k of [...actState.selected]){
+                if (chainStartsWith(k, prefix)) actState.selected.delete(k);
+              }
+            } else {
+              actState.selected.add(key);
+            }
+          }
+          render();
+          updateNavButtons();
+        });
+      });
+    }
+  }
+
+  // Stash leaf coordinate info for the floating leaf-avatar (arbre only)
+  if (treeMode === "arbre"){
+    const activeDepth = (state.top !== null ? 1 : 0)
+                      + (state.pants !== null ? 1 : 0)
+                      + (state.shoes !== null ? 1 : 0);
+    const leafActive = (activeDepth === 3) ? shoeNodes.find(n => activeLinkPredicate(n.path, 3)) : null;
+    svg.dataset.leafX = leafActive ? leafActive.x : "";
+    svg.dataset.leafY = leafActive ? leafActive.y : "";
+    svg.dataset.W = W;
+    svg.dataset.H = H;
+  }
+
+  // Activity mini-avatars: render one under each selected leaf.
+  if (treeMode === "activity"){
+    const selectedLeaves = [];
+    for (const key of actState.selected){
+      const m = /^L3\.t(\d+)p(\d+)s(\d+)$/.exec(key);
+      if (!m) continue;
+      const t = +m[1], p = +m[2], s = +m[3];
+      const node = shoeNodes.find(n => n.path.top === t && n.path.pants === p && n.path.shoes === s);
+      if (node) selectedLeaves.push({ x: node.x, y: node.y, t, p, s });
+    }
+    svg.dataset.W = W;
+    svg.dataset.H = H;
+    // Position after the SVG has laid out.
+    requestAnimationFrame(() => positionActivityAvatars(svg, selectedLeaves, W));
+  }
+}
+
+function positionActivityAvatars(svg, leaves, svgW){
+  if (!svg) return;
+  const section = svg.closest("[data-activity-id]");
+  if (!section) return;
+  const container = section.querySelector(".activity-leaf-avatars");
+  if (!container) return;
+  // Temporarily neutralize the fit scale while measuring/placing avatars so
+  // getBoundingClientRect gives us unscaled coordinates. We re-apply the fit
+  // scale right after.
+  const wrap = section.parentElement; // .activity-fit-wrap
+  const prevScale = section.style.getPropertyValue("--fit-scale");
+  if (wrap && wrap.classList.contains("activity-fit-wrap")) {
+    section.style.setProperty("--fit-scale", "1");
+  }
+  const svgRect = svg.getBoundingClientRect();
+  if (svgRect.width === 0){
+    // SVG hidden or unrendered — clear and bail (preserve scale).
+    container.innerHTML = "";
+    if (prevScale) section.style.setProperty("--fit-scale", prevScale);
+    return;
+  }
+  const treeWrap = svg.closest(".tree-wrap");
+  if (!treeWrap) return;
+  const wrapRect = treeWrap.getBoundingClientRect();
+  const scale = svgRect.width / svgW;
+
+  container.innerHTML = leaves.map(L => {
+    const xInSvg = L.x * scale;
+    const yInSvg = L.y * scale;
+    const left = svgRect.left - wrapRect.left + xInSvg;
+    const top  = svgRect.top  - wrapRect.top  + yInSvg + 28;
+    return `
+      <div class="leaf-avatar visible" style="left:${left}px; top:${top}px">
+        <img class="hairBack"  src="assets/hair_back.png" alt="">
+        <img class="base"      src="assets/base_body_face.png" alt="">
+        <img class="pants"     src="${assets.pants[L.p]}" alt="">
+        <img class="top"       src="${assets.top[L.t]}" alt="">
+        <img class="shoes"     src="${assets.shoes[L.s]}" alt="">
+        <img class="hairFront" src="assets/hair_front.png" alt="">
+      </div>`;
+  }).join("");
+
+  // Now re-fit the panel to viewport (this also updates the scale variable).
+  fitActivityPanel(section);
+}
+
+// Scale the activity panel so it fits in the available viewport height.
+// Reads the panel's natural (scale=1) height, divides by available space,
+// applies transform:scale(k) via --fit-scale, and sets wrapper height so
+// downstream layout doesn't leave a gap.
+function fitActivityPanel(section){
+  const wrap = section.parentElement;
+  if (!wrap || !wrap.classList.contains("activity-fit-wrap")) return;
+  // Skip if the section is hidden (display:none → height 0).
+  if (section.offsetParent === null && wrap.offsetParent === null){
+    wrap.style.height = "";
+    return;
+  }
+  // Reset scale to 1 to measure natural height.
+  section.style.setProperty("--fit-scale", "1");
+  wrap.style.height = "";
+  // offsetHeight is the unscaled box height.
+  const naturalH = section.offsetHeight;
+  // Available height: from the section's top to the viewport bottom, minus a margin.
+  const topY = section.getBoundingClientRect().top;
+  const bottomMargin = 16; // breathing room
+  const availH = window.innerHeight - topY - bottomMargin;
+  let k = Math.min(1, availH / naturalH);
+  // Don't shrink below a floor — at very small windows we'd rather have scrolling.
+  k = Math.max(0.55, k);
+  section.style.setProperty("--fit-scale", String(k));
+  // Wrapper height = scaled height so the page below doesn't leave a gap.
+  wrap.style.height = (naturalH * k) + "px";
+}
+
+// ─── Sound: short generated tones via WebAudio. Lazy-init on first use to
+// avoid the browser's autoplay restrictions before any user interaction.
+let _audioCtx = null;
+function getAudio(){
+  if (!_audioCtx){
+    try { _audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
+    catch (e) { return null; }
+  }
+  return _audioCtx;
+}
+function playErrorSound(){
+  const ctx = getAudio();
+  if (!ctx) return;
+  // Two-tone descending buzz: classic "wrong" cue.
+  const now = ctx.currentTime;
+  [[330, 0], [220, 0.12]].forEach(([freq, t0]) => {
+    const osc  = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = "square";
+    osc.frequency.value = freq;
+    osc.connect(gain).connect(ctx.destination);
+    gain.gain.setValueAtTime(0.0001, now + t0);
+    gain.gain.exponentialRampToValueAtTime(0.15, now + t0 + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + t0 + 0.18);
+    osc.start(now + t0);
+    osc.stop(now + t0 + 0.2);
+  });
+}
+function playSuccessSound(){
+  const ctx = getAudio();
+  if (!ctx) return;
+  // Three-note ascending arpeggio: C–E–G.
+  const now = ctx.currentTime;
+  [[523.25, 0], [659.25, 0.08], [783.99, 0.16]].forEach(([freq, t0]) => {
+    const osc  = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = "triangle";
+    osc.frequency.value = freq;
+    osc.connect(gain).connect(ctx.destination);
+    gain.gain.setValueAtTime(0.0001, now + t0);
+    gain.gain.exponentialRampToValueAtTime(0.18, now + t0 + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + t0 + 0.3);
+    osc.start(now + t0);
+    osc.stop(now + t0 + 0.32);
+  });
+}
+
+function shakePanel(actId){
+  const section = document.querySelector(`[data-activity-id="${actId}"]`);
+  if (!section) return;
+  // Apply the shake to the wrapper (.activity-fit-wrap), not the section. The
+  // section already has `transform: scale(var(--fit-scale))` from auto-fit, and
+  // adding a shake animation's `transform: translateX(...)` to the same element
+  // would override the scale during the animation — making the panel briefly
+  // jump to its natural (unscaled) width. The wrapper has no transform of its
+  // own, so it's a safe place to apply the shake.
+  const target = section.parentElement && section.parentElement.classList.contains("activity-fit-wrap")
+    ? section.parentElement
+    : section;
+  target.classList.remove("shake");
+  void target.offsetWidth;  // force reflow to restart the animation
+  target.classList.add("shake");
+}
+
+function verifyActivity(actId){
+  const a = activities[actId];
+  if (!a) return;
+  const cfg = ACTIVITIES[actId];
+
+  let isCorrect;
+  if (cfg.fractionInput){
+    // Fraction-based activity: check the typed fraction against verifyFraction().
+    const num = parseInt(a.fraction.num, 10);
+    const den = parseInt(a.fraction.den, 10);
+    isCorrect = cfg.verifyFraction(num, den);
+  } else {
+    // Leaf-selection activity: compare selected leaves to expected().
+    const expected  = cfg.expected();
+    const selLeaves = selectedLeafKeys(actId);
+    isCorrect = (selLeaves.size === expected.size);
+    if (isCorrect){
+      for (const k of expected) if (!selLeaves.has(k)) { isCorrect = false; break; }
+    }
+  }
+
+  if (isCorrect){
+    // For visual feedback on the tree, still record the correct leaf set.
+    a.verdict = { correct: new Set(cfg.expected()) };
+    playSuccessSound();
+    // Auto-advance to the next activity if there is one.
+    const ids = Object.keys(ACTIVITIES);
+    const idx = ids.indexOf(actId);
+    const nextId = (idx >= 0 && idx < ids.length - 1) ? ids[idx + 1] : null;
+    if (nextId){
+      setTimeout(() => {
+        if (mode === actId) setMode(nextId);
+      }, 1600);
+    }
+  } else {
+    a.verdict = { wrong: true };
+    shakePanel(actId);
+    playErrorSound();
+  }
+  render();
+  updateNavButtons();
+}
+
+function resetActivity(actId){
+  const a = activities[actId];
+  if (!a) return;
+  a.selected.clear();
+  a.verdict = null;
+  render();
+}
+
+function renderActivityStatuses(){
+  for (const id of Object.keys(ACTIVITIES)){
+    const section = document.querySelector(`[data-activity-id="${id}"]`);
+    if (!section) continue;
+    const el = section.querySelector(".activity-status");
+    if (!el) continue;
+    el.classList.remove("perfect");
+    const a = activities[id];
+    const cfg = ACTIVITIES[id];
+    if (a.verdict && a.verdict.correct){
+      el.classList.add("perfect");
+      el.textContent = "✓ Parfait";
+      continue;
+    }
+    if (cfg.fractionInput){
+      // For fraction-based activities, no count message — the student sees the fraction itself.
+      el.textContent = "";
+      continue;
+    }
+    const n = selectedLeafKeys(id).size;
+    el.textContent = (n === 0)
+      ? "Aucune tenue sélectionnée"
+      : `${n} tenue${n>1?'s':''} sélectionnée${n>1?'s':''}`;
+  }
+}
+
+function positionLeafAvatar(scale){
+  // Show/hide the floating mini-avatar inside the tree, positioned under the active leaf.
+  const svg = document.querySelector("#tree");
+  const leafX = parseFloat(svg.dataset.leafX || "");
+  const leafY = parseFloat(svg.dataset.leafY || "");
+  const overlay = document.querySelector("#leaf-avatar");
+  if (!overlay) return;
+  if (isNaN(leafX) || isNaN(leafY) || mode !== "arbre"){
+    overlay.classList.remove("visible");
+    return;
+  }
+  // Position relative to .tree-wrap
+  const wrap = document.querySelector(".tree-wrap");
+  if (!wrap) return;
+  const wrapRect = wrap.getBoundingClientRect();
+  const svgRect  = svg.getBoundingClientRect();
+  // leaf position in viewport coords:
+  const xInSvg = leafX * scale;
+  const yInSvg = leafY * scale;
+  // overlay positioning: align top of avatar slightly below the leaf
+  overlay.style.left = (svgRect.left - wrapRect.left + xInSvg) + "px";
+  overlay.style.top  = (svgRect.top  - wrapRect.top  + yInSvg + 28) + "px";
+  overlay.classList.add("visible");
+}
+
+document.addEventListener("keydown", (e)=>{
+  if(e.key === "r" || e.key === "R"){ randomize(); return; }
+  const focused = document.activeElement.closest?.(".cat");
+  if(!focused) return;
+  const cat = focused.dataset.cat;
+  if(e.key === "ArrowLeft"){ change(cat, -1); e.preventDefault(); }
+  if(e.key === "ArrowRight"){ change(cat,  1); e.preventDefault(); }
+});
+
+document.querySelector("#random-btn").onclick = randomize;
+document.querySelector("#tree-random-btn").onclick = randomize;
+
+// Wire up Vérifier / Recommencer buttons for each activity section, plus fraction inputs.
+document.querySelectorAll("[data-activity-id]").forEach(section => {
+  const id = section.dataset.activityId;
+  const v  = section.querySelector(".activity-verify-btn");
+  const r  = section.querySelector(".activity-reset-btn");
+  if (v) v.onclick = () => verifyActivity(id);
+  if (r) r.onclick = () => resetActivity(id);
+  // Fraction-input wireup if present.
+  const num = section.querySelector(".frac-num");
+  const den = section.querySelector(".frac-den");
+  if (num && den){
+    const sync = () => {
+      activities[id].fraction.num = num.value;
+      activities[id].fraction.den = den.value;
+      // Any edit clears the verdict so styling resets.
+      activities[id].verdict = null;
+      renderActivityStatuses();
+      // Re-render the tree so verification colors clear.
+      const svg = section.querySelector(".activity-tree");
+      renderTree(svg, "activity", id);
+      updateNavButtons();
+    };
+    num.addEventListener("input", sync);
+    den.addEventListener("input", sync);
+    // Pressing Enter in either input triggers Vérifier.
+    [num, den].forEach(input => {
+      input.addEventListener("keydown", e => {
+        if (e.key === "Enter") { e.preventDefault(); verifyActivity(id); }
+      });
+    });
+  }
+  // Hide Recommencer if the activity config says so.
+  if (ACTIVITIES[id] && ACTIVITIES[id].hideResetButton && r){
+    r.style.display = "none";
+  }
+});
+
+window.addEventListener("resize", () => {
+  renderTree("#tree", "arbre", null);
+  for (const id of Object.keys(ACTIVITIES)){
+    const section = document.querySelector(`[data-activity-id="${id}"]`);
+    if (!section) continue;
+    const svg = section.querySelector(".activity-tree");
+    renderTree(svg, "activity", id);
+    // renderTree schedules avatar positioning + fit in rAF; nothing more needed here.
+  }
+});
+
+// Navigation button wireup. Multiple banners each have their own Retour/Continuer.
+document.querySelectorAll(".nav-continue-btn").forEach(btn => btn.addEventListener("click", navContinue));
+document.querySelectorAll(".nav-back-btn").forEach(btn => btn.addEventListener("click", navBack));
+
+makeControls();
+render();
+updateNavButtons();
+</script>
+
+</body>
+</html>

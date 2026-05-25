@@ -1891,9 +1891,51 @@ window.addEventListener("resize", () => {
 document.querySelectorAll(".nav-continue-btn").forEach(btn => btn.addEventListener("click", navContinue));
 document.querySelectorAll(".nav-back-btn").forEach(btn => btn.addEventListener("click", navBack));
 
+// ─── Asset preload ─────────────────────────────────────────────────────────
+// All sprite PNGs are loaded and decoded before the first render. Without this,
+// the first time each image appears in the DOM (especially after innerHTML
+// rebuilds during interaction), the browser hits the network — which is slow
+// on cold GitHub Pages requests and causes a visible flash.
+//
+// Strategy:
+//   1. Collect every asset URL the app uses (assets.top/pants/shoes + base body,
+//      hair_back, hair_front).
+//   2. Build an Image() for each, set src, and await .decode() so the bitmap is
+//      ready in memory.
+//   3. Hold references in a global Map so the GC doesn't reclaim them.
+//   4. Only then start the app (makeControls + render + updateNavButtons).
+const PRELOAD_URLS = [
+  "assets/base_body_face.png",
+  "assets/hair_back.png",
+  "assets/hair_front.png",
+  ...assets.top,
+  ...assets.pants,
+  ...assets.shoes
+];
+const preloadedImages = new Map();
+async function preloadAssets(){
+  const tasks = PRELOAD_URLS.map(url => {
+    const img = new Image();
+    img.src = url;
+    preloadedImages.set(url, img);
+    // decode() resolves when the image is fully decoded; falls back to load
+    // event if decode is unsupported. Either way we wait until the bitmap is
+    // ready before the first render.
+    return (img.decode ? img.decode() : new Promise(res => {
+      if (img.complete) res();
+      else { img.onload = res; img.onerror = res; }
+    })).catch(() => {});
+  });
+  await Promise.all(tasks);
+}
+
+// Boot.
 makeControls();
-render();
-updateNavButtons();
+preloadAssets().then(() => {
+  render();
+  updateNavButtons();
+});
+
 </script>
 
 </body>

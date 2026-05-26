@@ -1008,12 +1008,21 @@ const state  = { top:0, pants:0, shoes:0 };
 //
 // The render/click/verify logic is shared and reads from `activities[id].state`.
 
-// Identify items by filename, robust to reordering.
-const skirtIdx     = assets.pants.findIndex(p => /skirt/i.test(p));
-const greenTopIdx  = assets.top.findIndex(t   => /green/i.test(t));
-const greenPantIdx = assets.pants.findIndex(p => /green/i.test(p));
-const bluePantIdx  = assets.pants.findIndex(p => /blue/i.test(p));
-const blueShoeIdx  = assets.shoes.findIndex(s => /blue/i.test(s));
+// Asset names mirror the order of `assets` arrays. We use them to identify
+// items by descriptive keyword (e.g. "skirt", "green") since the actual asset
+// URLs are inlined as data URIs and no longer contain the filename.
+const assetNames = {
+  top:   ["top_black_crop", "top_green_crop", "top_yellow_jacket", "top_purple_hoodie"],
+  pants: ["pants_green_skirt", "pants_blue_jeans", "pants_pink_shorts"],
+  shoes: ["shoes_red", "shoes_blue"]
+};
+
+// Identify items by name pattern (robust to reordering as long as assetNames matches).
+const skirtIdx     = assetNames.pants.findIndex(n => /skirt/i.test(n));
+const greenTopIdx  = assetNames.top.findIndex(n   => /green/i.test(n));
+const greenPantIdx = assetNames.pants.findIndex(n => /green/i.test(n));
+const bluePantIdx  = assetNames.pants.findIndex(n => /blue/i.test(n));
+const blueShoeIdx  = assetNames.shoes.findIndex(n => /blue/i.test(n));
 
 function leafKey(t, p, s){ return `t${t}p${p}s${s}`; }
 

@@ -34,8 +34,8 @@
   canvas {
     display: block;
     background: #000;
-    max-width: 100%;
-    max-height: 100%;
+    width: 100vw;
+    height: 100vh;
     touch-action: none;
   }
   /* Loading veil */
@@ -59,9 +59,11 @@
 
 <script>
 // ─── Constants (ported 1:1 from the Pygame version) ───
-const WIDTH = 1300, HEIGHT = 800;
+// WIDTH/HEIGHT track the live viewport so the canvas fills the screen edge-to-edge.
+// The planet is always centered; simulation coordinates are unaffected.
+let WIDTH = window.innerWidth, HEIGHT = window.innerHeight;
 const EARTH_RADIUS = 200;
-const EARTH_POS = [WIDTH/2, HEIGHT/2];
+let EARTH_POS = [WIDTH/2, HEIGHT/2];
 const M = 5.97e6 / 2;
 
 const canvas = document.getElementById('game');
@@ -201,6 +203,16 @@ const launchBtn = new Button(WIDTH-200, HEIGHT-80, 180, 50, "LANCER ▸", fire);
 const zoomOutBtn = new Button(WIDTH-150, 30, 50, 40, "–", () => { zoom = clampZoom(zoom - ZOOM_STEP); });
 const zoomInBtn  = new Button(WIDTH-90,  30, 50, 40, "+", () => { zoom = clampZoom(zoom + ZOOM_STEP); });
 
+// Reposition buttons relative to the live viewport. Called on load and resize.
+function layoutButtons(){
+  forbiddenBtn.x = 20; forbiddenBtn.y = HEIGHT-180;
+  boostBtn.x = 20;     boostBtn.y = HEIGHT-130;
+  pauseBtn.x = 20;     pauseBtn.y = HEIGHT-80;
+  launchBtn.x = WIDTH-200; launchBtn.y = HEIGHT-80;
+  zoomOutBtn.x = WIDTH-150; zoomOutBtn.y = 30;
+  zoomInBtn.x  = WIDTH-90;  zoomInBtn.y  = 30;
+}
+
 const buttons = [boostBtn, pauseBtn, forbiddenBtn, launchBtn, zoomOutBtn, zoomInBtn];
 
 // ─── Projectiles ───
@@ -261,11 +273,11 @@ function drawForbidden(speed, GM){
 let lastAngle = sliders[0].value;
 
 // ─── Input ───
+// Button/slider hit-tests and drawing both work in CSS-pixel coordinates
+// (the draw transform applies devicePixelRatio), so map clientXY to CSS pixels.
 function canvasCoords(clientX, clientY){
   const rect = canvas.getBoundingClientRect();
-  const sx = canvas.width / rect.width;
-  const sy = canvas.height / rect.height;
-  return [(clientX - rect.left)*sx, (clientY - rect.top)*sy];
+  return [clientX - rect.left, clientY - rect.top];
 }
 
 // Shared press handler for mouse + touch. Returns true if a control was hit.
@@ -405,7 +417,22 @@ function frame(){
   requestAnimationFrame(frame);
 }
 
+// ─── Viewport sizing ───
+function resize(){
+  WIDTH = window.innerWidth;
+  HEIGHT = window.innerHeight;
+  // Match the canvas backing buffer to CSS pixels for crisp 1:1 rendering.
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = Math.round(WIDTH * dpr);
+  canvas.height = Math.round(HEIGHT * dpr);
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);  // draw in CSS-pixel coordinates
+  EARTH_POS = [WIDTH/2, HEIGHT/2];
+  layoutButtons();
+}
+window.addEventListener('resize', resize);
+
 loadAssets(() => {
+  resize();
   document.getElementById('veil').classList.add('hidden');
   canvas.focus();
   requestAnimationFrame(frame);

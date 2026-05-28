@@ -3,180 +3,425 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Mathématiques</title>
-<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<title>Mathématiques · Activités</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #f7f5f0;
-    --text: #1a1916;
-    --text-muted: #6b6860;
+    --bg: #07080d;
+    --bg-soft: #0d0f17;
+    --ink: #f2f0ea;
+    --ink-dim: #8b8a96;
+    --hair: rgba(255,255,255,0.07);
 
-    --arith-light: #ede4f5;
-    --arith-light-hover: #e2d4f0;
-    --arith-mid: #7c3aed;
-    --arith-dark: #4c1d95;
-
-    --prob-light: #fff0e0;
-    --prob-light-hover: #ffe4c8;
-    --prob-mid: #d45f00;
-    --prob-dark: #7a2e00;
-
-    --model-light: #d4f0e6;
-    --model-light-hover: #c1e7d6;
-    --model-mid: #15803d;
-    --model-dark: #14532d;
+    --arith: #b388ff;   --arith-deep: #2a1a4d;
+    --prob:  #ff9d4d;   --prob-deep:  #3a210a;
+    --model: #3ddc97;   --model-deep: #0e3326;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
   body {
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Fraunces', Georgia, serif;
     background: var(--bg);
-    color: var(--text);
+    color: var(--ink);
     min-height: 100vh;
-    padding: 64px 16px 96px;
+    overflow-x: hidden;
+    position: relative;
   }
+  #field {
+    position: fixed; inset: 0;
+    width: 100vw; height: 100vh;
+    z-index: 0; display: block;
+  }
+  body::after {
+    content: ""; position: fixed; inset: 0; z-index: 1; pointer-events: none;
+    background: radial-gradient(ellipse 120% 80% at 50% 0%, transparent 45%, rgba(0,0,0,0.5) 100%);
+  }
+  .stage { position: relative; z-index: 2; }
+
+  /* ── Title as the "sun" in the top-left ── */
   header {
-    text-align: center;
-    margin-bottom: 56px;
+    position: absolute; z-index: 3;
+    top: 30px; left: 48px;
+    text-align: left;
+    max-width: 56vw;
+    pointer-events: none;
   }
-  header p {
-    font-size: 32px;
-    font-weight: 300;
-    letter-spacing: -0.02em;
+  h1 {
+    font-weight: 300; font-size: clamp(32px, 5vw, 64px);
+    line-height: 0.95; letter-spacing: -0.03em; margin: 0;
+    color: #fff7ea;
+    text-shadow:
+      0 0 22px rgba(255,228,180,0.72),
+      0 0 55px rgba(255,200,128,0.52),
+      0 0 110px rgba(255,176,96,0.38);
+    opacity: 0; animation: fadeUp .8s cubic-bezier(.2,.7,.2,1) forwards .1s;
   }
-  .wrap {
-    max-width: 1000px;
-    margin: 0 auto;
+  .sun-glow {
+    position: fixed; z-index: 1; pointer-events: none;
+    top: -200px; left: -200px;
+    width: 720px; height: 720px;
+    background: radial-gradient(circle at 30% 30%,
+      rgba(255,216,160,0.34) 0%,
+      rgba(255,188,118,0.20) 26%,
+      rgba(255,166,96,0.09) 48%,
+      transparent 70%);
+    opacity: 0; animation: fadeUp 1.4s ease forwards .2s;
   }
-  .section {
-    margin-bottom: 40px;
+
+  /* ── Sky: full-viewport stage that holds the absolutely-positioned constellations ── */
+  .sky {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
   }
-  .section-label {
+
+  /* A constellation = an absolutely-positioned cluster of tiles + label + link canvas.
+     Position is driven by the CONFIG block in the script (cluster .x/.y). */
+  .constellation { position: absolute; width: 460px; height: 320px; }
+  .const-lines {
+    position: absolute; inset: 0; z-index: 0; pointer-events: none;
+    width: 100%; height: 100%;
+  }
+  .const-label {
+    position: absolute; z-index: 1;
     font-family: 'DM Mono', monospace;
-    font-size: 11px;
-    font-weight: 500;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    color: var(--text-muted);
-    margin-bottom: 16px;
-    padding-left: 4px;
+    font-size: 12px; letter-spacing: 0.22em; text-transform: uppercase; font-weight: 500;
+    display: flex; align-items: center; gap: 10px;
+    white-space: nowrap;
+    opacity: 0; animation: fadeUp .6s ease forwards;
   }
-  .grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, 260px);
-    gap: 14px;
-  }
+  .const-label .dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor;
+    box-shadow: 0 0 10px currentColor; }
+  .const-label .count { color: var(--ink-dim); font-size: 10px; letter-spacing: 0.1em; }
+  .sec-arith .const-label { color: var(--arith); }
+  .sec-prob  .const-label { color: var(--prob); }
+  .sec-model .const-label { color: var(--model); }
+
+  /* ── Tiles as circular "planets", lit from upper-left ── */
   .tile {
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    min-height: 140px;
-    padding: 22px 24px;
-    border-radius: 14px;
-    text-decoration: none;
-    transition: transform 0.15s, background 0.15s;
-    cursor: pointer;
+    position: absolute; z-index: 2;
+    width: 156px; height: 156px;
+    display: flex; align-items: center; justify-content: center; text-align: center;
+    padding: 18px;
+    border-radius: 50%;
+    text-decoration: none; color: var(--ink);
+    background: var(--bg-soft);
+    border: none;
+    overflow: hidden; isolation: isolate;
+    /* shaded sphere: dark far side (lower-right) up to a lit side (upper-left) */
+    box-shadow:
+      inset -16px -16px 34px rgba(0,0,0,0.78),         /* core shadow on far (lower-right) side */
+      inset 10px 10px 26px rgba(255,255,255,0.05);      /* faint fill on lit (upper-left) side */
+    opacity: 0; transform: translateY(14px) scale(.96);
+    animation: tileIn .7s cubic-bezier(.2,.7,.2,1) forwards;
+    transition: transform .25s cubic-bezier(.2,.7,.2,1), box-shadow .25s, filter .25s;
   }
-  .tile:hover { transform: translateY(-2px); }
-  .tile:active { transform: translateY(0); }
+  /* the lit hemisphere: a bright off-center glow toward the sun (upper-left) */
+  .tile::before {
+    content: ""; position: absolute; inset: 0; z-index: -1;
+    background:
+      radial-gradient(circle at 30% 26%,
+        var(--lit) 0%,
+        var(--glow-deep) 42%,
+        #05060b 86%);
+    transition: opacity .25s, background .25s;
+  }
+  /* crescent rim light on the illuminated (upper-left) edge */
+  .tile::after {
+    content: ""; position: absolute; inset: 0; z-index: -1; border-radius: 50%;
+    background: radial-gradient(circle at 26% 22%, rgba(255,255,255,0.42), transparent 26%);
+    mix-blend-mode: screen;
+    opacity: 0.7; transition: opacity .25s;
+  }
+  .tile:hover {
+    transform: translateY(-6px) scale(1.05);
+    box-shadow:
+      inset -16px -16px 34px rgba(0,0,0,0.7),
+      inset 10px 10px 26px rgba(255,255,255,0.08),
+      0 0 52px -4px var(--glow);
+    z-index: 5;
+  }
+  .tile:hover::after { opacity: 1; }
 
-  .tile-arith {
-    background: var(--arith-light);
-    border: 1.5px solid var(--arith-mid);
-    color: var(--arith-dark);
-  }
-  .tile-arith:hover { background: var(--arith-light-hover); }
-
-  .tile-prob {
-    background: var(--prob-light);
-    border: 1.5px solid var(--prob-mid);
-    color: var(--prob-dark);
-  }
-  .tile-prob:hover { background: var(--prob-light-hover); }
-
-  .tile-model {
-    background: var(--model-light);
-    border: 1.5px solid var(--model-mid);
-    color: var(--model-dark);
-  }
-  .tile-model:hover { background: var(--model-light-hover); }
+  .tile-arith { --glow: var(--arith); --glow-deep: var(--arith-deep); --lit: #d9c6ff; }
+  .tile-prob  { --glow: var(--prob);  --glow-deep: var(--prob-deep);  --lit: #ffd9a8; }
+  .tile-model { --glow: var(--model); --glow-deep: var(--model-deep); --lit: #aef0cf; }
 
   .tile-title {
-    font-size: 19px;
-    font-weight: 400;
-    letter-spacing: -0.01em;
-    line-height: 1.25;
+    font-weight: 400; font-size: 16px; line-height: 1.12; letter-spacing: -0.015em;
+    text-shadow: 0 1px 6px rgba(0,0,0,0.85), 0 0 2px rgba(0,0,0,0.6);
   }
-  .tile-footer {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-top: 18px;
+  .tile-arrow { display: none; }
+
+  @keyframes fadeUp { from {opacity:0; transform:translateY(16px);} to {opacity:1; transform:translateY(0);} }
+  @keyframes tileIn { from {opacity:0; transform:translateY(14px) scale(.98);} to {opacity:1; transform:translateY(0) scale(1);} }
+
+  /* ── Responsive fallback: stack on narrow screens ── */
+  @media (max-width: 860px) {
+    .sky { padding: 0 20px 60px; }
+    .constellation { position: static !important; height: auto !important; margin-bottom: 36px;
+      display: flex; flex-direction: column; align-items: center; }
+    .const-lines { display: none; }
+    .const-label { position: static !important; margin-bottom: 20px; }
+    .tile { position: static !important; margin: 0 auto 18px; }
   }
-  .tile-number {
-    font-family: 'DM Mono', monospace;
-    font-size: 11px;
-    opacity: 0.55;
-    letter-spacing: 0.06em;
-  }
-  .tile-arrow {
-    font-family: 'DM Mono', monospace;
-    font-size: 15px;
-    opacity: 0.5;
-    transition: opacity 0.15s, transform 0.15s;
-  }
-  .tile:hover .tile-arrow {
-    opacity: 1;
-    transform: translateX(3px);
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; }
+    .tile { opacity: 1; transform: none; }
+    h1, .const-label { opacity: 1; }
+    #field { display: none; }
   }
 </style>
 </head>
 <body>
-<header>
-  <p>Activités interactives</p>
-</header>
+<canvas id="field"></canvas>
+<div class="sun-glow"></div>
 
-<div class="wrap">
-  <div class="section">
-    <div class="section-label">Arithmétique</div>
-    <div class="grid">
+<div class="stage">
+  <header>
+    <h1>Activités interactives</h1>
+  </header>
+
+  <div class="sky" id="sky">
+
+    <!-- ARITHMÉTIQUE -->
+    <div class="constellation sec-arith" data-key="arith">
+      <canvas class="const-lines"></canvas>
+      <div class="const-label"><span class="dot"></span>Arithmétique</div>
       <a class="tile tile-arith" href="division_euclidienne.html">
         <div class="tile-title">Division euclidienne</div>
-        <div class="tile-footer"><span class="tile-number">01</span><span class="tile-arrow">→</span></div>
       </a>
       <a class="tile tile-arith" href="demon_core.html">
         <div class="tile-title">Demon core</div>
-        <div class="tile-footer"><span class="tile-number">02</span><span class="tile-arrow">→</span></div>
       </a>
     </div>
-  </div>
 
-  <div class="section">
-    <div class="section-label">Probabilités</div>
-    <div class="grid">
+    <!-- PROBABILITÉS -->
+    <div class="constellation sec-prob" data-key="prob">
+      <canvas class="const-lines"></canvas>
+      <div class="const-label"><span class="dot"></span>Probabilités</div>
       <a class="tile tile-prob" href="dice_roller.html">
         <div class="tile-title">Lancer de dés</div>
-        <div class="tile-footer"><span class="tile-number">03</span><span class="tile-arrow">→</span></div>
       </a>
       <a class="tile tile-prob" href="Garde_robe/index.html">
         <div class="tile-title">La garde-robe d'Éloïse</div>
-        <div class="tile-footer"><span class="tile-number">04</span><span class="tile-arrow">→</span></div>
       </a>
     </div>
-  </div>
 
-  <div class="section">
-    <div class="section-label">Modélisation</div>
-    <div class="grid">
+    <!-- MODÉLISATION -->
+    <div class="constellation sec-model" data-key="model">
+      <canvas class="const-lines"></canvas>
+      <div class="const-label"><span class="dot"></span>Modélisation</div>
       <a class="tile tile-model" href="demogorgon_equation.html">
         <div class="tile-title">Eleven, Will et le Demogorgon</div>
-        <div class="tile-footer"><span class="tile-number">05</span><span class="tile-arrow">→</span></div>
       </a>
       <a class="tile tile-model" href="orbital_cannon.html">
         <div class="tile-title">Canon orbital</div>
-        <div class="tile-footer"><span class="tile-number">06</span><span class="tile-arrow">→</span></div>
+      </a>
+      <a class="tile tile-model" href="game_of_life.html">
+        <div class="tile-title">Jeu de la vie</div>
       </a>
     </div>
+
   </div>
 </div>
+
+<script>
+const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const wideMQ = window.matchMedia('(min-width: 861px)');
+
+/* ═══════════════════════════════════════════════════════════════════════
+   LAYOUT CONFIG — this is the only place you need to edit to move things.
+
+   Each cluster has:
+     x, y   → position of the cluster's TOP-LEFT corner, as % of the screen
+     label  → {dx, dy} pixel offset of the category label inside the cluster
+     tiles  → one {dx, dy} per planet (pixel offset inside the cluster)
+
+   To move a whole cluster: change its x / y (two numbers).
+   To nudge one planet: change its {dx, dy}.
+   The connecting lines + oval ring follow automatically.
+   Cluster box is 460×320 px (see .constellation in CSS); offsets are within it.
+   ═══════════════════════════════════════════════════════════════════════ */
+const LAYOUT = {
+  arith: {
+    x: '60%', y: '6%',
+    label: { dx: 8,  dy: 0 },
+    tiles: [ { dx: 0,   dy: 38 },     // Division euclidienne
+             { dx: 196, dy: 104 } ]   // Demon core
+  },
+  prob: {
+    x: '8%', y: '52%',
+    label: { dx: 8,  dy: 0 },
+    tiles: [ { dx: 0,   dy: 38 },     // Lancer de dés
+             { dx: 196, dy: 104 } ]   // La garde-robe d'Éloïse
+  },
+  model: {
+    x: '41%', y: '38%',
+    label: { dx: 8,  dy: 0 },
+    tiles: [ { dx: 0,   dy: 38 },     // Eleven, Will et le Demogorgon
+             { dx: 200, dy: 96 },     // Canon orbital
+             { dx: 70,  dy: 150 } ]   // Jeu de la vie
+  }
+};
+
+// Apply CONFIG positions to clusters, labels, and tiles.
+function placeClusters(){
+  const wide = wideMQ.matches;
+  document.querySelectorAll('.constellation').forEach(con => {
+    const key = con.dataset.key;
+    const cfg = LAYOUT[key];
+    if (!cfg) return;
+    if (!wide){
+      // stacked mode: clear inline positioning so CSS fallback takes over
+      con.style.left = con.style.top = '';
+      con.querySelector('.const-label').style.left = '';
+      con.querySelector('.const-label').style.top = '';
+      con.querySelectorAll('.tile').forEach(t => { t.style.left = t.style.top = ''; });
+      return;
+    }
+    con.style.left = cfg.x;
+    con.style.top  = cfg.y;
+    const label = con.querySelector('.const-label');
+    label.style.left = cfg.label.dx + 'px';
+    label.style.top  = cfg.label.dy + 'px';
+    con.querySelectorAll('.tile').forEach((t, i) => {
+      const off = cfg.tiles[i] || { dx: 0, dy: 0 };
+      t.style.left = off.dx + 'px';
+      t.style.top  = off.dy + 'px';
+    });
+  });
+}
+
+// ── Staggered reveal ──
+let k = 0;
+document.querySelectorAll('.const-label').forEach((el, i) => { el.style.animationDelay = (0.24 + i*0.12) + 's'; });
+document.querySelectorAll('.tile').forEach((t) => { t.style.animationDelay = (0.34 + (k++)*0.07) + 's'; });
+
+// ── Constellation lines: connect tile centers within each cluster ──
+const CAT_COLOR = { 'sec-arith':'179,136,255', 'sec-prob':'255,157,77', 'sec-model':'61,220,151' };
+
+function layoutConstellations(){
+  const wide = wideMQ.matches;
+  document.querySelectorAll('.constellation').forEach(con => {
+    const cv = con.querySelector('.const-lines');
+    const cx = cv.getContext('2d');
+
+    if (!wide){
+      // stacked mode: clear/hide lines (CSS handles stacked layout)
+      cx.clearRect(0,0,cv.width,cv.height);
+      return;
+    }
+
+    const rect = con.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+    cv.width = Math.round(rect.width * dpr);
+    cv.height = Math.round(rect.height * dpr);
+    cv.style.width = rect.width + 'px';
+    cv.style.height = rect.height + 'px';
+    cx.setTransform(dpr,0,0,dpr,0,0);
+    cx.clearRect(0,0,rect.width,rect.height);
+
+    // gather tile centers + bounding box relative to the cluster
+    const tiles = [...con.querySelectorAll('.tile')];
+    const cls = [...con.classList].find(c => CAT_COLOR[c]);
+    const rgb = CAT_COLOR[cls] || '200,210,255';
+    const centers = [];
+    let minX=Infinity, minY=Infinity, maxX=-Infinity, maxY=-Infinity;
+    tiles.forEach(t => {
+      const r = t.getBoundingClientRect();
+      const x = r.left - rect.left, y = r.top - rect.top;
+      centers.push({ x: x + r.width/2, y: y + r.height/2 });
+      minX = Math.min(minX, x);            minY = Math.min(minY, y);
+      maxX = Math.max(maxX, x + r.width);  maxY = Math.max(maxY, y + r.height);
+    });
+
+    // ── Oval ring enclosing the cluster (star-chart style) ──
+    const cxC = (minX + maxX) / 2;
+    const cyC = (minY + maxY) / 2;
+    const padX = 44, padY = 30;
+    const rx = (maxX - minX) / 2 + padX;
+    const ry = (maxY - minY) / 2 + padY;
+    const tilt = -0.12; // slight rotation, radians
+    cx.save();
+    cx.translate(cxC, cyC);
+    cx.rotate(tilt);
+    cx.beginPath();
+    cx.ellipse(0, 0, rx, ry, 0, 0, Math.PI*2);
+    cx.strokeStyle = `rgba(${rgb},0.32)`;
+    cx.lineWidth = 1.2;
+    cx.setLineDash([5, 7]);
+    cx.shadowColor = `rgba(${rgb},0.45)`;
+    cx.shadowBlur = 7;
+    cx.stroke();
+    cx.restore();
+    cx.setLineDash([]);
+    cx.shadowBlur = 0;
+
+    // connect tile centers in sequence (the constellation), with a glow
+    cx.lineWidth = 1.2;
+    cx.strokeStyle = `rgba(${rgb},0.34)`;
+    cx.shadowColor = `rgba(${rgb},0.5)`;
+    cx.shadowBlur = 6;
+    cx.beginPath();
+    centers.forEach((c,i) => { i ? cx.lineTo(c.x,c.y) : cx.moveTo(c.x,c.y); });
+    cx.stroke();
+    cx.shadowBlur = 0;
+
+    // little node star at each tile center
+    centers.forEach(c => {
+      cx.beginPath(); cx.arc(c.x, c.y, 2.4, 0, Math.PI*2);
+      cx.fillStyle = `rgba(${rgb},0.9)`;
+      cx.shadowColor = `rgba(${rgb},0.9)`; cx.shadowBlur = 8;
+      cx.fill(); cx.shadowBlur = 0;
+    });
+  });
+}
+
+// Apply positions, then draw lines/ovals. Recompute on load, resize, and after reveal.
+function relayout(){ placeClusters(); layoutConstellations(); }
+window.addEventListener('load', () => { relayout(); setTimeout(relayout, 1200); });
+window.addEventListener('resize', relayout);
+relayout();
+
+// ── Background drifting field ──
+const cv = document.getElementById('field');
+const cx = cv.getContext('2d');
+let W,H,pts;
+function sizeField(){
+  const dpr = window.devicePixelRatio || 1;
+  W = window.innerWidth; H = window.innerHeight;
+  cv.width = Math.round(W*dpr); cv.height = Math.round(H*dpr);
+  cx.setTransform(dpr,0,0,dpr,0,0);
+  const n = Math.min(90, Math.floor(W*H/22000));
+  pts = Array.from({length:n}, () => ({
+    x: Math.random()*W, y: Math.random()*H,
+    vx:(Math.random()-0.5)*0.22, vy:(Math.random()-0.5)*0.22,
+    r: Math.random()*1.3+0.4
+  }));
+}
+sizeField();
+window.addEventListener('resize', sizeField);
+const LINK=130;
+function tick(){
+  cx.clearRect(0,0,W,H);
+  for (const p of pts){
+    p.x+=p.vx; p.y+=p.vy;
+    if(p.x<0)p.x+=W; if(p.x>W)p.x-=W; if(p.y<0)p.y+=H; if(p.y>H)p.y-=H;
+  }
+  for(let i=0;i<pts.length;i++)for(let j=i+1;j<pts.length;j++){
+    const a=pts[i],b=pts[j],dx=a.x-b.x,dy=a.y-b.y,d2=dx*dx+dy*dy;
+    if(d2<LINK*LINK){
+      cx.strokeStyle=`rgba(150,170,255,${(1-Math.sqrt(d2)/LINK)*0.13})`;
+      cx.lineWidth=1; cx.beginPath(); cx.moveTo(a.x,a.y); cx.lineTo(b.x,b.y); cx.stroke();
+    }
+  }
+  for(const p of pts){ cx.beginPath(); cx.arc(p.x,p.y,p.r,0,Math.PI*2); cx.fillStyle='rgba(200,210,255,0.5)'; cx.fill(); }
+  requestAnimationFrame(tick);
+}
+if(!reduceMotion) requestAnimationFrame(tick);
+</script>
 </body>
 </html>

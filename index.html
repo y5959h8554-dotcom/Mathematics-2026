@@ -2,8 +2,8 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Mathématiques · Activités</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Activités interactives</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -11,167 +11,310 @@
     --bg-soft: #0d0f17;
     --ink: #f2f0ea;
     --ink-dim: #8b8a96;
-    --hair: rgba(255,255,255,0.07);
+    --hair: rgba(255,255,255,0.08);
 
-    --arith: #b388ff;   --arith-deep: #2a1a4d;
-    --prob:  #ff9d4d;   --prob-deep:  #3a210a;
-    --model: #3ddc97;   --model-deep: #0e3326;
+    --arith: #b388ff;  --arith-deep: #2a1a4d;  --arith-lit: #d9c6ff;
+    --prob:  #ff9d4d;  --prob-deep:  #3a210a;  --prob-lit:  #ffd9a8;
+    --model: #3ddc97;  --model-deep: #0e3326;  --model-lit: #aef0cf;
+    --anim:  #4dd6ff;  --anim-deep:  #0c2a3a;  --anim-lit:  #c5eeff;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   html, body { height: 100%; }
   body {
     font-family: 'Fraunces', Georgia, serif;
-    background: var(--bg);
-    color: var(--ink);
-    min-height: 100vh;
-    overflow-x: hidden;
+    background: var(--bg); color: var(--ink);
+    min-height: 100vh; overflow: hidden;
     position: relative;
   }
   #field {
-    position: fixed; inset: 0;
-    width: 100vw; height: 100vh;
-    z-index: 0; display: block;
+    position: fixed; inset: 0; z-index: 0;
+    width: 100vw; height: 100vh; display: block;
   }
   body::after {
     content: ""; position: fixed; inset: 0; z-index: 1; pointer-events: none;
-    background: radial-gradient(ellipse 120% 80% at 50% 0%, transparent 45%, rgba(0,0,0,0.5) 100%);
+    background: radial-gradient(ellipse 120% 80% at 50% 0%, transparent 50%, rgba(0,0,0,0.55) 100%);
   }
-  .stage { position: relative; z-index: 2; }
 
   /* ── Title as the "sun" in the top-left ── */
   header {
-    position: absolute; z-index: 3;
+    position: absolute; z-index: 5;
     top: 30px; left: 48px;
     text-align: left;
     max-width: 56vw;
     pointer-events: none;
+    transition: opacity .35s ease;
   }
   h1 {
     font-weight: 300; font-size: clamp(32px, 5vw, 64px);
     line-height: 0.95; letter-spacing: -0.03em; margin: 0;
     color: #fff7ea;
+    /* warm solar halo; --sun-r/g/b override per category in detail mode */
+    --sun-r: 255; --sun-g: 200; --sun-b: 128;
     text-shadow:
-      0 0 22px rgba(255,228,180,0.72),
-      0 0 55px rgba(255,200,128,0.52),
-      0 0 110px rgba(255,176,96,0.38);
-    opacity: 0; animation: fadeUp .8s cubic-bezier(.2,.7,.2,1) forwards .1s;
+      0 0 6px  rgba(255, 244, 210, 0.95),                                /* tight incandescent core */
+      0 0 26px rgba(255, 228, 180, 0.95),
+      0 0 68px rgba(var(--sun-r), var(--sun-g), var(--sun-b), 0.78),
+      0 0 140px rgba(var(--sun-r), var(--sun-g), var(--sun-b), 0.58);
+    opacity: 0;
+    animation: fadeIn .8s cubic-bezier(.2,.7,.2,1) forwards .1s;
+    transition: text-shadow .5s ease;
   }
   .sun-glow {
     position: fixed; z-index: 1; pointer-events: none;
-    top: -200px; left: -200px;
-    width: 720px; height: 720px;
+    top: -240px; left: -240px;
+    width: 900px; height: 900px;
     background: radial-gradient(circle at 30% 30%,
-      rgba(255,216,160,0.34) 0%,
-      rgba(255,188,118,0.20) 26%,
-      rgba(255,166,96,0.09) 48%,
-      transparent 70%);
-    opacity: 0; animation: fadeUp 1.4s ease forwards .2s;
+      rgba(255,224,170,0.55) 0%,
+      rgba(255,196,120,0.34) 22%,
+      rgba(255,170,90,0.16)  44%,
+      rgba(255,150,70,0.06)  62%,
+      transparent 78%);
+    opacity: 0;
+    animation: fadeIn 1.4s ease forwards .2s;
+    transition: background .5s ease;
   }
 
-  /* ── Sky: full-viewport stage that holds the absolutely-positioned constellations ── */
-  .sky {
-    position: relative;
-    width: 100vw;
-    height: 100vh;
-    overflow: hidden;
+  /* When viewing a category in detail, recolor the sun glow to that category. */
+  body.detail-arith h1 { --sun-r: 200; --sun-g: 170; --sun-b: 255; }
+  body.detail-arith .sun-glow {
+    background: radial-gradient(circle at 30% 30%,
+      rgba(220,196,255,0.58) 0%,
+      rgba(180,148,240,0.38) 22%,
+      rgba(140,108,220,0.18) 44%,
+      rgba(110,80,200,0.06)  62%,
+      transparent 78%);
   }
-
-  /* A constellation = an absolutely-positioned cluster of tiles + label + link canvas.
-     Position is driven by the CONFIG block in the script (cluster .x/.y). */
-  .constellation { position: absolute; width: 460px; height: 320px; }
-  .const-lines {
-    position: absolute; inset: 0; z-index: 0; pointer-events: none;
-    width: 100%; height: 100%;
+  body.detail-prob h1 { --sun-r: 255; --sun-g: 180; --sun-b: 110; }
+  body.detail-prob .sun-glow {
+    background: radial-gradient(circle at 30% 30%,
+      rgba(255,212,156,0.58) 0%,
+      rgba(255,172,108,0.38) 22%,
+      rgba(230,132,72,0.18)  44%,
+      rgba(200,100,50,0.06)  62%,
+      transparent 78%);
   }
-  .const-label {
-    position: absolute; z-index: 1;
+  body.detail-model h1 { --sun-r: 130; --sun-g: 230; --sun-b: 180; }
+  body.detail-model .sun-glow {
+    background: radial-gradient(circle at 30% 30%,
+      rgba(160,240,200,0.55) 0%,
+      rgba(100,212,162,0.36) 22%,
+      rgba(60,180,128,0.17)  44%,
+      rgba(40,150,108,0.06)  62%,
+      transparent 78%);
+  }
+  body.detail-anim h1 { --sun-r: 130; --sun-g: 215; --sun-b: 255; }
+  body.detail-anim .sun-glow {
+    background: radial-gradient(circle at 30% 30%,
+      rgba(180,232,255,0.58) 0%,
+      rgba(120,200,250,0.38) 22%,
+      rgba(70,160,225,0.18)  44%,
+      rgba(40,120,195,0.06)  62%,
+      transparent 78%);
+  }
+  .back-btn {
+    position: absolute; z-index: 5; top: 32px; right: 40px;
     font-family: 'DM Mono', monospace;
-    font-size: 12px; letter-spacing: 0.22em; text-transform: uppercase; font-weight: 500;
-    display: flex; align-items: center; gap: 10px;
-    white-space: nowrap;
-    opacity: 0; animation: fadeUp .6s ease forwards;
+    font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase;
+    color: var(--ink-dim);
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--hair);
+    border-radius: 8px;
+    padding: 10px 16px; cursor: pointer;
+    opacity: 0; visibility: hidden;
+    transition: opacity .4s ease, visibility .4s, background .2s, color .2s;
+    font-weight: 400;
   }
-  .const-label .dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor;
-    box-shadow: 0 0 10px currentColor; }
-  .const-label .count { color: var(--ink-dim); font-size: 10px; letter-spacing: 0.1em; }
-  .sec-arith .const-label { color: var(--arith); }
-  .sec-prob  .const-label { color: var(--prob); }
-  .sec-model .const-label { color: var(--model); }
+  .back-btn:hover { background: rgba(255,255,255,0.08); color: var(--ink); }
+  body.detail .back-btn { opacity: 1; visibility: visible; transition-delay: .25s; }
 
-  /* ── Tiles as circular "planets", lit from upper-left ── */
-  .tile {
-    position: absolute; z-index: 2;
-    width: 156px; height: 156px;
-    display: flex; align-items: center; justify-content: center; text-align: center;
-    padding: 18px;
+  /* ── Stage holds the three "systems" (planet + its moons) ── */
+  .stage { position: fixed; inset: 0; z-index: 2; }
+
+  /* A system is a 0×0 anchor whose children are absolutely placed around it.
+     Default = home position (triangle). When .active and body.detail, → center. */
+  .system {
+    position: absolute; width: 0; height: 0;
+    transition: top .85s cubic-bezier(.5,.0,.2,1),
+                left .85s cubic-bezier(.5,.0,.2,1),
+                opacity .5s ease;
+  }
+  .system[data-key="arith"] { top: 32%; left: 33%; }
+  .system[data-key="anim"]  { top: 32%; left: 75%; }
+  .system[data-key="prob"]  { top: 70%; left: 61%; }
+  .system[data-key="model"] { top: 70%; left: 19%; }
+  body.detail .system.active { top: 50%; left: 50%; }
+  body.detail .system:not(.active) { opacity: 0; pointer-events: none; }
+
+  /* ── Planet (the clickable category disc) ──
+     Uses the same lit-sphere treatment as the moons / earlier tiles. */
+  .planet {
+    position: absolute; left: 0; top: 0;
+    transform: translate(-50%, -50%);
+    width: 180px; height: 180px;
     border-radius: 50%;
-    text-decoration: none; color: var(--ink);
-    background: var(--bg-soft);
-    border: none;
+    cursor: pointer;
     overflow: hidden; isolation: isolate;
-    /* shaded sphere: dark far side (lower-right) up to a lit side (upper-left) */
+    background: var(--bg-soft);
+    transition: width .85s cubic-bezier(.5,0,.2,1),
+                height .85s cubic-bezier(.5,0,.2,1),
+                filter .25s, box-shadow .25s;
+    /* directional lighting (sun is top-left) */
     box-shadow:
-      inset -16px -16px 34px rgba(0,0,0,0.78),         /* core shadow on far (lower-right) side */
-      inset 10px 10px 26px rgba(255,255,255,0.05);      /* faint fill on lit (upper-left) side */
-    opacity: 0; transform: translateY(14px) scale(.96);
-    animation: tileIn .7s cubic-bezier(.2,.7,.2,1) forwards;
-    transition: transform .25s cubic-bezier(.2,.7,.2,1), box-shadow .25s, filter .25s;
+      inset -22px -22px 50px rgba(0,0,0,0.74),
+      inset 14px 14px 36px rgba(255,255,255,0.06);
   }
-  /* the lit hemisphere: a bright off-center glow toward the sun (upper-left) */
-  .tile::before {
+  .planet::before {
     content: ""; position: absolute; inset: 0; z-index: -1;
-    background:
-      radial-gradient(circle at 30% 26%,
-        var(--lit) 0%,
-        var(--glow-deep) 42%,
-        #05060b 86%);
-    transition: opacity .25s, background .25s;
+    background: radial-gradient(circle at 30% 26%,
+      var(--lit), var(--glow-deep) 42%, #05060b 86%);
   }
-  /* crescent rim light on the illuminated (upper-left) edge */
-  .tile::after {
-    content: ""; position: absolute; inset: 0; z-index: -1; border-radius: 50%;
-    background: radial-gradient(circle at 26% 22%, rgba(255,255,255,0.42), transparent 26%);
+  /* rim crescent on the lit upper-left edge */
+  .planet::after {
+    content: ""; position: absolute; inset: 0; border-radius: 50%;
+    background: radial-gradient(circle at 26% 22%, rgba(255,255,255,0.40), transparent 26%);
     mix-blend-mode: screen;
-    opacity: 0.7; transition: opacity .25s;
+    pointer-events: none;
+    transition: opacity .25s;
   }
-  .tile:hover {
-    transform: translateY(-6px) scale(1.05);
+  body:not(.detail) .planet:hover {
+    width: 196px; height: 196px;
+    filter: brightness(1.08);
+  }
+  body.detail .system.active .planet {
+    width: 340px; height: 340px;
+    cursor: default; pointer-events: none;
+  }
+
+  /* Category color assignments (same palette as the moons). */
+  .planet-arith { --lit: var(--arith-lit); --glow-deep: var(--arith-deep); --glow: var(--arith); }
+  .planet-prob  { --lit: var(--prob-lit);  --glow-deep: var(--prob-deep);  --glow: var(--prob); }
+  .planet-model { --lit: var(--model-lit); --glow-deep: var(--model-deep); --glow: var(--model); }
+  .planet-anim  { --lit: var(--anim-lit);  --glow-deep: var(--anim-deep);  --glow: var(--anim); }
+
+  /* Planet label sits below the planet; grows when active */
+  .planet-label {
+    position: absolute; left: 0; top: 110px;
+    transform: translateX(-50%);
+    font-family: 'DM Mono', monospace;
+    font-size: 12px; letter-spacing: 0.24em; text-transform: uppercase;
+    font-weight: 500; white-space: nowrap;
+    transition: top .85s cubic-bezier(.5,0,.2,1), font-size .85s, opacity .35s;
+  }
+  .system[data-key="arith"] .planet-label { color: var(--arith); }
+  .system[data-key="prob"]  .planet-label { color: var(--prob); }
+  .system[data-key="model"] .planet-label { color: var(--model); }
+  .system[data-key="anim"]  .planet-label { color: var(--anim); }
+  body.detail .system.active .planet-label {
+    opacity: 0;
+  }
+
+  /* ── Orbit rings (tilted ellipses, dotted outline) ── */
+  .orbit-rings {
+    position: absolute; left: 0; top: 0;
+    width: 1100px; height: 460px;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity .55s ease;
+    overflow: visible;
+  }
+  body.detail .system.active .orbit-rings {
+    opacity: 1; transition-delay: .45s;
+  }
+  .orbit-ring {
+    fill: none; stroke-width: 1; stroke-dasharray: 2 5;
+  }
+  .system[data-key="arith"] .orbit-ring { stroke: rgba(179,136,255, 0.28); }
+  .system[data-key="prob"]  .orbit-ring { stroke: rgba(255,157,77, 0.30); }
+  .system[data-key="model"] .orbit-ring { stroke: rgba(61,220,151, 0.28); }
+  .system[data-key="anim"]  .orbit-ring { stroke: rgba(77,214,255, 0.30); }
+
+  /* ── Moons (positions driven by JS along their assigned ellipse) ── */
+  /* .moon-pos is a 0×0 anchor; JS sets its transform every frame.
+     The .moon child is self-centered, so it grows/shrinks on hover without
+     fighting the JS-controlled positioning. */
+  .moon-pos {
+    position: absolute; left: 0; top: 0;
+    width: 0; height: 0;
+    opacity: 0; pointer-events: none;
+    transition: opacity .55s ease;
+  }
+  body.detail .system.active .moon-pos {
+    opacity: 1; pointer-events: auto;
+    transition-delay: .55s;
+  }
+
+  .moon {
+    position: absolute; left: 0; top: 0;
+    transform: translate(-50%, -50%);
+    width: 108px; height: 108px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    text-align: center; padding: 10px;
+    text-decoration: none; color: var(--ink);
+    font-family: 'Fraunces', serif;
+    font-size: 12.5px; line-height: 1.15; letter-spacing: -0.01em;
+    background: var(--bg-soft);
+    overflow: hidden; isolation: isolate;
     box-shadow:
-      inset -16px -16px 34px rgba(0,0,0,0.7),
-      inset 10px 10px 26px rgba(255,255,255,0.08),
-      0 0 52px -4px var(--glow);
-    z-index: 5;
+      inset -10px -10px 22px rgba(0,0,0,0.78),
+      inset 6px 6px 16px rgba(255,255,255,0.05);
+    text-shadow: 0 1px 4px rgba(0,0,0,0.85), 0 0 2px rgba(0,0,0,0.6);
+    transition: width .25s, height .25s, box-shadow .25s, filter .25s;
   }
-  .tile:hover::after { opacity: 1; }
-
-  .tile-arith { --glow: var(--arith); --glow-deep: var(--arith-deep); --lit: #d9c6ff; }
-  .tile-prob  { --glow: var(--prob);  --glow-deep: var(--prob-deep);  --lit: #ffd9a8; }
-  .tile-model { --glow: var(--model); --glow-deep: var(--model-deep); --lit: #aef0cf; }
-
-  .tile-title {
-    font-weight: 400; font-size: 16px; line-height: 1.12; letter-spacing: -0.015em;
-    text-shadow: 0 1px 6px rgba(0,0,0,0.85), 0 0 2px rgba(0,0,0,0.6);
+  .moon::before {
+    content: ""; position: absolute; inset: 0; z-index: -1;
+    background: radial-gradient(circle at 30% 26%, var(--lit), var(--glow-deep) 42%, #05060b 86%);
   }
-  .tile-arrow { display: none; }
+  .moon::after {
+    content: ""; position: absolute; inset: 0; border-radius: 50%;
+    background: radial-gradient(circle at 26% 22%, rgba(255,255,255,0.42), transparent 28%);
+    mix-blend-mode: screen;
+    opacity: 0.7; pointer-events: none;
+    transition: opacity .25s;
+  }
+  .moon-arith { --lit: var(--arith-lit); --glow-deep: var(--arith-deep); --glow: var(--arith); }
+  .moon-prob  { --lit: var(--prob-lit);  --glow-deep: var(--prob-deep);  --glow: var(--prob); }
+  .moon-model { --lit: var(--model-lit); --glow-deep: var(--model-deep); --glow: var(--model); }
+  .moon-anim  { --lit: var(--anim-lit);  --glow-deep: var(--anim-deep);  --glow: var(--anim); }
 
-  @keyframes fadeUp { from {opacity:0; transform:translateY(16px);} to {opacity:1; transform:translateY(0);} }
-  @keyframes tileIn { from {opacity:0; transform:translateY(14px) scale(.98);} to {opacity:1; transform:translateY(0) scale(1);} }
+  .moon:hover {
+    width: 120px; height: 120px;
+    filter: brightness(1.12);
+    box-shadow:
+      inset -10px -10px 22px rgba(0,0,0,0.65),
+      inset 6px 6px 16px rgba(255,255,255,0.09),
+      0 0 38px -4px var(--glow);
+  }
+  .moon:hover::after { opacity: 1; }
 
-  /* ── Responsive fallback: stack on narrow screens ── */
-  @media (max-width: 860px) {
-    .sky { padding: 0 20px 60px; }
-    .constellation { position: static !important; height: auto !important; margin-bottom: 36px;
-      display: flex; flex-direction: column; align-items: center; }
-    .const-lines { display: none; }
-    .const-label { position: static !important; margin-bottom: 20px; }
-    .tile { position: static !important; margin: 0 auto 18px; }
+  /* Z-ordering: planet sits at z 2; JS sets moon-pos z-index to 1 (behind) or 3 (in front). */
+  .planet { z-index: 2; }
+
+  /* ── Animations ── */
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* ── Responsive: keep it sane on phones / portrait iPad.
+     JS will swap to smaller orbit specs below this breakpoint via the same
+     media-query check; we just shrink the planet + moon visuals here. */
+  @media (max-width: 720px) {
+    .planet { width: 140px; height: 140px; }
+    .system[data-key="arith"] { top: 14%; left: 50%; }
+    .system[data-key="anim"]  { top: 38%; left: 50%; }
+    .system[data-key="prob"]  { top: 62%; left: 50%; }
+    .system[data-key="model"] { top: 86%; left: 50%; }
+    body:not(.detail) .planet:hover { width: 152px; height: 152px; }
+    body.detail .system.active .planet { width: 240px; height: 240px; }
+    .planet-label { top: 90px; font-size: 11px; letter-spacing: 0.18em; }
+    .orbit-rings { width: 540px; height: 280px; }
+    .moon { width: 90px; height: 90px; font-size: 11px; padding: 8px; }
+    .moon:hover { width: 100px; height: 100px; }
   }
 
   @media (prefers-reduced-motion: reduce) {
-    *, *::before, *::after { animation: none !important; }
-    .tile { opacity: 1; transform: none; }
-    h1, .const-label { opacity: 1; }
+    *, *::before, *::after { animation: none !important; transition-duration: 0s !important; }
     #field { display: none; }
+    .moon-pos { transition: opacity .3s ease; }
   }
 </style>
 </head>
@@ -179,249 +322,246 @@
 <canvas id="field"></canvas>
 <div class="sun-glow"></div>
 
-<div class="stage">
-  <header>
-    <h1>Activités interactives</h1>
-  </header>
+<header><h1 id="title">Activités interactives</h1></header>
+<button class="back-btn" id="back" aria-label="Retour à la vue d'ensemble">← Retour</button>
 
-  <div class="sky" id="sky">
+<div class="stage" id="stage">
 
-    <!-- ARITHMÉTIQUE -->
-    <div class="constellation sec-arith" data-key="arith">
-      <canvas class="const-lines"></canvas>
-      <div class="const-label"><span class="dot"></span>Arithmétique</div>
-      <a class="tile tile-arith" href="division_euclidienne.html">
-        <div class="tile-title">Division euclidienne</div>
-      </a>
-      <a class="tile tile-arith" href="demon_core.html">
-        <div class="tile-title">Demon core</div>
-      </a>
+  <!-- ARITHMÉTIQUE -->
+  <div class="system" data-key="arith">
+    <div class="planet planet-arith"></div>
+    <div class="planet-label">Arithmétique</div>
+    <svg class="orbit-rings" viewBox="-550 -230 1100 460" preserveAspectRatio="xMidYMid meet">
+      <ellipse class="orbit-ring" cx="0" cy="0" rx="210" ry="84"/>
+      <ellipse class="orbit-ring" cx="0" cy="0" rx="290" ry="116"/>
+    </svg>
+    <div class="moon-pos" data-orbit="1">
+      <a class="moon moon-arith" href="division_euclidienne.html">Division euclidienne</a>
     </div>
-
-    <!-- PROBABILITÉS -->
-    <div class="constellation sec-prob" data-key="prob">
-      <canvas class="const-lines"></canvas>
-      <div class="const-label"><span class="dot"></span>Probabilités</div>
-      <a class="tile tile-prob" href="dice_roller.html">
-        <div class="tile-title">Lancer de dés</div>
-      </a>
-      <a class="tile tile-prob" href="Garde_robe/index.html">
-        <div class="tile-title">La garde-robe d'Éloïse</div>
-      </a>
+    <div class="moon-pos" data-orbit="2">
+      <a class="moon moon-arith" href="demon_core.html">Demon core</a>
     </div>
-
-    <!-- MODÉLISATION -->
-    <div class="constellation sec-model" data-key="model">
-      <canvas class="const-lines"></canvas>
-      <div class="const-label"><span class="dot"></span>Modélisation</div>
-      <a class="tile tile-model" href="demogorgon_equation.html">
-        <div class="tile-title">Eleven, Will et le Demogorgon</div>
-      </a>
-      <a class="tile tile-model" href="orbital_cannon.html">
-        <div class="tile-title">Canon orbital</div>
-      </a>
-      <a class="tile tile-model" href="game_of_life.html">
-        <div class="tile-title">Jeu de la vie</div>
-      </a>
-    </div>
-
   </div>
+
+  <!-- ANIMATIONS -->
+  <div class="system" data-key="anim">
+    <div class="planet planet-anim"></div>
+    <div class="planet-label">Animations</div>
+    <svg class="orbit-rings" viewBox="-550 -230 1100 460" preserveAspectRatio="xMidYMid meet">
+      <ellipse class="orbit-ring" cx="0" cy="0" rx="210" ry="84"/>
+      <ellipse class="orbit-ring" cx="0" cy="0" rx="290" ry="116"/>
+      <ellipse class="orbit-ring" cx="0" cy="0" rx="250" ry="100"/>
+      <ellipse class="orbit-ring" cx="0" cy="0" rx="360" ry="144"/>
+    </svg>
+    <div class="moon-pos" data-orbit="1">
+      <a class="moon moon-anim" href="#">Activité 1</a>
+    </div>
+    <div class="moon-pos" data-orbit="2">
+      <a class="moon moon-anim" href="#">Activité 2</a>
+    </div>
+    <div class="moon-pos" data-orbit="3">
+      <a class="moon moon-anim" href="#">Activité 3</a>
+    </div>
+    <div class="moon-pos" data-orbit="4">
+      <a class="moon moon-anim" href="#">Activité 4</a>
+    </div>
+  </div>
+
+  <!-- PROBABILITÉS -->
+  <div class="system" data-key="prob">
+    <div class="planet planet-prob"></div>
+    <div class="planet-label">Probabilités</div>
+    <svg class="orbit-rings" viewBox="-550 -230 1100 460" preserveAspectRatio="xMidYMid meet">
+      <ellipse class="orbit-ring" cx="0" cy="0" rx="210" ry="84"/>
+      <ellipse class="orbit-ring" cx="0" cy="0" rx="290" ry="116"/>
+    </svg>
+    <div class="moon-pos" data-orbit="1">
+      <a class="moon moon-prob" href="dice_roller.html">Lancer de dés</a>
+    </div>
+    <div class="moon-pos" data-orbit="2">
+      <a class="moon moon-prob" href="Garde_robe/index.html">La garde-robe d'Éloïse</a>
+    </div>
+  </div>
+
+  <!-- MODÉLISATION -->
+  <div class="system" data-key="model">
+    <div class="planet planet-model"></div>
+    <div class="planet-label">Modélisation</div>
+    <svg class="orbit-rings" viewBox="-550 -230 1100 460" preserveAspectRatio="xMidYMid meet">
+      <ellipse class="orbit-ring" cx="0" cy="0" rx="210" ry="84"/>
+      <ellipse class="orbit-ring" cx="0" cy="0" rx="290" ry="116"/>
+      <ellipse class="orbit-ring" cx="0" cy="0" rx="250" ry="100"/>
+    </svg>
+    <div class="moon-pos" data-orbit="1">
+      <a class="moon moon-model" href="demogorgon_equation.html">Eleven, Will et le Demogorgon</a>
+    </div>
+    <div class="moon-pos" data-orbit="2">
+      <a class="moon moon-model" href="orbital_cannon.html">Canon orbital</a>
+    </div>
+    <div class="moon-pos" data-orbit="3">
+      <a class="moon moon-model" href="game_of_life.html">Jeu de la vie</a>
+    </div>
+  </div>
+
 </div>
 
 <script>
-const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-const wideMQ = window.matchMedia('(min-width: 861px)');
+const HOME_TITLE = 'Activités interactives';
+const CATEGORY_TITLE = { arith: 'Arithmétique', prob: 'Probabilités', model: 'Modélisation', anim: 'Animations' };
+const titleEl = document.getElementById('title');
 
-/* ═══════════════════════════════════════════════════════════════════════
-   LAYOUT CONFIG — this is the only place you need to edit to move things.
-
-   Each cluster has:
-     x, y   → position of the cluster's TOP-LEFT corner, as % of the screen
-     label  → {dx, dy} pixel offset of the category label inside the cluster
-     tiles  → one {dx, dy} per planet (pixel offset inside the cluster)
-
-   To move a whole cluster: change its x / y (two numbers).
-   To nudge one planet: change its {dx, dy}.
-   The connecting lines + oval ring follow automatically.
-   Cluster box is 460×320 px (see .constellation in CSS); offsets are within it.
-   ═══════════════════════════════════════════════════════════════════════ */
-const LAYOUT = {
-  arith: {
-    x: '60%', y: '6%',
-    label: { dx: 8,  dy: 0 },
-    tiles: [ { dx: 0,   dy: 38 },     // Division euclidienne
-             { dx: 196, dy: 104 } ]   // Demon core
-  },
-  prob: {
-    x: '8%', y: '52%',
-    label: { dx: 8,  dy: 0 },
-    tiles: [ { dx: 0,   dy: 38 },     // Lancer de dés
-             { dx: 196, dy: 104 } ]   // La garde-robe d'Éloïse
-  },
-  model: {
-    x: '41%', y: '38%',
-    label: { dx: 8,  dy: 0 },
-    tiles: [ { dx: 0,   dy: 38 },     // Eleven, Will et le Demogorgon
-             { dx: 200, dy: 96 },     // Canon orbital
-             { dx: 70,  dy: 150 } ]   // Jeu de la vie
-  }
+// ── Orbit specs (must match the SVG ellipse rx/ry values).
+// Wide screen / desktop values. Mobile values applied below 720px width.
+// Orbit 4 is the outermost — used only by the Animations system. ──
+const ORBITS_DESKTOP = {
+  '1': { rx: 440, ry: 180, period: 180000, phase: 0 },
+  '2': { rx: 520, ry: 210, period: 240000, phase: -60000 },
+  '3': { rx: 480, ry: 195, period: 200000, phase: -130000 },
+  '4': { rx: 560, ry: 224, period: 220000, phase: -90000 }
 };
+const ORBITS_MOBILE = {
+  '1': { rx: 145, ry: 58,  period:  180000, phase: 0 },
+  '2': { rx: 195, ry: 78,  period:  240000, phase: -60000 },
+  '3': { rx: 170, ry: 68,  period:  200000, phase: -130000 },
+  '4': { rx: 220, ry: 88,  period:  220000, phase: -90000 }
+};
+const mobileMQ = window.matchMedia('(max-width: 720px)');
+let ORBITS = mobileMQ.matches ? ORBITS_MOBILE : ORBITS_DESKTOP;
+mobileMQ.addEventListener('change', e => {
+  ORBITS = e.matches ? ORBITS_MOBILE : ORBITS_DESKTOP;
+  // The SVG ring ellipses are styled in CSS; mobile media query already shrinks
+  // the .orbit-rings size to keep visual proportions. (Stroke/dash stays the same.)
+  resizeRings();
+});
 
-// Apply CONFIG positions to clusters, labels, and tiles.
-function placeClusters(){
-  const wide = wideMQ.matches;
-  document.querySelectorAll('.constellation').forEach(con => {
-    const key = con.dataset.key;
-    const cfg = LAYOUT[key];
-    if (!cfg) return;
-    if (!wide){
-      // stacked mode: clear inline positioning so CSS fallback takes over
-      con.style.left = con.style.top = '';
-      con.querySelector('.const-label').style.left = '';
-      con.querySelector('.const-label').style.top = '';
-      con.querySelectorAll('.tile').forEach(t => { t.style.left = t.style.top = ''; });
-      return;
-    }
-    con.style.left = cfg.x;
-    con.style.top  = cfg.y;
-    const label = con.querySelector('.const-label');
-    label.style.left = cfg.label.dx + 'px';
-    label.style.top  = cfg.label.dy + 'px';
-    con.querySelectorAll('.tile').forEach((t, i) => {
-      const off = cfg.tiles[i] || { dx: 0, dy: 0 };
-      t.style.left = off.dx + 'px';
-      t.style.top  = off.dy + 'px';
+// Resize SVG ellipse rx/ry to match the active orbit specs. Iterates whatever
+// ring count each system declares — Animations has 4, others have 2 or 3.
+function resizeRings(){
+  document.querySelectorAll('.system').forEach(sys => {
+    sys.querySelectorAll('.orbit-ring').forEach((el, i) => {
+      const o = ORBITS[String(i + 1)];
+      if (!o) return;
+      el.setAttribute('rx', o.rx);
+      el.setAttribute('ry', o.ry);
     });
   });
 }
+resizeRings();
 
-// ── Staggered reveal ──
-let k = 0;
-document.querySelectorAll('.const-label').forEach((el, i) => { el.style.animationDelay = (0.24 + i*0.12) + 's'; });
-document.querySelectorAll('.tile').forEach((t) => { t.style.animationDelay = (0.34 + (k++)*0.07) + 's'; });
-
-// ── Constellation lines: connect tile centers within each cluster ──
-const CAT_COLOR = { 'sec-arith':'179,136,255', 'sec-prob':'255,157,77', 'sec-model':'61,220,151' };
-
-function layoutConstellations(){
-  const wide = wideMQ.matches;
-  document.querySelectorAll('.constellation').forEach(con => {
-    const cv = con.querySelector('.const-lines');
-    const cx = cv.getContext('2d');
-
-    if (!wide){
-      // stacked mode: clear/hide lines (CSS handles stacked layout)
-      cx.clearRect(0,0,cv.width,cv.height);
-      return;
-    }
-
-    const rect = con.getBoundingClientRect();
-    const dpr = window.devicePixelRatio || 1;
-    cv.width = Math.round(rect.width * dpr);
-    cv.height = Math.round(rect.height * dpr);
-    cv.style.width = rect.width + 'px';
-    cv.style.height = rect.height + 'px';
-    cx.setTransform(dpr,0,0,dpr,0,0);
-    cx.clearRect(0,0,rect.width,rect.height);
-
-    // gather tile centers + bounding box relative to the cluster
-    const tiles = [...con.querySelectorAll('.tile')];
-    const cls = [...con.classList].find(c => CAT_COLOR[c]);
-    const rgb = CAT_COLOR[cls] || '200,210,255';
-    const centers = [];
-    let minX=Infinity, minY=Infinity, maxX=-Infinity, maxY=-Infinity;
-    tiles.forEach(t => {
-      const r = t.getBoundingClientRect();
-      const x = r.left - rect.left, y = r.top - rect.top;
-      centers.push({ x: x + r.width/2, y: y + r.height/2 });
-      minX = Math.min(minX, x);            minY = Math.min(minY, y);
-      maxX = Math.max(maxX, x + r.width);  maxY = Math.max(maxY, y + r.height);
+// ── Frame loop: position each .moon-pos along its assigned ellipse, set z-index. ──
+const moonPositions = document.querySelectorAll('.moon-pos');
+const animStart = performance.now();
+function animateMoons(now){
+  // Only animate moons of the currently-active system to save cycles.
+  const activeSys = document.querySelector('.system.active');
+  if (activeSys){
+    const t = now - animStart;
+    activeSys.querySelectorAll('.moon-pos').forEach(mp => {
+      const o = ORBITS[mp.dataset.orbit];
+      if (!o) return;
+      const angle = ((t + o.phase) / o.period) * Math.PI * 2;
+      const x = o.rx * Math.cos(angle);
+      const y = o.ry * Math.sin(angle);
+      mp.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px)`;
+      // Moon on lower half (y > 0) is in front of planet; upper half is behind.
+      mp.style.zIndex = y > 0 ? 3 : 1;
     });
-
-    // ── Oval ring enclosing the cluster (star-chart style) ──
-    const cxC = (minX + maxX) / 2;
-    const cyC = (minY + maxY) / 2;
-    const padX = 44, padY = 30;
-    const rx = (maxX - minX) / 2 + padX;
-    const ry = (maxY - minY) / 2 + padY;
-    const tilt = -0.12; // slight rotation, radians
-    cx.save();
-    cx.translate(cxC, cyC);
-    cx.rotate(tilt);
-    cx.beginPath();
-    cx.ellipse(0, 0, rx, ry, 0, 0, Math.PI*2);
-    cx.strokeStyle = `rgba(${rgb},0.32)`;
-    cx.lineWidth = 1.2;
-    cx.setLineDash([5, 7]);
-    cx.shadowColor = `rgba(${rgb},0.45)`;
-    cx.shadowBlur = 7;
-    cx.stroke();
-    cx.restore();
-    cx.setLineDash([]);
-    cx.shadowBlur = 0;
-
-    // connect tile centers in sequence (the constellation), with a glow
-    cx.lineWidth = 1.2;
-    cx.strokeStyle = `rgba(${rgb},0.34)`;
-    cx.shadowColor = `rgba(${rgb},0.5)`;
-    cx.shadowBlur = 6;
-    cx.beginPath();
-    centers.forEach((c,i) => { i ? cx.lineTo(c.x,c.y) : cx.moveTo(c.x,c.y); });
-    cx.stroke();
-    cx.shadowBlur = 0;
-
-    // little node star at each tile center
-    centers.forEach(c => {
-      cx.beginPath(); cx.arc(c.x, c.y, 2.4, 0, Math.PI*2);
-      cx.fillStyle = `rgba(${rgb},0.9)`;
-      cx.shadowColor = `rgba(${rgb},0.9)`; cx.shadowBlur = 8;
-      cx.fill(); cx.shadowBlur = 0;
-    });
+  }
+  requestAnimationFrame(animateMoons);
+}
+if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches){
+  requestAnimationFrame(animateMoons);
+} else {
+  // Reduced motion: place moons at their initial positions but don't animate.
+  document.querySelectorAll('.moon-pos').forEach(mp => {
+    const o = ORBITS[mp.dataset.orbit];
+    if (!o) return;
+    const angle = (o.phase / o.period) * Math.PI * 2;
+    const x = o.rx * Math.cos(angle), y = o.ry * Math.sin(angle);
+    mp.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px)`;
+    mp.style.zIndex = y > 0 ? 3 : 1;
   });
 }
 
-// Apply positions, then draw lines/ovals. Recompute on load, resize, and after reveal.
-function relayout(){ placeClusters(); layoutConstellations(); }
-window.addEventListener('load', () => { relayout(); setTimeout(relayout, 1200); });
-window.addEventListener('resize', relayout);
-relayout();
+// Click a planet → activate its system, switch body to detail mode,
+// swap the title text to the category name (it becomes the new sun).
+document.querySelectorAll('.planet').forEach(p => {
+  p.addEventListener('click', e => {
+    const system = e.target.closest('.system');
+    const key = system.dataset.key;
+    document.querySelectorAll('.system').forEach(s => s.classList.remove('active'));
+    system.classList.add('active');
+    // clean any previous detail-* class, then apply the current one
+    document.body.classList.remove('detail-arith', 'detail-prob', 'detail-model', 'detail-anim');
+    document.body.classList.add('detail', 'detail-' + key);
+    titleEl.textContent = CATEGORY_TITLE[key] || HOME_TITLE;
+  });
+});
 
-// ── Background drifting field ──
+// Back to home. Note: we strip .active immediately rather than on a timeout.
+// The back-transition is driven entirely by body.detail being removed; the
+// .active class doesn't need to linger, and lingering caused a race where a
+// quick subsequent planet click would have its .active stripped by the
+// pending setTimeout, making the new system's moons fail to appear.
+document.getElementById('back').addEventListener('click', () => {
+  document.body.classList.remove('detail', 'detail-arith', 'detail-prob', 'detail-model', 'detail-anim');
+  document.querySelectorAll('.system').forEach(s => s.classList.remove('active'));
+  titleEl.textContent = HOME_TITLE;
+});
+
+// Escape key also returns home
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && document.body.classList.contains('detail')) {
+    document.getElementById('back').click();
+  }
+});
+
+// ── Drifting starfield (kept from earlier design) ──
 const cv = document.getElementById('field');
 const cx = cv.getContext('2d');
-let W,H,pts;
-function sizeField(){
-  const dpr = window.devicePixelRatio || 1;
-  W = window.innerWidth; H = window.innerHeight;
-  cv.width = Math.round(W*dpr); cv.height = Math.round(H*dpr);
-  cx.setTransform(dpr,0,0,dpr,0,0);
+let W, H, pts, DPR;
+function sizeField() {
+  DPR = window.devicePixelRatio || 1;
+  const vp = window.visualViewport;
+  W = vp ? vp.width : window.innerWidth;
+  H = vp ? vp.height : window.innerHeight;
+  cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR);
+  cx.setTransform(DPR, 0, 0, DPR, 0, 0);
   const n = Math.min(90, Math.floor(W*H/22000));
   pts = Array.from({length:n}, () => ({
     x: Math.random()*W, y: Math.random()*H,
-    vx:(Math.random()-0.5)*0.22, vy:(Math.random()-0.5)*0.22,
+    vx: (Math.random()-0.5)*0.22, vy: (Math.random()-0.5)*0.22,
     r: Math.random()*1.3+0.4
   }));
 }
 sizeField();
 window.addEventListener('resize', sizeField);
-const LINK=130;
-function tick(){
-  cx.clearRect(0,0,W,H);
-  for (const p of pts){
-    p.x+=p.vx; p.y+=p.vy;
-    if(p.x<0)p.x+=W; if(p.x>W)p.x-=W; if(p.y<0)p.y+=H; if(p.y>H)p.y-=H;
+window.addEventListener('orientationchange', sizeField);
+if (window.visualViewport) window.visualViewport.addEventListener('resize', sizeField);
+
+const LINK = 130;
+function tick() {
+  cx.clearRect(0, 0, W, H);
+  for (const p of pts) {
+    p.x += p.vx; p.y += p.vy;
+    if (p.x<0) p.x+=W; if (p.x>W) p.x-=W;
+    if (p.y<0) p.y+=H; if (p.y>H) p.y-=H;
   }
-  for(let i=0;i<pts.length;i++)for(let j=i+1;j<pts.length;j++){
-    const a=pts[i],b=pts[j],dx=a.x-b.x,dy=a.y-b.y,d2=dx*dx+dy*dy;
-    if(d2<LINK*LINK){
-      cx.strokeStyle=`rgba(150,170,255,${(1-Math.sqrt(d2)/LINK)*0.13})`;
-      cx.lineWidth=1; cx.beginPath(); cx.moveTo(a.x,a.y); cx.lineTo(b.x,b.y); cx.stroke();
+  for (let i=0; i<pts.length; i++)
+    for (let j=i+1; j<pts.length; j++) {
+      const a=pts[i], b=pts[j], dx=a.x-b.x, dy=a.y-b.y, d2=dx*dx+dy*dy;
+      if (d2 < LINK*LINK) {
+        cx.strokeStyle = `rgba(150,170,255,${(1-Math.sqrt(d2)/LINK)*0.12})`;
+        cx.lineWidth = 1; cx.beginPath(); cx.moveTo(a.x,a.y); cx.lineTo(b.x,b.y); cx.stroke();
+      }
     }
+  for (const p of pts) {
+    cx.beginPath(); cx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+    cx.fillStyle = 'rgba(200,210,255,0.5)'; cx.fill();
   }
-  for(const p of pts){ cx.beginPath(); cx.arc(p.x,p.y,p.r,0,Math.PI*2); cx.fillStyle='rgba(200,210,255,0.5)'; cx.fill(); }
   requestAnimationFrame(tick);
 }
-if(!reduceMotion) requestAnimationFrame(tick);
+if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) requestAnimationFrame(tick);
 </script>
 </body>
 </html>

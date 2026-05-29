@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>Orbital Cannon</title>
 <style>
   :root {
@@ -308,21 +308,53 @@ window.addEventListener('mousemove', e => {
 window.addEventListener('mouseup', () => { for (const s of sliders) s.dragging = false; });
 
 // Touch support (iPad). Prevent default so taps/drags don't scroll or zoom the page.
+// Two-finger touches trigger pinch-zoom instead of single-touch tap/drag.
+let pinch = null;   // { d0, zoom0 } while 2+ fingers are down
+
+function touchDistance(t1, t2){
+  const dx = t1.clientX - t2.clientX;
+  const dy = t1.clientY - t2.clientY;
+  return Math.hypot(dx, dy);
+}
+
 canvas.addEventListener('touchstart', e => {
   e.preventDefault();
+  if (e.touches.length >= 2){
+    // Enter pinch mode. Cancel any in-progress slider drag.
+    for (const s of sliders) s.dragging = false;
+    pinch = { d0: touchDistance(e.touches[0], e.touches[1]), zoom0: zoom };
+    return;
+  }
+  // Single touch → tap/drag as before.
   const t = e.changedTouches[0];
   const [mx,my] = canvasCoords(t.clientX, t.clientY);
   handlePress(mx, my);
 }, {passive:false});
+
 canvas.addEventListener('touchmove', e => {
   e.preventDefault();
+  if (pinch && e.touches.length >= 2){
+    const d = touchDistance(e.touches[0], e.touches[1]);
+    // Distance ratio scales zoom: pinch out → bigger d → zoom in.
+    zoom = clampZoom(pinch.zoom0 * (d / pinch.d0));
+    return;
+  }
   if (paused) return;
   const t = e.changedTouches[0];
   const [mx] = canvasCoords(t.clientX, t.clientY);
   for (const s of sliders){ if (s.dragging) s.setFromMouse(mx); }
 }, {passive:false});
+
 canvas.addEventListener('touchend', e => {
   e.preventDefault();
+  if (e.touches.length < 2) pinch = null;
+  if (e.touches.length === 0){
+    for (const s of sliders) s.dragging = false;
+  }
+}, {passive:false});
+
+canvas.addEventListener('touchcancel', e => {
+  pinch = null;
   for (const s of sliders) s.dragging = false;
 }, {passive:false});
 
@@ -418,9 +450,13 @@ function frame(){
 }
 
 // ─── Viewport sizing ───
+// On iOS Safari, window.innerWidth/innerHeight report the LAYOUT viewport, which
+// can be larger than the visible area (address bar, safe areas, pinch zoom).
+// window.visualViewport reports the truly visible region — use it when available.
 function resize(){
-  WIDTH = window.innerWidth;
-  HEIGHT = window.innerHeight;
+  const vv = window.visualViewport;
+  WIDTH  = vv ? vv.width  : window.innerWidth;
+  HEIGHT = vv ? vv.height : window.innerHeight;
   // Match the canvas backing buffer to CSS pixels for crisp 1:1 rendering.
   const dpr = window.devicePixelRatio || 1;
   canvas.width = Math.round(WIDTH * dpr);
@@ -430,6 +466,8 @@ function resize(){
   layoutButtons();
 }
 window.addEventListener('resize', resize);
+window.addEventListener('orientationchange', resize);
+if (window.visualViewport) window.visualViewport.addEventListener('resize', resize);
 
 loadAssets(() => {
   resize();

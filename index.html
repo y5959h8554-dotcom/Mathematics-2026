@@ -17,6 +17,7 @@
     --prob:  #ff9d4d;  --prob-deep:  #3a210a;  --prob-lit:  #ffd9a8;
     --model: #3ddc97;  --model-deep: #0e3326;  --model-lit: #aef0cf;
     --anim:  #4dd6ff;  --anim-deep:  #0c2a3a;  --anim-lit:  #c5eeff;
+    --phys:  #ff5d7a;  --phys-deep:  #3a0d18;  --phys-lit:  #ffc2cf;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   html, body { height: 100%; }
@@ -111,6 +112,15 @@
       rgba(40,120,195,0.06)  62%,
       transparent 78%);
   }
+  body.detail-phys h1 { --sun-r: 255; --sun-g: 120; --sun-b: 150; }
+  body.detail-phys .sun-glow {
+    background: radial-gradient(circle at 30% 30%,
+      rgba(255,200,212,0.56) 0%,
+      rgba(255,140,165,0.36) 22%,
+      rgba(225,80,110,0.17)  44%,
+      rgba(190,50,80,0.06)   62%,
+      transparent 78%);
+  }
   .back-btn {
     position: absolute; z-index: 5; top: 32px; right: 40px;
     font-family: 'DM Mono', monospace;
@@ -138,10 +148,11 @@
                 left .85s cubic-bezier(.5,.0,.2,1),
                 opacity .5s ease;
   }
-  .system[data-key="arith"] { top: 32%; left: 33%; }
-  .system[data-key="anim"]  { top: 32%; left: 75%; }
-  .system[data-key="prob"]  { top: 70%; left: 61%; }
-  .system[data-key="model"] { top: 70%; left: 19%; }
+  .system[data-key="arith"] { top: 30%; left: 22%; }
+  .system[data-key="anim"]  { top: 28%; left: 50%; }
+  .system[data-key="phys"]  { top: 30%; left: 78%; }
+  .system[data-key="prob"]  { top: 70%; left: 36%; }
+  .system[data-key="model"] { top: 70%; left: 64%; }
   body.detail .system.active { top: 50%; left: 50%; }
   body.detail .system:not(.active) { opacity: 0; pointer-events: none; }
 
@@ -190,6 +201,7 @@
   .planet-prob  { --lit: var(--prob-lit);  --glow-deep: var(--prob-deep);  --glow: var(--prob); }
   .planet-model { --lit: var(--model-lit); --glow-deep: var(--model-deep); --glow: var(--model); }
   .planet-anim  { --lit: var(--anim-lit);  --glow-deep: var(--anim-deep);  --glow: var(--anim); }
+  .planet-phys  { --lit: var(--phys-lit);  --glow-deep: var(--phys-deep);  --glow: var(--phys); }
 
   /* Planet label sits below the planet; grows when active */
   .planet-label {
@@ -204,6 +216,7 @@
   .system[data-key="prob"]  .planet-label { color: var(--prob); }
   .system[data-key="model"] .planet-label { color: var(--model); }
   .system[data-key="anim"]  .planet-label { color: var(--anim); }
+  .system[data-key="phys"]  .planet-label { color: var(--phys); }
   body.detail .system.active .planet-label {
     opacity: 0;
   }
@@ -228,6 +241,7 @@
   .system[data-key="prob"]  .orbit-ring { stroke: rgba(255,157,77, 0.30); }
   .system[data-key="model"] .orbit-ring { stroke: rgba(61,220,151, 0.28); }
   .system[data-key="anim"]  .orbit-ring { stroke: rgba(77,214,255, 0.30); }
+  .system[data-key="phys"]  .orbit-ring { stroke: rgba(255,93,122, 0.30); }
 
   /* ── Moons (positions driven by JS along their assigned ellipse) ── */
   /* .moon-pos is a 0×0 anchor; JS sets its transform every frame.
@@ -277,6 +291,7 @@
   .moon-prob  { --lit: var(--prob-lit);  --glow-deep: var(--prob-deep);  --glow: var(--prob); }
   .moon-model { --lit: var(--model-lit); --glow-deep: var(--model-deep); --glow: var(--model); }
   .moon-anim  { --lit: var(--anim-lit);  --glow-deep: var(--anim-deep);  --glow: var(--anim); }
+  .moon-phys  { --lit: var(--phys-lit);  --glow-deep: var(--phys-deep);  --glow: var(--phys); }
 
   .moon:hover {
     width: 120px; height: 120px;
@@ -291,6 +306,40 @@
   /* Z-ordering: planet sits at z 2; JS sets moon-pos z-index to 1 (behind) or 3 (in front). */
   .planet { z-index: 2; }
 
+
+  /* ── Sub-systems (video libraries) live off-stage until activated ── */
+  .system.sub { top: 50%; left: 50%; opacity: 0; pointer-events: none; }
+  body:not(.detail) .system.sub { display: none; }
+  body.detail .system.sub.active { opacity: 1; pointer-events: auto; }
+
+  /* moons that drill into a sub-system or play a video */
+  .moon[data-sub], .moon.vid { cursor: pointer; }
+  .moon .go {
+    position: absolute; bottom: 9px; left: 0; width: 100%;
+    font-size: 10px; color: rgba(255,255,255,0.5); transition: color .2s;
+  }
+  .moon:hover .go { color: rgba(255,255,255,0.9); }
+
+  /* ── Video lightbox ── */
+  .lightbox {
+    position: fixed; inset: 0; z-index: 50;
+    background: rgba(4,5,9,0.86); backdrop-filter: blur(8px);
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0; visibility: hidden; transition: opacity .35s ease, visibility .35s;
+  }
+  .lightbox.open { opacity: 1; visibility: visible; }
+  .lb-inner { width: min(86vw, 1100px); display: flex; flex-direction: column; align-items: center; gap: 14px;
+    transform: scale(.97); transition: transform .35s cubic-bezier(.2,.7,.2,1); }
+  .lightbox.open .lb-inner { transform: scale(1); }
+  #lbVideo { width: 100%; max-height: 78vh; border-radius: 12px; background: #000;
+    box-shadow: 0 24px 80px rgba(0,0,0,0.6); border: 1px solid var(--hair); }
+  .lb-caption { font-family: 'DM Mono', monospace; font-size: 12px; letter-spacing: .14em;
+    text-transform: uppercase; color: var(--ink-dim); }
+  .lb-close { position: absolute; top: 26px; right: 30px; z-index: 51;
+    width: 42px; height: 42px; border-radius: 50%; background: rgba(255,255,255,0.06);
+    border: 1px solid var(--hair); color: var(--ink); font-size: 16px; cursor: pointer; transition: background .2s; }
+  .lb-close:hover { background: rgba(255,255,255,0.14); }
+
   /* ── Animations ── */
   @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 
@@ -299,10 +348,11 @@
      media-query check; we just shrink the planet + moon visuals here. */
   @media (max-width: 720px) {
     .planet { width: 140px; height: 140px; }
-    .system[data-key="arith"] { top: 14%; left: 50%; }
-    .system[data-key="anim"]  { top: 38%; left: 50%; }
-    .system[data-key="prob"]  { top: 62%; left: 50%; }
-    .system[data-key="model"] { top: 86%; left: 50%; }
+    .system[data-key="arith"] { top: 12%; left: 50%; }
+    .system[data-key="anim"]  { top: 30%; left: 50%; }
+    .system[data-key="phys"]  { top: 48%; left: 50%; }
+    .system[data-key="prob"]  { top: 66%; left: 50%; }
+    .system[data-key="model"] { top: 84%; left: 50%; }
     body:not(.detail) .planet:hover { width: 152px; height: 152px; }
     body.detail .system.active .planet { width: 240px; height: 240px; }
     .planet-label { top: 90px; font-size: 11px; letter-spacing: 0.18em; }
@@ -350,20 +400,12 @@
     <svg class="orbit-rings" viewBox="-550 -230 1100 460" preserveAspectRatio="xMidYMid meet">
       <ellipse class="orbit-ring" cx="0" cy="0" rx="210" ry="84"/>
       <ellipse class="orbit-ring" cx="0" cy="0" rx="290" ry="116"/>
-      <ellipse class="orbit-ring" cx="0" cy="0" rx="250" ry="100"/>
-      <ellipse class="orbit-ring" cx="0" cy="0" rx="360" ry="144"/>
     </svg>
     <div class="moon-pos" data-orbit="1">
-      <a class="moon moon-anim" href="#">Activité 1</a>
+      <span class="moon moon-anim" data-sub="anims" role="button" tabindex="0">Animations Manim<span class="go">⋯</span></span>
     </div>
     <div class="moon-pos" data-orbit="2">
-      <a class="moon moon-anim" href="#">Activité 2</a>
-    </div>
-    <div class="moon-pos" data-orbit="3">
-      <a class="moon moon-anim" href="#">Activité 3</a>
-    </div>
-    <div class="moon-pos" data-orbit="4">
-      <a class="moon moon-anim" href="#">Activité 4</a>
+      <span class="moon moon-anim" data-sub="recaps" role="button" tabindex="0">Vidéos de révision<span class="go">⋯</span></span>
     </div>
   </div>
 
@@ -403,27 +445,97 @@
     </div>
   </div>
 
+
+  <!-- PHYSIQUE -->
+  <div class="system" data-key="phys">
+    <div class="planet planet-phys"></div>
+    <div class="planet-label">Physique</div>
+    <svg class="orbit-rings" viewBox="-550 -230 1100 460" preserveAspectRatio="xMidYMid meet">
+      <ellipse class="orbit-ring" cx="0" cy="0" rx="210" ry="84"/>
+    </svg>
+    <div class="moon-pos" data-orbit="1">
+      <a class="moon moon-phys" href="champ_gravitationnel.html">Champ gravitationnel</a>
+    </div>
+  </div>
+
+  <!-- SUB · ANIMATIONS (vidéothèque) -->
+  <div class="system sub" data-key="anims" data-parent="anim">
+    <div class="planet planet-anim"></div>
+    <div class="planet-label">Animations</div>
+    <svg class="orbit-rings" viewBox="-550 -230 1100 460" preserveAspectRatio="xMidYMid meet">
+      <ellipse class="orbit-ring" cx="0" cy="0" rx="210" ry="84"/>
+      <ellipse class="orbit-ring" cx="0" cy="0" rx="290" ry="116"/>
+      <ellipse class="orbit-ring" cx="0" cy="0" rx="250" ry="100"/>
+      <ellipse class="orbit-ring" cx="0" cy="0" rx="360" ry="144"/>
+      <ellipse class="orbit-ring" cx="0" cy="0" rx="320" ry="128"/>
+    </svg>
+    <div class="moon-pos" data-orbit="1"><span class="moon moon-anim vid" data-video="PythagoreParRearrangement.mp4">Pythagore<span class="go">▶</span></span></div>
+    <div class="moon-pos" data-orbit="2"><span class="moon moon-anim vid" data-video="DeveloppementCube.mp4">Patron du cube<span class="go">▶</span></span></div>
+    <div class="moon-pos" data-orbit="3"><span class="moon moon-anim vid" data-video="DeveloppementCylindre.mp4">Patron du cylindre<span class="go">▶</span></span></div>
+    <div class="moon-pos" data-orbit="4"><span class="moon moon-anim vid" data-video="AireDisque.mp4">Aire du disque<span class="go">▶</span></span></div>
+    <div class="moon-pos" data-orbit="5"><span class="moon moon-anim vid" data-video="AireTriangle.mp4">Aire du triangle<span class="go">▶</span></span></div>
+    <div class="moon-pos" data-orbit="6"><span class="moon moon-anim vid" data-video="AireDisque_N20.mp4">Aire disque · N=20<span class="go">▶</span></span></div>
+    <div class="moon-pos" data-orbit="7"><span class="moon moon-anim vid" data-video="AireDisque_N100.mp4">Aire disque · N=100<span class="go">▶</span></span></div>
+    <div class="moon-pos" data-orbit="8"><span class="moon moon-anim vid" data-video="AireDisque_N200.mp4">Aire disque · N=200<span class="go">▶</span></span></div>
+    <div class="moon-pos" data-orbit="9"><span class="moon moon-anim vid" data-video="TiledZoomApprox2.mp4">Approx. rationnelle · 22/7<span class="go">▶</span></span></div>
+    <div class="moon-pos" data-orbit="10"><span class="moon moon-anim vid" data-video="TiledZoomApprox3.mp4">Approx. rationnelle<span class="go">▶</span></span></div>
+  </div>
+
+  <!-- SUB · VIDÉOS DE RÉVISION (vidéothèque) -->
+  <div class="system sub" data-key="recaps" data-parent="anim">
+    <div class="planet planet-anim"></div>
+    <div class="planet-label">Vidéos de révision</div>
+    <svg class="orbit-rings" viewBox="-550 -230 1100 460" preserveAspectRatio="xMidYMid meet">
+      <ellipse class="orbit-ring" cx="0" cy="0" rx="210" ry="84"/>
+      <ellipse class="orbit-ring" cx="0" cy="0" rx="290" ry="116"/>
+    </svg>
+    <div class="moon-pos" data-orbit="1"><span class="moon moon-anim vid" data-video="Inégalités_règles_de_calcul.mp4">Règles des inégalités<span class="go">▶</span></span></div>
+    <div class="moon-pos" data-orbit="2"><span class="moon moon-anim vid" data-video="MonomialsScene.mp4">Monômes<span class="go">▶</span></span></div>
+    <div class="moon-pos" data-orbit="3"><span class="moon moon-anim vid" data-video="PenteFonctionAffine.mp4">Pente · fonction affine<span class="go">▶</span></span></div>
+    <div class="moon-pos" data-orbit="4"><span class="moon moon-anim vid" data-video="PolynomialFactorisationClean.mp4">Factorisation<span class="go">▶</span></span></div>
+  </div>
+
+</div>
+
+<div class="lightbox" id="lightbox">
+  <button class="lb-close" id="lbClose" aria-label="Fermer">✕</button>
+  <div class="lb-inner">
+    <video id="lbVideo" controls playsinline></video>
+    <div class="lb-caption" id="lbCaption"></div>
+  </div>
 </div>
 
 <script>
 const HOME_TITLE = 'Activités interactives';
-const CATEGORY_TITLE = { arith: 'Arithmétique', prob: 'Probabilités', model: 'Modélisation', anim: 'Animations' };
+const CATEGORY_TITLE = { arith: 'Arithmétique', prob: 'Probabilités', model: 'Modélisation', anim: 'Animations', phys: 'Physique', anims: 'Animations', recaps: 'Vidéos de révision' };
 const titleEl = document.getElementById('title');
 
 // ── Orbit specs (must match the SVG ellipse rx/ry values).
 // Wide screen / desktop values. Mobile values applied below 720px width.
 // Orbit 4 is the outermost — used only by the Animations system. ──
 const ORBITS_DESKTOP = {
-  '1': { rx: 440, ry: 180, period: 180000, phase: 0 },
-  '2': { rx: 520, ry: 210, period: 240000, phase: -60000 },
-  '3': { rx: 480, ry: 195, period: 200000, phase: -130000 },
-  '4': { rx: 560, ry: 224, period: 220000, phase: -90000 }
+  '1':  { rx: 440, ry: 180, period: 180000, phase: 0 },
+  '2':  { rx: 520, ry: 210, period: 240000, phase: -60000 },
+  '3':  { rx: 480, ry: 195, period: 200000, phase: -130000 },
+  '4':  { rx: 560, ry: 224, period: 220000, phase: -90000 },
+  '5':  { rx: 360, ry: 148, period: 165000, phase: -40000 },
+  '6':  { rx: 640, ry: 256, period: 300000, phase: -20000 },
+  '7':  { rx: 410, ry: 168, period: 175000, phase: -150000 },
+  '8':  { rx: 700, ry: 280, period: 330000, phase: -110000 },
+  '9':  { rx: 320, ry: 132, period: 150000, phase: -200000 },
+  '10': { rx: 600, ry: 240, period: 280000, phase: -250000 }
 };
 const ORBITS_MOBILE = {
-  '1': { rx: 145, ry: 58,  period:  180000, phase: 0 },
-  '2': { rx: 195, ry: 78,  period:  240000, phase: -60000 },
-  '3': { rx: 170, ry: 68,  period:  200000, phase: -130000 },
-  '4': { rx: 220, ry: 88,  period:  220000, phase: -90000 }
+  '1':  { rx: 145, ry: 58,  period: 180000, phase: 0 },
+  '2':  { rx: 195, ry: 78,  period: 240000, phase: -60000 },
+  '3':  { rx: 170, ry: 68,  period: 200000, phase: -130000 },
+  '4':  { rx: 220, ry: 88,  period: 220000, phase: -90000 },
+  '5':  { rx: 125, ry: 50,  period: 165000, phase: -40000 },
+  '6':  { rx: 245, ry: 98,  period: 300000, phase: -20000 },
+  '7':  { rx: 158, ry: 63,  period: 175000, phase: -150000 },
+  '8':  { rx: 270, ry: 108, period: 330000, phase: -110000 },
+  '9':  { rx: 112, ry: 45,  period: 150000, phase: -200000 },
+  '10': { rx: 230, ry: 92,  period: 280000, phase: -250000 }
 };
 const mobileMQ = window.matchMedia('(max-width: 720px)');
 let ORBITS = mobileMQ.matches ? ORBITS_MOBILE : ORBITS_DESKTOP;
@@ -451,26 +563,48 @@ resizeRings();
 // ── Frame loop: position each .moon-pos along its assigned ellipse, set z-index. ──
 const moonPositions = document.querySelectorAll('.moon-pos');
 const animStart = performance.now();
+const MIN_SEP_DESKTOP = 132, MIN_SEP_MOBILE = 104;
 function animateMoons(now){
   // Only animate moons of the currently-active system to save cycles.
   const activeSys = document.querySelector('.system.active');
   if (activeSys){
     const t = now - animStart;
+    const items = [];
     activeSys.querySelectorAll('.moon-pos').forEach(mp => {
       const o = ORBITS[mp.dataset.orbit];
       if (!o) return;
       const angle = ((t + o.phase) / o.period) * Math.PI * 2;
-      const x = o.rx * Math.cos(angle);
-      const y = o.ry * Math.sin(angle);
-      mp.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px)`;
-      // Moon on lower half (y > 0) is in front of planet; upper half is behind.
-      mp.style.zIndex = y > 0 ? 3 : 1;
+      items.push({ mp, x: o.rx * Math.cos(angle), y: o.ry * Math.sin(angle) });
+    });
+    // Separation pass: push apart any two moons closer than MIN_SEP so none
+    // can hide another. A few relaxation iterations resolve close clusters.
+    const MIN_SEP = mobileMQ.matches ? MIN_SEP_MOBILE : MIN_SEP_DESKTOP;
+    for (let pass = 0; pass < 4; pass++){
+      for (let i = 0; i < items.length; i++){
+        for (let j = i + 1; j < items.length; j++){
+          const a = items[i], b = items[j];
+          let dx = b.x - a.x, dy = b.y - a.y, d = Math.hypot(dx, dy);
+          if (d < MIN_SEP && d > 0.0001){
+            const push = (MIN_SEP - d) / 2, ux = dx / d, uy = dy / d;
+            a.x -= ux * push; a.y -= uy * push;
+            b.x += ux * push; b.y += uy * push;
+          } else if (d <= 0.0001){
+            a.x -= MIN_SEP / 2; b.x += MIN_SEP / 2;
+          }
+        }
+      }
+    }
+    items.forEach(it => {
+      it.mp.style.transform = `translate(${it.x.toFixed(1)}px, ${it.y.toFixed(1)}px)`;
+      it.mp.style.zIndex = it.y > 0 ? 3 : 1;
     });
   }
-  requestAnimationFrame(animateMoons);
+  moonsRAF = requestAnimationFrame(animateMoons);
 }
+let moonsRAF = null;
+function startMoons(){ if (moonsRAF != null) cancelAnimationFrame(moonsRAF); moonsRAF = requestAnimationFrame(animateMoons); }
 if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches){
-  requestAnimationFrame(animateMoons);
+  startMoons();
 } else {
   // Reduced motion: place moons at their initial positions but don't animate.
   document.querySelectorAll('.moon-pos').forEach(mp => {
@@ -483,36 +617,84 @@ if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches){
   });
 }
 
-// Click a planet → activate its system, switch body to detail mode,
-// swap the title text to the category name (it becomes the new sun).
+// ── Navigation with a back-stack so sub-systems can step back one level. ──
+const PILLARS = ['arith', 'anim', 'prob', 'model', 'phys'];
+let navStack = [];
+
+function sysByKey(key){ return document.querySelector('.system[data-key="' + key + '"]'); }
+function sunKeyFor(key){
+  const sys = sysByKey(key);
+  return (sys && sys.dataset.parent) || key;  // sub-systems borrow the parent's sun
+}
+function showLevel(key){
+  document.querySelectorAll('.system').forEach(s => s.classList.toggle('active', s.dataset.key === key));
+  document.body.classList.remove('detail-arith','detail-prob','detail-model','detail-anim','detail-phys');
+  document.body.classList.add('detail', 'detail-' + sunKeyFor(key));
+  titleEl.textContent = CATEGORY_TITLE[key] || HOME_TITLE;
+  startMoons();
+}
+function navTo(key){ navStack.push(key); showLevel(key); }
+function back(){
+  navStack.pop();
+  if (navStack.length === 0){ goHome(); return; }
+  showLevel(navStack[navStack.length - 1]);
+}
+function goHome(){
+  navStack = [];
+  document.body.classList.remove('detail','detail-arith','detail-prob','detail-model','detail-anim','detail-phys');
+  document.querySelectorAll('.system').forEach(s => s.classList.remove('active'));
+  titleEl.textContent = HOME_TITLE;
+}
+
+// Click a top-level planet → open that category. Sub-system planets aren't clickable.
 document.querySelectorAll('.planet').forEach(p => {
   p.addEventListener('click', e => {
     const system = e.target.closest('.system');
-    const key = system.dataset.key;
-    document.querySelectorAll('.system').forEach(s => s.classList.remove('active'));
-    system.classList.add('active');
-    // clean any previous detail-* class, then apply the current one
-    document.body.classList.remove('detail-arith', 'detail-prob', 'detail-model', 'detail-anim');
-    document.body.classList.add('detail', 'detail-' + key);
-    titleEl.textContent = CATEGORY_TITLE[key] || HOME_TITLE;
+    if (system.classList.contains('sub')) return;
+    navTo(system.dataset.key);
   });
 });
 
-// Back to home. Note: we strip .active immediately rather than on a timeout.
-// The back-transition is driven entirely by body.detail being removed; the
-// .active class doesn't need to linger, and lingering caused a race where a
-// quick subsequent planet click would have its .active stripped by the
-// pending setTimeout, making the new system's moons fail to appear.
-document.getElementById('back').addEventListener('click', () => {
-  document.body.classList.remove('detail', 'detail-arith', 'detail-prob', 'detail-model', 'detail-anim');
-  document.querySelectorAll('.system').forEach(s => s.classList.remove('active'));
-  titleEl.textContent = HOME_TITLE;
+// Drill-in moons (data-sub) open their video sub-system.
+function openSub(el){ if (el.dataset.sub) navTo(el.dataset.sub); }
+document.querySelectorAll('.moon[data-sub]').forEach(m => {
+  m.addEventListener('click', () => openSub(m));
+  m.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openSub(m); } });
 });
 
-// Escape key also returns home
+// ── Video lightbox ──
+const lb = document.getElementById('lightbox');
+const lbVideo = document.getElementById('lbVideo');
+const lbCaption = document.getElementById('lbCaption');
+function openVideo(src, caption){
+  lbVideo.muted = false;
+  lbVideo.src = src;
+  lbCaption.textContent = caption || '';
+  lb.classList.add('open');
+  lbVideo.load();
+  const tryPlay = lbVideo.play();
+  if (tryPlay && tryPlay.catch){
+    tryPlay.catch(() => { lbVideo.muted = true; lbVideo.play().catch(() => {}); });
+  }
+}
+function closeVideo(){
+  lb.classList.remove('open');
+  lbVideo.pause();
+  setTimeout(() => { lbVideo.removeAttribute('src'); lbVideo.load(); }, 350);
+}
+document.querySelectorAll('.moon.vid').forEach(m => {
+  m.addEventListener('click', () => openVideo(m.dataset.video, m.textContent.replace('▶','').trim()));
+});
+document.getElementById('lbClose').addEventListener('click', closeVideo);
+lb.addEventListener('click', e => { if (e.target === lb) closeVideo(); });
+
+document.getElementById('back').addEventListener('click', back);
+
+// Escape: close lightbox first, else step back one level.
 document.addEventListener('keydown', e => {
-  if (e.key === 'Escape' && document.body.classList.contains('detail')) {
-    document.getElementById('back').click();
+  if (e.key === 'Escape'){
+    if (lb.classList.contains('open')) { closeVideo(); return; }
+    if (document.body.classList.contains('detail')) back();
   }
 });
 
@@ -559,9 +741,17 @@ function tick() {
     cx.beginPath(); cx.arc(p.x, p.y, p.r, 0, Math.PI*2);
     cx.fillStyle = 'rgba(200,210,255,0.5)'; cx.fill();
   }
-  requestAnimationFrame(tick);
+  starRAF = requestAnimationFrame(tick);
 }
-if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) requestAnimationFrame(tick);
+let starRAF = null;
+function startStars(){ if (starRAF != null) cancelAnimationFrame(starRAF); starRAF = requestAnimationFrame(tick); }
+const _reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+if (!_reduced) startStars();
+
+// Restart animation loops if the page is restored from the back-forward cache
+// or becomes visible again (bfcache freezes requestAnimationFrame loops).
+window.addEventListener('pageshow', (e) => { if (e.persisted && !_reduced){ startMoons(); startStars(); } });
+window.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && !_reduced){ startMoons(); startStars(); } });
 </script>
 </body>
 </html>

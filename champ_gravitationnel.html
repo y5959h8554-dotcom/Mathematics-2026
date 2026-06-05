@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Champ gravitationnel — g(r)</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:opsz,wght@9..144,300;9..144,400&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --space-top:#050915; --space-bottom:#0b1635;
+    --panel:#0b1224; --stroke:#22304b; --grid:#1b2a4b;
+    --ink:#e6edf7; --dim:#a9b7d1; --accent:#58a6ff; --accent2:#7ee787; --alert:#ff4d6d;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html,body{height:100%;}
+  body{
+    background:radial-gradient(ellipse at 50% 0%, #0b1635, #050915 80%);
+    color:var(--ink); font-family:'Fraunces',Georgia,serif;
+    min-height:100vh; display:flex; flex-direction:column; align-items:center;
+    padding:24px 16px 40px;
+  }
+  header{text-align:center; margin-bottom:18px; max-width:900px;}
+  .kicker{font-family:'DM Mono',monospace; font-size:11px; letter-spacing:.28em;
+    text-transform:uppercase; color:var(--dim); margin-bottom:10px;}
+  h1{font-weight:300; font-size:clamp(26px,4vw,40px); letter-spacing:-.02em;}
+  h1 em{font-style:italic; color:var(--accent);}
+  .sub{font-size:15px; color:var(--dim); margin-top:8px; line-height:1.5;}
+
+  .stage{
+    display:flex; gap:20px; width:100%; max-width:1180px; flex-wrap:wrap;
+    justify-content:center; align-items:stretch;
+  }
+  .pane{
+    background:var(--panel); border:1px solid var(--stroke); border-radius:16px;
+    overflow:hidden; flex:1 1 480px; min-width:320px;
+    box-shadow:0 16px 50px rgba(0,0,0,.45);
+  }
+  canvas{display:block; width:100%; height:auto;}
+
+  .controls{width:100%; max-width:1180px; margin-top:18px;
+    background:var(--panel); border:1px solid var(--stroke); border-radius:14px; padding:18px 22px;}
+  .row{display:flex; align-items:center; gap:18px; flex-wrap:wrap;}
+  .readout{font-family:'DM Mono',monospace; font-size:13px; letter-spacing:.04em; color:var(--dim);
+    display:flex; gap:26px; flex-wrap:wrap;}
+  .readout b{color:var(--ink); font-weight:500;}
+  .readout .gval{color:var(--accent2);}
+  input[type=range]{
+    flex:1 1 260px; -webkit-appearance:none; appearance:none; height:6px; border-radius:3px;
+    background:linear-gradient(90deg,var(--accent),#1f4a7a); outline:none;
+  }
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none; width:20px; height:20px;
+    border-radius:50%; background:var(--ink); border:3px solid var(--accent); cursor:pointer;}
+  input[type=range]::-moz-range-thumb{width:20px; height:20px; border-radius:50%;
+    background:var(--ink); border:3px solid var(--accent); cursor:pointer;}
+  .btns{display:flex; gap:10px;}
+  button{font-family:'DM Mono',monospace; font-size:11px; letter-spacing:.14em; text-transform:uppercase;
+    color:var(--dim); background:rgba(255,255,255,.04); border:1px solid var(--stroke);
+    border-radius:8px; padding:9px 14px; cursor:pointer; transition:.2s;}
+  button:hover{background:rgba(255,255,255,.09); color:var(--ink);}
+  .note{font-family:'DM Mono',monospace; font-size:11px; color:var(--dim); margin-top:12px; line-height:1.6;}
+  .note code{color:var(--accent);}
+</style>
+</head>
+<body>
+<header>
+  <div class="kicker">Démonstration · 4e · Champ gravitationnel</div>
+  <h1>L'intensité de pesanteur <em>g(r)</em></h1>
+</header>
+
+<div class="stage">
+  <div class="pane"><canvas id="earth" width="560" height="640"></canvas></div>
+  <div class="pane"><canvas id="plot" width="560" height="640"></canvas></div>
+</div>
+
+<div class="controls">
+  <div class="row">
+    <input type="range" id="slider" min="0" max="19500" step="1" value="6500">
+    <div class="btns">
+      <button id="reset">Réinitialiser</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const R = 6500, G0 = 10, RMAX = 3*R, YMAX = 11, BIN = 25;
+function g(r){ if(r<=0) return 0; if(r<=R) return G0*(r/R); return G0*(R/r)**2; }
+const clamp=(a,lo,hi)=>Math.max(lo,Math.min(hi,a));
+
+// ---------- canvases (HiDPI) ----------
+function setupCanvas(cv){
+  const dpr = window.devicePixelRatio||1;
+  const cssW = cv.clientWidth || 560, cssH = cssW * (640/560);
+  cv.width = Math.round(cssW*dpr); cv.height = Math.round(cssH*dpr);
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr,0,0,dpr,0,0);
+  return {ctx, W:cssW, H:cssH};
+}
+let earth, plot;
+function resize(){ earth=setupCanvas(document.getElementById('earth')); plot=setupCanvas(document.getElementById('plot')); draw(); }
+
+// persistent starfield
+let stars=null;
+function makeStars(W,H){ const a=[]; for(let i=0;i<150;i++){ a.push({x:Math.random()*W, y:Math.random()*H*0.8, r:Math.random()<0.78?1:2, c:Math.random()<0.3?'#ffffff':(Math.random()<0.6?'#dbe7ff':'#9fb4dd')}); } return a; }
+
+// explored samples (bin index -> g)
+const samples = new Map();
+let rKm = R;
+function record(r){ const idx=Math.round(r/BIN); samples.set(idx, g(clamp(idx*BIN,0,RMAX))); }
+
+// ---------- left: Earth + astronaut ----------
+function drawEarth(){
+  const {ctx,W,H}=earth;
+  if(!stars) stars=makeStars(W,H);
+  // space gradient
+  const grad=ctx.createLinearGradient(0,0,0,H);
+  grad.addColorStop(0,'#050915'); grad.addColorStop(1,'#0b1635');
+  ctx.fillStyle=grad; ctx.fillRect(0,0,W,H);
+  for(const s of stars){ ctx.fillStyle=s.c; ctx.beginPath(); ctx.arc(s.x,s.y,s.r,0,7); ctx.fill(); }
+
+  const cx=W/2, PR=Math.min(150, W*0.28), cy=H-60-PR;
+  // atmosphere glow
+  ctx.strokeStyle='#1f7fd6'; ctx.lineWidth=1; ctx.beginPath(); ctx.arc(cx,cy,PR+8,0,7); ctx.stroke();
+  ctx.strokeStyle='#4db6ff'; ctx.lineWidth=3; ctx.beginPath(); ctx.arc(cx,cy,PR+4,0,7); ctx.stroke();
+  // body + layers
+  ctx.fillStyle='#123b7a'; ctx.beginPath(); ctx.arc(cx,cy,PR,0,7); ctx.fill();
+  ctx.strokeStyle='#dbe7ff'; ctx.lineWidth=2; ctx.stroke();
+  ctx.fillStyle='#c96a2f'; ctx.beginPath(); ctx.arc(cx,cy,PR*0.72,0,7); ctx.fill();
+  ctx.fillStyle='#f3c04b'; ctx.beginPath(); ctx.arc(cx,cy,PR*0.43,0,7); ctx.fill();
+  // tunnel cutaway
+  const tw=26;
+  ctx.fillStyle='#0a0a0a'; ctx.fillRect(cx-tw/2, cy-PR, tw, 2*PR);
+  ctx.fillStyle='#f1e1a6'; ctx.fillRect(cx-tw/2+4, cy-PR+4, tw-8, 2*PR-8);
+
+  // radius guide above surface
+  ctx.strokeStyle='rgba(88,166,255,.25)'; ctx.setLineDash([3,5]);
+  ctx.beginPath(); ctx.moveTo(cx, cy-PR); ctx.lineTo(cx, 40); ctx.stroke(); ctx.setLineDash([]);
+  // surface marker label
+  ctx.fillStyle='#a9b7d1'; ctx.font="11px 'DM Mono', monospace"; ctx.textAlign='left';
+  ctx.fillText('surface (r = R)', cx+tw/2+10, cy-PR+4);
+  ctx.fillText('centre', cx+tw/2+10, cy+4);
+
+  // astronaut position
+  let x=cx, y;
+  if(rKm<=R){ y = cy - (rKm/R)*PR; }
+  else { const surf=cy-PR; y = clamp(surf - ((rKm-R)/R)*PR, 36, surf); }
+  drawAstro(ctx,x,y, rKm>R);
+}
+function drawAstro(c,x,y,outside){
+  const body='#f3f7fc', shade='#c8d4e6', edge='#0b1224', visor='#3f78b0';
+  if(outside){ c.strokeStyle='#9fd3ff'; c.lineWidth=3; c.beginPath(); c.moveTo(x,y+30); c.lineTo(x,y+46); c.stroke(); }
+  // backpack
+  c.fillStyle=shade; c.strokeStyle=edge; c.lineWidth=1; c.fillRect(x-8,y-2,16,18); c.strokeRect(x-8,y-2,16,18);
+  // legs
+  c.strokeStyle=body; c.lineWidth=6; c.lineCap='round';
+  c.beginPath(); c.moveTo(x-5,y+14); c.lineTo(x-7,y+26); c.stroke();
+  c.beginPath(); c.moveTo(x+5,y+14); c.lineTo(x+7,y+26); c.stroke();
+  // boots
+  c.fillStyle=shade; c.beginPath(); c.ellipse(x-7,y+27,3,2.5,0,0,7); c.fill();
+  c.beginPath(); c.ellipse(x+7,y+27,3,2.5,0,0,7); c.fill();
+  // arms
+  c.strokeStyle=body; c.beginPath(); c.moveTo(x-9,y+2); c.lineTo(x-16,y+12); c.stroke();
+  c.beginPath(); c.moveTo(x+9,y+2); c.lineTo(x+16,y+12); c.stroke();
+  // torso
+  c.fillStyle=body; c.strokeStyle=edge; c.lineWidth=2; c.fillRect(x-10,y-1,20,17); c.strokeRect(x-10,y-1,20,17);
+  c.fillStyle=visor; c.fillRect(x-4,y+4,8,5);
+  // helmet
+  c.fillStyle=body; c.strokeStyle=edge; c.beginPath(); c.ellipse(x,y-8,12,12,0,0,7); c.fill(); c.stroke();
+  // visor
+  c.fillStyle=visor; c.beginPath(); c.ellipse(x,y-8,8,6,0,0.2,Math.PI-0.2); c.fill();
+  c.fillStyle='#bfe0ff'; c.beginPath(); c.ellipse(x-4,y-11,2.2,2.2,0,0,7); c.fill();
+}
+
+// ---------- right: g(r) plot ----------
+function drawPlot(){
+  const {ctx,W,H}=plot;
+  ctx.fillStyle='#0b1224'; ctx.fillRect(0,0,W,H);
+  const pad=56, x0=pad, x1=W-24, y0=H-pad, y1=36;
+  const sx=v=>x0+(v/RMAX)*(x1-x0);
+  const sy=v=>y0-(v/YMAX)*(y0-y1);
+  // grid
+  ctx.strokeStyle='#1b2a4b'; ctx.lineWidth=1; ctx.font="11px 'DM Mono', monospace"; ctx.fillStyle='#a9b7d1';
+  for(let gx=0; gx<=3; gx++){ const rr=gx*R; ctx.beginPath(); ctx.moveTo(sx(rr),y0); ctx.lineTo(sx(rr),y1); ctx.stroke();
+    ctx.textAlign='center'; ctx.fillText(gx===0?'0':(gx+'R'), sx(rr), y0+18); }
+  for(let gy=0; gy<=10; gy+=2){ ctx.beginPath(); ctx.moveTo(x0,sy(gy)); ctx.lineTo(x1,sy(gy)); ctx.stroke();
+    ctx.textAlign='right'; ctx.fillText(gy.toString(), x0-8, sy(gy)+4); }
+  // axes
+  ctx.strokeStyle='#cbd5e1'; ctx.lineWidth=1.5;
+  ctx.beginPath(); ctx.moveTo(x0,y1); ctx.lineTo(x0,y0); ctx.lineTo(x1,y0); ctx.stroke();
+  ctx.textAlign='center'; ctx.fillStyle='#cbd5e1';
+  ctx.fillText('distance au centre  r', (x0+x1)/2, H-16);
+  ctx.save(); ctx.translate(16,(y0+y1)/2); ctx.rotate(-Math.PI/2); ctx.fillText('g  (m/s²)',0,0); ctx.restore();
+  // surface marker
+  ctx.strokeStyle='rgba(126,231,135,.4)'; ctx.setLineDash([4,4]);
+  ctx.beginPath(); ctx.moveTo(sx(R),y0); ctx.lineTo(sx(R),y1); ctx.stroke(); ctx.setLineDash([]);
+
+  // explored samples (the curve fills in as you explore)
+  const idxs=[...samples.keys()].sort((a,b)=>a-b);
+  ctx.strokeStyle='#58a6ff'; ctx.lineWidth=2.5; ctx.beginPath(); let started=false;
+  for(const idx of idxs){ const rr=clamp(idx*BIN,0,RMAX), gg=samples.get(idx);
+    const px=sx(rr), py=sy(gg); if(!started){ctx.moveTo(px,py); started=true;} else ctx.lineTo(px,py); }
+  ctx.stroke();
+  // sample dots
+  ctx.fillStyle='rgba(88,166,255,.5)';
+  for(const idx of idxs){ const rr=clamp(idx*BIN,0,RMAX); ctx.beginPath(); ctx.arc(sx(rr),sy(samples.get(idx)),1.6,0,7); ctx.fill(); }
+
+  // current marker
+  const gg=g(rKm), px=sx(rKm), py=sy(gg);
+  ctx.strokeStyle='rgba(255,255,255,.25)'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(px,y0); ctx.lineTo(px,py); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(x0,py); ctx.lineTo(px,py); ctx.stroke();
+  ctx.fillStyle='#7ee787'; ctx.beginPath(); ctx.arc(px,py,5,0,7); ctx.fill();
+  ctx.strokeStyle='#0b1224'; ctx.lineWidth=2; ctx.stroke();
+}
+
+function draw(){ drawEarth(); drawPlot(); }
+
+// ---------- wiring ----------
+const slider=document.getElementById('slider');
+function update(){
+  rKm=parseFloat(slider.value); record(rKm);
+  draw();
+}
+slider.addEventListener('input', update);
+document.getElementById('reset').addEventListener('click', ()=>{ samples.clear(); slider.value=R; update(); });
+window.addEventListener('resize', resize);
+
+// init
+record(R); resize(); update();
+</script>
+</body>
+</html>

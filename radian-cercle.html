@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Le radian — cercle</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,400&family=Spline+Sans+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#f4efe6;
+    --ink:#1c2321;
+    --line:#2b3a36;
+    --grid:#e4ddcf;
+    --faint:#c9c0b1;
+    --accent:#c2410c;
+    --vert:#0e7c6b;
+    --red:#c0392b;
+    --purple:#7d3cb5;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;height:100%;overflow:hidden;}
+  body{
+    background:var(--paper);color:var(--ink);
+    font-family:"Fraunces",Georgia,serif;
+    display:flex;flex-direction:column;touch-action:none;
+    user-select:none;-webkit-user-select:none;
+  }
+  header{padding:18px 24px 12px;border-bottom:1px solid var(--faint);}
+  header h1{font-size:1.5rem;font-weight:600;margin:0;letter-spacing:-0.01em;}
+  .main{flex:1;min-height:0;display:flex;flex-direction:row;}
+  .stage{position:relative;flex:1;min-width:0;}
+  canvas{display:block;width:100%;height:100%;touch-action:none;}
+  .panel{
+    width:320px;flex:0 0 320px;border-left:1px solid var(--faint);
+    padding:22px 24px;display:flex;flex-direction:column;gap:24px;
+    overflow-y:auto;
+  }
+  .kicker{
+    font-family:"Spline Sans Mono",monospace;font-size:0.72rem;
+    letter-spacing:0.14em;text-transform:uppercase;color:var(--vert);
+  }
+  .ctrl label{
+    display:block;font-family:"Spline Sans Mono",monospace;font-size:0.74rem;
+    color:var(--line);margin-bottom:6px;
+  }
+  .ctrl input{
+    width:100%;font-family:"Spline Sans Mono",monospace;font-size:1rem;
+    padding:8px 10px;border:1.5px solid var(--faint);border-radius:6px;
+    background:var(--paper);color:var(--ink);
+  }
+  .ctrl input:focus{outline:none;border-color:var(--vert);}
+  .readout{display:flex;flex-direction:column;gap:14px;}
+  .row{
+    display:flex;align-items:baseline;justify-content:space-between;gap:12px;
+    padding-bottom:12px;border-bottom:1px solid var(--faint);
+  }
+  .row .name{font-style:italic;font-size:1.05rem;}
+  .row .val{
+    font-family:"Spline Sans Mono",monospace;font-size:1.05rem;font-weight:500;
+  }
+  .row .val.angle{color:var(--vert);}
+  .row .val.arc{color:var(--accent);}
+  .hint{
+    font-family:"Spline Sans Mono",monospace;font-size:0.72rem;color:var(--faint);
+    line-height:1.5;
+  }
+  .eqn{
+    font-size:1.1rem;text-align:center;padding:10px 0;
+    border:1.5px dashed var(--faint);border-radius:8px;color:var(--line);
+  }
+  .eqn b{color:var(--accent);font-style:italic;}
+</style>
+</head>
+<body>
+<header><h1>Le radian</h1></header>
+
+<div class="main">
+  <div class="stage">
+    <canvas id="cv"></canvas>
+  </div>
+</div>
+
+<script>
+const cv=document.getElementById('cv'), ctx=cv.getContext('2d');
+let DPR=Math.max(1,window.devicePixelRatio||1);
+let W=0,H=0;
+let pxPerUnit=40;       // pixels per radius-unit (shared scale across circles)
+
+// four circles, radii 1..4, laid out horizontally; each has its own angle
+const RADII=[1,2,3,4];
+let circles=[];         // {r, cx, cy, theta}
+let drag=null;          // {circle, lastRaw}
+
+function layout(){
+  const r=cv.getBoundingClientRect();
+  W=r.width;H=r.height;
+  cv.width=W*DPR;cv.height=H*DPR;
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+
+  const n=RADII.length;
+  const maxR=Math.max(...RADII);
+  const sumR=RADII.reduce((a,b)=>a+b,0);
+
+  // Scale so everything fits the width with equal gaps, and the tallest circle
+  // fits the height (leaving room for top labels and the bottom caption).
+  const sideMargin=24;
+  const gap=28;                                  // fixed gap between circle edges
+  const usableW=W-2*sideMargin-(n-1)*gap;        // width left for the diameters
+  const fitW=usableW/(2*sumR);                   // px per unit from width
+  const fitH=(H*0.5-50)/maxR;                    // px per unit from height
+  pxPerUnit=Math.max(10, Math.min(fitW, fitH));
+
+  // place left-to-right so the gaps between edges are equal
+  const px=pxPerUnit;
+  // recompute the actual total to center the whole row horizontally
+  const totalW=2*px*sumR+(n-1)*gap;
+  let x=(W-totalW)/2;                             // left edge of first circle
+  circles=RADII.map((rad,i)=>{
+    const R=rad*px;
+    const cx=x+R;
+    x+=2*R+gap;
+    const keep = circles[i] ? circles[i].theta : 0;
+    return { r:rad, cx, cy:H*0.54, theta:keep };
+  });
+  draw();
+}
+window.addEventListener('resize',layout);
+
+function fmt(x,d=2){return x.toFixed(d).replace('.',',');}
+function getCSS(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim();}
+
+function draw(){
+  ctx.clearRect(0,0,W,H);
+  for(const c of circles) drawCircle(c);
+}
+
+function drawCircle(c){
+  const R=c.r*pxPerUnit;
+  const cx=c.cx, cy=c.cy, theta=c.theta;
+
+  // circle
+  ctx.strokeStyle=getCSS('--line');ctx.lineWidth=2;
+  ctx.beginPath();ctx.arc(cx,cy,R,0,Math.PI*2);ctx.stroke();
+
+  // radius reference to start point (r,0)
+  ctx.strokeStyle=getCSS('--faint');ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(cx+R,cy);ctx.stroke();
+
+  const aEnd=-theta;
+
+  // angle arc near centre (green)
+  ctx.strokeStyle=getCSS('--vert');ctx.lineWidth=2.5;
+  ctx.beginPath();ctx.arc(cx,cy,Math.min(26,R*0.4),0,aEnd,true);ctx.stroke();
+
+  // highlighted arc on the circle (orange)
+  ctx.strokeStyle=getCSS('--accent');ctx.lineWidth=5;ctx.lineCap='round';
+  ctx.beginPath();ctx.arc(cx,cy,R,0,aEnd,true);ctx.stroke();
+  ctx.lineCap='butt';
+
+  // moving radius (green)
+  const hx=cx+R*Math.cos(theta), hy=cy-R*Math.sin(theta);
+  ctx.strokeStyle=getCSS('--vert');ctx.lineWidth=2;
+  ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(hx,hy);ctx.stroke();
+
+  // start marker
+  ctx.fillStyle=getCSS('--faint');
+  ctx.beginPath();ctx.arc(cx+R,cy,4,0,7);ctx.fill();
+
+  // handle
+  ctx.fillStyle=getCSS('--accent');
+  ctx.beginPath();ctx.arc(hx,hy,9,0,7);ctx.fill();
+  ctx.strokeStyle=getCSS('--paper');ctx.lineWidth=2;ctx.stroke();
+
+  // centre dot
+  ctx.fillStyle=getCSS('--ink');
+  ctx.beginPath();ctx.arc(cx,cy,3,0,7);ctx.fill();
+
+  // radius caption under the centre
+  ctx.fillStyle=getCSS('--line');
+  ctx.font='600 13px "Spline Sans Mono", monospace';
+  ctx.textAlign='center';ctx.textBaseline='top';
+  ctx.fillText('rayon : '+c.r, cx, cy+R+22);
+
+  // measurements centered above this circle (kept within its own column)
+  if(theta>0.0001){
+    const deg=Math.round(theta*180/Math.PI);
+    const s=c.r*theta;
+    const ty=Math.max(16, cy-R-34);
+    ctx.textAlign='center';ctx.textBaseline='alphabetic';
+    ctx.font='600 13px "Spline Sans Mono", monospace';
+    ctx.fillStyle=getCSS('--vert');
+    ctx.fillText('angle : '+deg+'°', cx, ty);
+    ctx.fillStyle=getCSS('--accent');
+    ctx.fillText('arc : '+fmt(s,2), cx, ty+18);
+  }
+}
+
+function pos(e){
+  const r=cv.getBoundingClientRect();
+  const t=e.touches?e.touches[0]:e;
+  return {x:t.clientX-r.left, y:t.clientY-r.top};
+}
+function rawAngle(c,p){
+  let a=Math.atan2(-(p.y-c.cy), p.x-c.cx);
+  if(a<0) a+=Math.PI*2;
+  return a;
+}
+function handlePos(c){
+  const R=c.r*pxPerUnit;
+  return {x:c.cx+R*Math.cos(c.theta), y:c.cy-R*Math.sin(c.theta)};
+}
+
+cv.addEventListener('pointerdown',e=>{
+  e.preventDefault();
+  const p=pos(e);
+  // grab the nearest handle within range
+  let best=null,bd=28;
+  for(const c of circles){
+    const h=handlePos(c);
+    const d=Math.hypot(p.x-h.x,p.y-h.y);
+    if(d<bd){bd=d;best=c;}
+  }
+  if(best){
+    drag={circle:best, lastRaw:rawAngle(best,p)};
+    try{cv.setPointerCapture(e.pointerId);}catch(_){}
+  }
+});
+cv.addEventListener('pointermove',e=>{
+  if(!drag)return;e.preventDefault();
+  const c=drag.circle;
+  const raw=rawAngle(c,pos(e));
+  let d=raw-drag.lastRaw;
+  if(d>Math.PI) d-=Math.PI*2;
+  if(d<-Math.PI) d+=Math.PI*2;
+  c.theta=Math.max(0, Math.min(Math.PI*2, c.theta+d));
+  drag.lastRaw=raw;
+  draw();
+});
+cv.addEventListener('pointerup',e=>{
+  if(!drag)return;drag=null;
+  try{cv.releasePointerCapture(e.pointerId);}catch(_){}
+});
+
+layout();
+</script>
+</body>
+</html>

@@ -18,6 +18,7 @@
     --model: #3ddc97;  --model-deep: #0e3326;  --model-lit: #aef0cf;
     --anim:  #4dd6ff;  --anim-deep:  #0c2a3a;  --anim-lit:  #c5eeff;
     --phys:  #ff5d7a;  --phys-deep:  #3a0d18;  --phys-lit:  #ffc2cf;
+    --trig:  #3a6dff;  --trig-deep:  #0c1640;  --trig-lit:  #b9caff;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   html, body { height: 100%; }
@@ -121,6 +122,15 @@
       rgba(190,50,80,0.06)   62%,
       transparent 78%);
   }
+  body.detail-trig h1 { --sun-r: 120; --sun-g: 160; --sun-b: 255; }
+  body.detail-trig .sun-glow {
+    background: radial-gradient(circle at 30% 30%,
+      rgba(190,208,255,0.56) 0%,
+      rgba(120,150,250,0.38) 22%,
+      rgba(60,90,220,0.18)   44%,
+      rgba(40,60,190,0.06)   62%,
+      transparent 78%);
+  }
   .back-btn {
     position: absolute; z-index: 5; top: 32px; right: 40px;
     font-family: 'DM Mono', monospace;
@@ -148,11 +158,12 @@
                 left .85s cubic-bezier(.5,.0,.2,1),
                 opacity .5s ease;
   }
-  .system[data-key="arith"] { top: 30%; left: 22%; }
+  .system[data-key="arith"] { top: 30%; left: 20%; }
   .system[data-key="anim"]  { top: 28%; left: 50%; }
-  .system[data-key="phys"]  { top: 30%; left: 78%; }
-  .system[data-key="prob"]  { top: 70%; left: 36%; }
-  .system[data-key="model"] { top: 70%; left: 64%; }
+  .system[data-key="phys"]  { top: 30%; left: 80%; }
+  .system[data-key="prob"]  { top: 70%; left: 20%; }
+  .system[data-key="model"] { top: 70%; left: 50%; }
+  .system[data-key="trig"]  { top: 70%; left: 80%; }
   body.detail .system.active { top: 50%; left: 50%; }
   body.detail .system:not(.active) { opacity: 0; pointer-events: none; }
 
@@ -202,6 +213,7 @@
   .planet-model { --lit: var(--model-lit); --glow-deep: var(--model-deep); --glow: var(--model); }
   .planet-anim  { --lit: var(--anim-lit);  --glow-deep: var(--anim-deep);  --glow: var(--anim); }
   .planet-phys  { --lit: var(--phys-lit);  --glow-deep: var(--phys-deep);  --glow: var(--phys); }
+  .planet-trig  { --lit: var(--trig-lit);  --glow-deep: var(--trig-deep);  --glow: var(--trig); }
 
   /* Planet label sits below the planet; grows when active */
   .planet-label {
@@ -217,6 +229,7 @@
   .system[data-key="model"] .planet-label { color: var(--model); }
   .system[data-key="anim"]  .planet-label { color: var(--anim); }
   .system[data-key="phys"]  .planet-label { color: var(--phys); }
+  .system[data-key="trig"]  .planet-label { color: var(--trig); }
   body.detail .system.active .planet-label {
     opacity: 0;
   }
@@ -242,6 +255,7 @@
   .system[data-key="model"] .orbit-ring { stroke: rgba(61,220,151, 0.28); }
   .system[data-key="anim"]  .orbit-ring { stroke: rgba(77,214,255, 0.30); }
   .system[data-key="phys"]  .orbit-ring { stroke: rgba(255,93,122, 0.30); }
+  .system[data-key="trig"]  .orbit-ring { stroke: rgba(58,109,255, 0.30); }
 
   /* ── Moons (positions driven by JS along their assigned ellipse) ── */
   /* .moon-pos is a 0×0 anchor; JS sets its transform every frame.
@@ -292,6 +306,7 @@
   .moon-model { --lit: var(--model-lit); --glow-deep: var(--model-deep); --glow: var(--model); }
   .moon-anim  { --lit: var(--anim-lit);  --glow-deep: var(--anim-deep);  --glow: var(--anim); }
   .moon-phys  { --lit: var(--phys-lit);  --glow-deep: var(--phys-deep);  --glow: var(--phys); }
+  .moon-trig  { --lit: var(--trig-lit);  --glow-deep: var(--trig-deep);  --glow: var(--trig); }
 
   .moon:hover {
     width: 120px; height: 120px;
@@ -348,11 +363,12 @@
      media-query check; we just shrink the planet + moon visuals here. */
   @media (max-width: 720px) {
     .planet { width: 140px; height: 140px; }
-    .system[data-key="arith"] { top: 12%; left: 50%; }
-    .system[data-key="anim"]  { top: 30%; left: 50%; }
-    .system[data-key="phys"]  { top: 48%; left: 50%; }
-    .system[data-key="prob"]  { top: 66%; left: 50%; }
-    .system[data-key="model"] { top: 84%; left: 50%; }
+    .system[data-key="arith"] { top: 11%; left: 50%; }
+    .system[data-key="anim"]  { top: 26%; left: 50%; }
+    .system[data-key="phys"]  { top: 41%; left: 50%; }
+    .system[data-key="prob"]  { top: 56%; left: 50%; }
+    .system[data-key="model"] { top: 71%; left: 50%; }
+    .system[data-key="trig"]  { top: 86%; left: 50%; }
     body:not(.detail) .planet:hover { width: 152px; height: 152px; }
     body.detail .system.active .planet { width: 240px; height: 240px; }
     .planet-label { top: 90px; font-size: 11px; letter-spacing: 0.18em; }
@@ -458,6 +474,18 @@
     </div>
   </div>
 
+  <!-- TRIGONOMÉTRIE -->
+  <div class="system" data-key="trig">
+    <div class="planet planet-trig"></div>
+    <div class="planet-label">Trigonométrie</div>
+    <svg class="orbit-rings" viewBox="-550 -230 1100 460" preserveAspectRatio="xMidYMid meet">
+      <ellipse class="orbit-ring" cx="0" cy="0" rx="210" ry="84"/>
+    </svg>
+    <div class="moon-pos" data-orbit="1">
+      <a class="moon moon-trig" href="radian-cercle.html">Le radian</a>
+    </div>
+  </div>
+
   <!-- SUB · ANIMATIONS (vidéothèque) -->
   <div class="system sub" data-key="anims" data-parent="anim">
     <div class="planet planet-anim"></div>
@@ -507,7 +535,7 @@
 
 <script>
 const HOME_TITLE = 'Activités interactives';
-const CATEGORY_TITLE = { arith: 'Arithmétique', prob: 'Probabilités', model: 'Modélisation', anim: 'Animations', phys: 'Physique', anims: 'Animations', recaps: 'Vidéos de révision' };
+const CATEGORY_TITLE = { arith: 'Arithmétique', prob: 'Probabilités', model: 'Modélisation', anim: 'Animations', phys: 'Physique', trig: 'Trigonométrie', anims: 'Animations', recaps: 'Vidéos de révision' };
 const titleEl = document.getElementById('title');
 
 // ── Orbit specs (must match the SVG ellipse rx/ry values).
@@ -618,7 +646,7 @@ if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches){
 }
 
 // ── Navigation with a back-stack so sub-systems can step back one level. ──
-const PILLARS = ['arith', 'anim', 'prob', 'model', 'phys'];
+const PILLARS = ['arith', 'anim', 'prob', 'model', 'phys', 'trig'];
 let navStack = [];
 
 function sysByKey(key){ return document.querySelector('.system[data-key="' + key + '"]'); }
@@ -628,7 +656,7 @@ function sunKeyFor(key){
 }
 function showLevel(key){
   document.querySelectorAll('.system').forEach(s => s.classList.toggle('active', s.dataset.key === key));
-  document.body.classList.remove('detail-arith','detail-prob','detail-model','detail-anim','detail-phys');
+  document.body.classList.remove('detail-arith','detail-prob','detail-model','detail-anim','detail-phys','detail-trig');
   document.body.classList.add('detail', 'detail-' + sunKeyFor(key));
   titleEl.textContent = CATEGORY_TITLE[key] || HOME_TITLE;
   startMoons();
@@ -641,7 +669,7 @@ function back(){
 }
 function goHome(){
   navStack = [];
-  document.body.classList.remove('detail','detail-arith','detail-prob','detail-model','detail-anim','detail-phys');
+  document.body.classList.remove('detail','detail-arith','detail-prob','detail-model','detail-anim','detail-phys','detail-trig');
   document.querySelectorAll('.system').forEach(s => s.classList.remove('active'));
   titleEl.textContent = HOME_TITLE;
 }

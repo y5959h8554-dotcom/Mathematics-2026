@@ -1,0 +1,1033 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Trigonométrie — Triangle rectangle</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,400&family=Spline+Sans+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#f4efe6;
+    --ink:#1c2321;
+    --line:#2b3a36;
+    --accent:#c2410c;
+    --accent2:#0e7c6b;
+    --red:#c0392b;
+    --purple:#7d3cb5;
+    --faint:#c9c0b1;
+    --grid:#e4ddcf;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;height:100%;overflow:hidden;}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:"Fraunces",Georgia,serif;
+    display:flex;flex-direction:column;
+    touch-action:none;
+    user-select:none;-webkit-user-select:none;
+  }
+  header{
+    padding:18px 24px 12px;
+    border-bottom:1px solid var(--faint);
+    display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;
+  }
+  header h1{
+    font-size:1.5rem;font-weight:600;margin:0;letter-spacing:-0.01em;
+  }
+  header .sub{
+    font-family:"Spline Sans Mono",monospace;
+    font-size:0.72rem;color:var(--accent2);text-transform:uppercase;letter-spacing:0.14em;
+  }
+  /* layout via grid; areas reflow between stage 1 and stage 2 */
+  .main{
+    flex:1;min-height:0;display:grid;gap:0;margin-top:18px;
+    grid-template-columns:1fr 340px;
+    grid-template-rows:1fr auto;
+    grid-template-areas:
+      "stage  ratios"
+      "stage  actions";
+  }
+  .stage{grid-area:stage;position:relative;min-width:0;min-height:0;}
+  .ratios{grid-area:ratios;}
+  .props{grid-area:props;}
+  .panel-actions{grid-area:actions;}
+
+  canvas{display:block;width:100%;height:100%;touch-action:none;}
+  .prompt{
+    position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+    text-align:center;pointer-events:none;transition:opacity .4s;
+    max-width:80%;
+  }
+  .prompt .big{font-size:1.6rem;font-style:italic;color:var(--line);line-height:1.3;}
+  button{
+    font-family:"Spline Sans Mono",monospace;font-size:0.78rem;
+    text-transform:uppercase;letter-spacing:0.08em;
+    background:transparent;border:1.5px solid var(--line);color:var(--line);
+    padding:10px 18px;border-radius:2px;cursor:pointer;transition:.15s;
+  }
+  button:active{background:var(--line);color:var(--paper);}
+  button.primary{border-color:var(--accent);color:var(--accent);}
+  button.primary:active{background:var(--accent);color:var(--paper);}
+
+  .ratios{
+    padding:22px 24px;border-left:1px solid var(--faint);
+    display:flex;flex-direction:column;gap:22px;align-items:flex-start;
+    overflow-y:auto;
+  }
+  .panel-actions{
+    padding:14px 24px;border-left:1px solid var(--faint);
+    display:flex;gap:12px;align-items:center;flex-wrap:wrap;
+  }
+  #continue{ border-color:var(--accent2);color:var(--accent2); }
+  #continue:active{background:var(--accent2);color:var(--paper);}
+
+  /* ---- stage 2 reflow: triangle top-left, ratios bottom-left, props right ---- */
+  body.stage2 .main{
+    grid-template-columns:1.15fr 1fr;
+    grid-template-rows:1fr 1fr auto;
+    grid-template-areas:
+      "stage  props"
+      "ratios props"
+      "actions props";
+  }
+  body.stage2 .stage{border-bottom:1px solid var(--faint);}
+  body.stage2 .ratios{
+    border-left:none;border-top:none;
+    flex-direction:column;flex-wrap:nowrap;gap:18px;
+    align-items:center;justify-content:center;
+    padding:36px 22px 16px;font-size:1em;
+  }
+  body.stage2 .ratio{padding:6px 12px;gap:12px;}
+  body.stage2 .ratio .fn{font-size:1.2rem;}
+  body.stage2 .ratio .eq{font-size:1.2rem;}
+  body.stage2 .frac{min-width:128px;}
+  body.stage2 .box{min-width:128px;min-height:34px;font-size:0.74rem;}
+  body.stage2 .panel-actions{border-left:none;}
+
+  .props{display:none;}
+  body.stage2 .props{
+    display:flex;flex-direction:column;gap:16px;
+    margin:18px 22px;padding:18px 20px;
+    border:2px solid var(--accent);border-radius:12px;
+    background:rgba(194,65,12,0.06);overflow-y:auto;
+  }
+  .props h2{
+    margin:0 0 4px;font-family:"Spline Sans Mono",monospace;
+    font-size:0.74rem;letter-spacing:0.14em;text-transform:uppercase;color:var(--accent);
+  }
+  .props .quant{
+    font-family:"Fraunces",Georgia,serif;font-style:italic;
+    font-size:1.05rem;color:var(--ink);margin-bottom:2px;
+  }
+  .prop{
+    display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+    font-family:"Fraunces",Georgia,serif;font-size:1.05rem;
+    padding:6px 8px;border-radius:8px;transition:background .2s;
+  }
+  .prop.correct{background:rgba(14,124,107,0.16);}
+  .prop.wrong{background:rgba(192,57,43,0.16);}
+  .pbox{
+    display:inline-flex;align-items:center;justify-content:center;
+    min-width:52px;height:34px;padding:0 8px;
+    border:2px dotted var(--faint);border-radius:6px;
+    font-family:"Fraunces",Georgia,serif;font-style:italic;font-size:1rem;
+    color:var(--ink);transition:.15s;vertical-align:middle;
+  }
+  .pbox.over{border-color:var(--accent2);background:rgba(14,124,107,0.1);border-style:solid;}
+  .pbox.filled{border-style:solid;border-color:var(--ink);}
+  .pfrac{
+    display:inline-flex;flex-direction:column;align-items:stretch;
+    gap:3px;vertical-align:middle;
+  }
+  .pfrac .pbar{height:2px;background:var(--ink);width:100%;}
+  .sup{font-size:0.7em;vertical-align:super;}
+  /* fn labels become draggable in stage 2 */
+  body.stage2 .ratio .fn{
+    cursor:grab;border:1.5px solid var(--faint);border-radius:6px;
+    padding:3px 8px;background:var(--paper);user-select:none;touch-action:none;
+  }
+  body.stage2 .ratio .fn:active{cursor:grabbing;border-color:var(--accent2);}
+  .ratio{
+    display:flex;align-items:center;gap:10px;
+    padding:10px 14px;border-radius:8px;transition:background .2s;
+  }
+  .ratio.wrong{background:rgba(192,57,43,0.14);}
+  .ratio.correct{background:rgba(14,124,107,0.16);}
+  .ratio .fn{
+    font-family:"Fraunces",Georgia,serif;font-style:italic;font-size:1.15rem;
+    white-space:nowrap;
+  }
+  .ratio .eq{font-size:1.15rem;}
+  .frac{
+    display:inline-flex;flex-direction:column;align-items:stretch;gap:4px;
+    min-width:150px;
+  }
+  .frac .bar{height:2px;background:var(--ink);width:100%;}
+  .box{
+    min-height:34px;min-width:150px;padding:5px 8px;
+    border:2px dashed var(--faint);border-radius:6px;
+    display:flex;align-items:center;justify-content:center;text-align:center;
+    font-family:"Spline Sans Mono",monospace;font-size:0.74rem;line-height:1.15;
+    color:var(--line);transition:.15s;
+  }
+  .box.empty::before{content:"";}
+  .box.over{border-color:var(--accent2);background:rgba(14,124,107,0.08);border-style:solid;}
+  .box.filled{border-style:solid;border-color:currentColor;}
+  .box[data-role="hyp"].filled{color:var(--ink);}
+  .box[data-role="opp"].filled{color:var(--red);}
+  .box[data-role="adj"].filled{color:var(--purple);}
+  /* floating drag chip */
+  #dragChip{
+    position:fixed;pointer-events:none;z-index:50;display:none;
+    padding:6px 10px;border-radius:6px;background:var(--paper);
+    border:2px solid currentColor;
+    font-family:"Spline Sans Mono",monospace;font-size:0.74rem;
+    transform:translate(-50%,-50%);box-shadow:0 6px 20px rgba(0,0,0,0.18);
+    white-space:nowrap;
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>Trigonométrie dans un triangle rectangle</h1>
+</header>
+
+<div class="main" id="main">
+  <div class="stage" id="stage">
+    <canvas id="cv"></canvas>
+    <div class="prompt" id="prompt">
+      <div class="big">Trace un triangle rectangle</div>
+    </div>
+  </div>
+
+  <div class="ratios" id="ratios"></div>
+  <div class="props" id="props"></div>
+  <div class="panel-actions">
+    <button id="continue" style="display:none;">Continuer →</button>
+    <button id="undo">Effacer</button>
+  </div>
+</div>
+
+<div id="dragChip"></div>
+
+<script>
+const cv = document.getElementById('cv');
+const ctx = cv.getContext('2d');
+const promptEl = document.getElementById('prompt');
+const undoBtn = document.getElementById('undo');
+const ratiosEl = document.getElementById('ratios');
+const dragChip = document.getElementById('dragChip');
+
+let DPR = Math.max(1, window.devicePixelRatio||1);
+let W=0,H=0;
+
+function resize(){
+  const r = cv.getBoundingClientRect();
+  W=r.width; H=r.height;
+  cv.width=W*DPR; cv.height=H*DPR;
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  draw();
+}
+window.addEventListener('resize',resize);
+
+// ---- state ----
+// modes: 'idle' -> drawing, 'verts' collecting, 'ready' triangle formed, 'snapped'
+let mode='idle';
+let path=[];          // raw freehand path
+let verts=[];         // up to 3 vertices (tap mode)
+let triangle=null;    // {pts:[{x,y}x3], rightIndex}
+let snapTarget=null;  // animated target triangle
+let anim=null;
+let selected=null;    // null | 'A' | 'B' — which acute angle is selected
+let glowPhase=0;      // animation phase for the interactive-angle glow
+
+// max deviation from 90° still accepted as "the student meant a right angle"
+const RIGHT_TOLERANCE = 15;
+
+function dist(a,b){return Math.hypot(a.x-b.x,a.y-b.y);}
+
+// angle at vertex b formed by a-b-c, in degrees
+function angleAt(a,b,c){
+  const v1={x:a.x-b.x,y:a.y-b.y};
+  const v2={x:c.x-b.x,y:c.y-b.y};
+  const dot=v1.x*v2.x+v1.y*v2.y;
+  const m1=Math.hypot(v1.x,v1.y), m2=Math.hypot(v2.x,v2.y);
+  if(m1===0||m2===0) return 0;
+  let cos=dot/(m1*m2);
+  cos=Math.max(-1,Math.min(1,cos));
+  return Math.acos(cos)*180/Math.PI;
+}
+
+function triangleAngles(p){
+  return [
+    angleAt(p[2],p[0],p[1]),
+    angleAt(p[0],p[1],p[2]),
+    angleAt(p[1],p[2],p[0]),
+  ];
+}
+
+// Reduce a freehand path to 3 corner points using max-deviation (Douglas-Peucker-ish to 3)
+function reduceTo3(pts){
+  if(pts.length<3) return null;
+  // ensure closed-ish: work on the open polyline, find the 2 sharpest corners + endpoints
+  // Strategy: the path roughly closes; take farthest pair as a baseline.
+  let A=pts[0], B=pts[0], maxd=0;
+  for(const p of pts){const d=dist(pts[0],p); if(d>maxd){maxd=d;B=p;}}
+  A=pts[0];
+  // find point with max distance from line A-B
+  function perp(p,a,b){
+    const dx=b.x-a.x, dy=b.y-a.y, L=Math.hypot(dx,dy)||1;
+    return Math.abs((p.x-a.x)*dy-(p.y-a.y)*dx)/L;
+  }
+  let C=A, mc=0;
+  for(const p of pts){const d=perp(p,A,B); if(d>mc){mc=d;C=p;}}
+  if(mc<12) return null; // too flat, not a triangle
+  return [ {x:A.x,y:A.y},{x:B.x,y:B.y},{x:C.x,y:C.y} ];
+}
+
+function buildTriangle(pts){
+  if(!pts||pts.length<3) return null;
+  const angles=triangleAngles(pts);
+  // right vertex = closest to 90
+  let ri=0, best=Infinity;
+  angles.forEach((a,i)=>{const d=Math.abs(a-90); if(d<best){best=d;ri=i;}});
+  return {pts:pts.map(p=>({...p})), rightIndex:ri, angles, dev:best};
+}
+
+// Closest right triangle to the drawn one (least-squares sense).
+// For a chosen right vertex R with legs to A and B: close the gap between the
+// legs to exactly 90° by rotating each leg, splitting the correction so the
+// LONGER leg rotates LESS (weights ∝ the other leg's squared length). This is
+// the displacement-minimising correction when leg lengths are kept. Closed
+// form, stable, instant. Tried for all three vertices; lowest residual wins.
+function fitRightTriangle(P, ri){
+  const R=P[ri], A=P[(ri+1)%3], B=P[(ri+2)%3];
+  const u={x:A.x-R.x,y:A.y-R.y}, v={x:B.x-R.x,y:B.y-R.y};
+  const L1=Math.hypot(u.x,u.y), L2=Math.hypot(v.x,v.y);
+  const a1=Math.atan2(u.y,u.x), a2=Math.atan2(v.y,v.x);
+  let diff=a2-a1;
+  while(diff> Math.PI) diff-=2*Math.PI;
+  while(diff<-Math.PI) diff+=2*Math.PI;
+  const sign=diff>=0?1:-1;
+  const phi=Math.abs(diff);
+  const D=phi-Math.PI/2;                       // signed gap to close
+  const denom=(L1*L1+L2*L2)||1;
+  const wa=D*L2*L2/denom;                       // rotate shorter-weighted
+  const wb=D*L1*L1/denom;
+  const na1=a1+sign*wa, na2=a2-sign*wb;
+  const Ap={x:R.x+Math.cos(na1)*L1, y:R.y+Math.sin(na1)*L1};
+  const Bp={x:R.x+Math.cos(na2)*L2, y:R.y+Math.sin(na2)*L2};
+  const out=[null,null,null];
+  out[ri]={...R}; out[(ri+1)%3]=Ap; out[(ri+2)%3]=Bp;
+  const resid=dist(A,Ap)**2+dist(B,Bp)**2;
+  return {pts:out, residual:resid, rightIndex:ri};
+}
+
+function closestRightTriangle(P){
+  let best=null;
+  for(let ri=0; ri<3; ri++){
+    const f=fitRightTriangle(P,ri);
+    if(!best || f.residual<best.residual) best=f;
+  }
+  return best;
+}
+
+// ---- drawing ----
+function draw(){
+  ctx.clearRect(0,0,W,H);
+  // grid
+  ctx.strokeStyle=getCSS('--grid'); ctx.lineWidth=1;
+  const g=32;
+  ctx.beginPath();
+  for(let x=0;x<=W;x+=g){ctx.moveTo(x,0);ctx.lineTo(x,H);}
+  for(let y=0;y<=H;y+=g){ctx.moveTo(0,y);ctx.lineTo(W,y);}
+  ctx.stroke();
+
+  // freehand ink
+  if(mode==='draw' && path.length>1){
+    ctx.strokeStyle=getCSS('--accent'); ctx.lineWidth=3;
+    ctx.lineJoin='round';ctx.lineCap='round';
+    ctx.beginPath();ctx.moveTo(path[0].x,path[0].y);
+    for(const p of path) ctx.lineTo(p.x,p.y);
+    ctx.stroke();
+  }
+
+  const tri = snapTarget || triangle;
+  if(tri) drawTriangle(tri, !!snapTarget, false);
+}
+
+function drawTriangle(tri,snappedFlag,rejected){
+  const p=tri.pts, ri=tri.rightIndex;
+  const labels=vertexLabels(p, ri);
+  const idx={}; labels.forEach((l,i)=>idx[l]=i);
+  const C=p[idx.C], A=p[idx.A], B=p[idx.B];
+
+  const INK=getCSS('--ink'), RED=getCSS('--red'), PUR=getCSS('--purple');
+
+  // ----- edge roles depend on selection -----
+  // Sides: AB = hypotenuse (opposite C). Legs: AC and BC.
+  // Select A (alpha): opposite = BC, adjacent = AC.
+  // Select B (beta):  opposite = AC, adjacent = BC.
+  // Each edge: {a,b endpoints, color, label}
+  const edgeAB={a:A,b:B}, edgeAC={a:A,b:C}, edgeBC={a:B,b:C};
+  let colAB=INK, colAC=INK, colBC=INK;
+  let labAB=null, labAC=null, labBC=null;
+  const aSym=activeSym();
+  if(selected==='A'){
+    colAB=INK;  labAB='hypoténuse';
+    colBC=RED;  labBC=`côté opposé à ${aSym}`;
+    colAC=PUR;  labAC=`côté adjacent à ${aSym}`;
+  } else if(selected==='B'){
+    colAB=INK;  labAB='hypoténuse';
+    colAC=RED;  labAC=`côté opposé à ${aSym}`;
+    colBC=PUR;  labBC=`côté adjacent à ${aSym}`;
+  }
+
+  // soft fill
+  ctx.beginPath();ctx.moveTo(p[0].x,p[0].y);ctx.lineTo(p[1].x,p[1].y);ctx.lineTo(p[2].x,p[2].y);ctx.closePath();
+  ctx.fillStyle='rgba(14,124,107,0.05)';ctx.fill();
+
+  // edges (draw coloured; thicker when highlighted)
+  function edge(e,col,hot){
+    ctx.strokeStyle=col;ctx.lineWidth=hot?5:3;ctx.lineCap='round';
+    ctx.beginPath();ctx.moveTo(e.a.x,e.a.y);ctx.lineTo(e.b.x,e.b.y);ctx.stroke();
+  }
+  const sel = selected!==null;
+  edge(edgeAB,colAB, sel);
+  edge(edgeAC,colAC, sel && colAC!==INK);
+  edge(edgeBC,colBC, sel && colBC!==INK);
+
+  // ----- right-angle marker at C (black square) -----
+  {
+    const u=norm({x:A.x-C.x,y:A.y-C.y});
+    const v=norm({x:B.x-C.x,y:B.y-C.y});
+    const s=Math.min(20, dist(C,A)*0.28, dist(C,B)*0.28);
+    const c1={x:C.x+u.x*s,y:C.y+u.y*s};
+    const c2={x:C.x+v.x*s,y:C.y+v.y*s};
+    const c3={x:c1.x+v.x*s,y:c1.y+v.y*s};
+    ctx.fillStyle='rgba(28,35,33,0.12)';
+    ctx.strokeStyle=INK;ctx.lineWidth=2;
+    ctx.beginPath();ctx.moveTo(C.x,C.y);ctx.lineTo(c1.x,c1.y);ctx.lineTo(c3.x,c3.y);ctx.lineTo(c2.x,c2.y);ctx.closePath();ctx.fill();ctx.stroke();
+  }
+
+  // ----- acute angle arcs at A (alpha) and B (beta) -----
+  // pulsating glow invites interaction: glow on any acute angle that ISN'T the
+  // current selection (so an unselected pair both pulse; after selecting one,
+  // the other keeps pulsing to show you can switch). Not shown in stage 2.
+  if(mode==='snapped' && !document.body.classList.contains('stage2')){
+    const pulse=0.5+0.5*Math.sin(glowPhase);             // 0..1
+    if(selected!=='A') drawGlow(A, pulse);
+    if(selected!=='B') drawGlow(B, pulse);
+  }
+  // colour each arc by the angle's own selection role tint, else faint ink
+  drawAngleArc(A, C, B, idx.A, '\u03b1');   // at A, between AC and AB
+  drawAngleArc(B, C, A, idx.B, '\u03b2');   // at B, between BC and BA
+
+  // ----- vertices -----
+  for(let i=0;i<3;i++){
+    ctx.fillStyle=INK;
+    ctx.beginPath();ctx.arc(p[i].x,p[i].y,5,0,7);ctx.fill();
+  }
+
+  // ----- vertex letters A / B / C (C black) -----
+  const cx=(p[0].x+p[1].x+p[2].x)/3, cy=(p[0].y+p[1].y+p[2].y)/3;
+  ctx.font='600 22px Fraunces, Georgia, serif';
+  ctx.textAlign='center';ctx.textBaseline='middle';
+  for(let i=0;i<3;i++){
+    const d=norm({x:p[i].x-cx,y:p[i].y-cy});
+    const lx=p[i].x+d.x*26, ly=p[i].y+d.y*26;
+    ctx.fillStyle=INK;
+    ctx.fillText(labels[i], lx, ly);
+  }
+
+  // ----- edge text labels (only when an angle is selected) -----
+  if(sel){
+    edgeLabel(edgeAB, labAB, colAB, cx, cy);
+    edgeLabel(edgeAC, labAC, colAC, cx, cy);
+    edgeLabel(edgeBC, labBC, colBC, cx, cy);
+  }
+
+  // helper: arc + greek letter at vertex V, between rays to P1 and P2
+  function drawAngleArc(V,P1,P2,vi,letter){
+    const a1=Math.atan2(P1.y-V.y,P1.x-V.x);
+    const a2=Math.atan2(P2.y-V.y,P2.x-V.x);
+    // shorter sweep
+    let d=a2-a1; while(d>Math.PI)d-=2*Math.PI; while(d<-Math.PI)d+=2*Math.PI;
+    const r=Math.min(34, dist(V,P1)*0.4, dist(V,P2)*0.4);
+    const isSel = (selected==='A'&&letter==='\u03b1')||(selected==='B'&&letter==='\u03b2');
+    ctx.strokeStyle=isSel?getCSS('--accent2'):'rgba(28,35,33,0.55)';
+    ctx.lineWidth=isSel?3:2;
+    ctx.beginPath();ctx.arc(V.x,V.y,r,a1,a1+d,d<0);ctx.stroke();
+    // letter at bisector
+    const mid=a1+d/2;
+    const lr=r+16;
+    ctx.fillStyle=isSel?getCSS('--accent2'):INK;
+    ctx.font='italic 600 18px Fraunces, Georgia, serif';
+    ctx.fillText(letter, V.x+Math.cos(mid)*lr, V.y+Math.sin(mid)*lr);
+  }
+
+  // helper: place an edge label offset outward from centroid, rotated along edge.
+  // Breaks "... à α/β" onto a second line; single-line text (hypoténuse) unaffected.
+  function edgeLabel(e,text,col,cx,cy){
+    if(!text)return;
+    const mx=(e.a.x+e.b.x)/2, my=(e.a.y+e.b.y)/2;
+    let ang=Math.atan2(e.b.y-e.a.y, e.b.x-e.a.x);
+    if(ang>Math.PI/2||ang<-Math.PI/2) ang+=Math.PI; // keep text upright
+    const out=norm({x:mx-cx,y:my-cy});
+    const ox=mx+out.x*34, oy=my+out.y*34;
+    const m=text.match(/^(.*) (à [αβ])$/);
+    const lines = m ? [m[1], m[2]] : [text];
+    ctx.save();
+    ctx.translate(ox,oy);ctx.rotate(ang);
+    ctx.fillStyle=col;
+    ctx.font='600 14px "Spline Sans Mono", monospace';
+    ctx.textAlign='center';ctx.textBaseline='middle';
+    const lh=16;
+    const y0=-(lines.length-1)*lh/2;
+    lines.forEach((ln,i)=>ctx.fillText(ln,0,y0+i*lh));
+    ctx.restore();
+  }
+}
+
+function norm(v){const m=Math.hypot(v.x,v.y)||1;return{x:v.x/m,y:v.y/m};}
+
+// Soft pulsating ring at a vertex to signal it is tappable.
+function drawGlow(V, pulse){
+  const r = 26 + pulse*12;
+  const grad = ctx.createRadialGradient(V.x,V.y, 4, V.x,V.y, r);
+  const a = 0.10 + pulse*0.28;
+  grad.addColorStop(0, `rgba(14,124,107,${a})`);
+  grad.addColorStop(1, 'rgba(14,124,107,0)');
+  ctx.fillStyle=grad;
+  ctx.beginPath();ctx.arc(V.x,V.y,r,0,7);ctx.fill();
+}
+function getCSS(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim();}
+
+// Labels: right vertex = C. Going in positive (math counterclockwise)
+// orientation from C, the next vertex is B, then A.
+// Screen y points down, so math-CCW is screen-clockwise; we flip y to judge.
+function vertexLabels(p, ri){
+  const C=p[ri], i1=(ri+1)%3, i2=(ri+2)%3;
+  // signed area in math coords (y flipped) for the ordered triple C, p[i1], p[i2]
+  const ax=p[i1].x-C.x, ay=-(p[i1].y-C.y);
+  const bx=p[i2].x-C.x, by=-(p[i2].y-C.y);
+  const crossZ = ax*by - ay*bx;   // >0 => C->i1->i2 is CCW (positive)
+  const labels=[null,null,null];
+  labels[ri]='C';
+  if(crossZ>0){ labels[i1]='B'; labels[i2]='A'; }   // i1 is the CCW-next from C
+  else        { labels[i2]='B'; labels[i1]='A'; }
+  return labels;
+}
+
+// ---- interaction ----
+function pos(e){
+  const r=cv.getBoundingClientRect();
+  const t=e.touches?e.touches[0]:e;
+  return {x:t.clientX-r.left, y:t.clientY-r.top};
+}
+
+let drawing=false, startTime=0, moved=0;
+let dragging=false;
+
+cv.addEventListener('pointerdown',e=>{
+  e.preventDefault();
+  if(mode==='snapped'){
+    const tap=pos(e);
+    // stage 2 locks the selection; canvas is reference-only
+    if(document.body.classList.contains('stage2')) return;
+    // if an angle is selected and the touch is on a side, start dragging it
+    if(selected!==null){
+      const s=sideAt(tap);
+      if(s){
+        dragging=true; dragSide={role:s.role,color:s.color,label:s.label};
+        try{ cv.setPointerCapture(e.pointerId); }catch(_){}
+        showChip(e.clientX,e.clientY);
+        return;
+      }
+    }
+    // select an acute angle. Switching A<->B is allowed; tapping empty space
+    // or the already-selected angle does NOT deselect.
+    const labels=vertexLabels(triangle.pts, triangle.rightIndex);
+    const idx={}; labels.forEach((l,i)=>idx[l]=i);
+    const dA=dist(tap, triangle.pts[idx.A]);
+    const dB=dist(tap, triangle.pts[idx.B]);
+    const hit=60;
+    let target=null;
+    if(dA<hit && dA<=dB) target='A';
+    else if(dB<hit)      target='B';
+    if(target && target!==selected){
+      selected=target;
+      boxes=freshBoxes(); buildPanel();
+      draw();
+    }
+    return;
+  }
+  if(mode==='ready'){return;}
+  const p=pos(e);
+  startTime=Date.now(); moved=0;
+  drawing=true; mode='draw'; path=[p];
+  promptEl.style.opacity=0;
+});
+cv.addEventListener('pointermove',e=>{
+  if(dragging){ e.preventDefault(); showChip(e.clientX,e.clientY);
+    const b=boxAt(e.clientX,e.clientY);
+    document.querySelectorAll('.box.over').forEach(x=>x.classList.remove('over'));
+    if(b) b.classList.add('over');
+    return;
+  }
+  if(!drawing)return;e.preventDefault();
+  const p=pos(e);
+  if(path.length){moved+=dist(p,path[path.length-1]);}
+  path.push(p); draw();
+});
+cv.addEventListener('pointerup',e=>{
+  if(dragging){
+    dragging=false; hideChip();
+    try{ cv.releasePointerCapture(e.pointerId); }catch(_){}
+    document.querySelectorAll('.box.over').forEach(x=>x.classList.remove('over'));
+    const b=boxAt(e.clientX,e.clientY);
+    if(b && dragSide){
+      boxes[b.dataset.fn][b.dataset.pos]=dragSide.role;
+      refreshBoxes();
+    }
+    dragSide=null;
+    return;
+  }
+  if(!drawing)return;drawing=false;e.preventDefault();
+  // a too-short stroke isn't a triangle: ignore
+  if(moved<14){
+    path=[];
+    mode='idle';
+    promptEl.style.opacity=1;
+    draw();
+    return;
+  }
+  // freehand stroke -> reduce to triangle
+  const pts=reduceTo3(path);
+  path=[];
+  if(!pts){
+    mode='idle';
+    promptEl.style.opacity=1;
+    draw();return;
+  }
+  finalize(buildTriangle(pts));
+});
+
+function finalize(tri){
+  if(!tri){mode='idle';return;}
+
+  // tolerance gate: is the best angle close enough to 90 to count as intended?
+  if(tri.dev > RIGHT_TOLERANCE){
+    // not close enough to a right angle: discard and let the student redraw
+    triangle=null; snapTarget=null; mode='idle'; verts=[];
+    promptEl.style.opacity=1;
+    draw();
+    return;
+  }
+  verts=[];
+  selected=null;
+
+  // Always output a true right triangle: fit the closest one and animate to it
+  // straight away. No intermediate non-right state is ever shown as settled.
+  const fit=closestRightTriangle(tri.pts);
+  triangle={pts:tri.pts.map(p=>({...p})), rightIndex:fit.rightIndex,
+            angles:tri.angles, dev:tri.dev};
+  mode='ready';
+  animateTo(fit.pts, fit.rightIndex);
+}
+
+function animateTo(target, ri){
+  const from=triangle.pts.map(p=>({...p}));
+  const t0=performance.now(), dur=520;
+  function step(now){
+    const k=Math.min(1,(now-t0)/dur);
+    const e=1-Math.pow(1-k,3);
+    const pts=from.map((p,i)=>({
+      x:p.x+(target[i].x-p.x)*e,
+      y:p.y+(target[i].y-p.y)*e
+    }));
+    snapTarget={pts,rightIndex:ri};
+    draw();
+    if(k<1) requestAnimationFrame(step);
+    else{
+      triangle={pts:target,rightIndex:ri,
+        angles:triangleAngles(target),dev:0};
+      snapTarget=null; mode='snapped';
+      draw();
+    }
+  }
+  requestAnimationFrame(step);
+}
+
+// ---------- ratios panel + drag/drop ----------
+
+// Compute the three sides with their role for the currently selected angle.
+// Returns null if no valid selection. Coordinates are CSS px (canvas space).
+function currentSides(){
+  if(!triangle || selected===null) return null;
+  const p=triangle.pts, ri=triangle.rightIndex;
+  const labels=vertexLabels(p,ri);
+  const idx={}; labels.forEach((l,i)=>idx[l]=i);
+  const A=p[idx.A], B=p[idx.B], C=p[idx.C];
+  const g = selected; // 'A' (alpha) or 'B' (beta) — geometry follows real selection
+  const sym = activeSym(); // displayed symbol (forced to α in stage 2)
+  // AB hypotenuse always; legs AC, BC
+  const hyp={role:'hyp', a:A, b:B, color:getCSS('--ink'),    label:'hypoténuse'};
+  let opp, adj;
+  if(g==='A'){
+    opp={role:'opp', a:B, b:C, color:getCSS('--red'),    label:`côté opposé à ${sym}`};
+    adj={role:'adj', a:A, b:C, color:getCSS('--purple'), label:`côté adjacent à ${sym}`};
+  } else {
+    opp={role:'opp', a:A, b:C, color:getCSS('--red'),    label:`côté opposé à ${sym}`};
+    adj={role:'adj', a:B, b:C, color:getCSS('--purple'), label:`côté adjacent à ${sym}`};
+  }
+  return {sym, sides:[hyp,opp,adj]};
+}
+
+// Box state: ratios[fn] = {num:role|null, den:role|null}
+let boxes = null;
+function freshBoxes(){ return {sin:{num:null,den:null}, cos:{num:null,den:null}, tan:{num:null,den:null}}; }
+
+// correct numerator/denominator roles per function
+const CORRECT = { sin:{num:'opp',den:'hyp'}, cos:{num:'adj',den:'hyp'}, tan:{num:'opp',den:'adj'} };
+
+function roleLabel(role){
+  const info=currentSides(); if(!info) return '';
+  const s=info.sides.find(x=>x.role===role); return s?s.label:'';
+}
+function roleColorVar(role){
+  return role==='opp'?'var(--red)':role==='adj'?'var(--purple)':'var(--ink)';
+}
+
+// The angle symbol shown in labels. In stage 2 it is always α (per design),
+// otherwise it follows the selected acute angle.
+function activeSym(){
+  if(document.body.classList.contains('stage2')) return 'α';
+  return selected==='A' ? 'α' : selected==='B' ? 'β' : 'θ';
+}
+
+function buildPanel(){
+  const sym = activeSym();
+  ratiosEl.innerHTML='';
+  ['sin','cos','tan'].forEach(fn=>{
+    const r=document.createElement('div'); r.className='ratio'; r.dataset.fn=fn;
+    const fnEl=document.createElement('span'); fnEl.className='fn';
+    fnEl.textContent=`${fn}(${sym})`;
+    const eq=document.createElement('span'); eq.className='eq'; eq.textContent='=';
+    const frac=document.createElement('div'); frac.className='frac';
+    const num=mkBox(fn,'num'); const bar=document.createElement('div'); bar.className='bar';
+    const den=mkBox(fn,'den');
+    frac.append(num,bar,den);
+    r.append(fnEl,eq,frac);
+    ratiosEl.append(r);
+  });
+  refreshBoxes();
+}
+
+function mkBox(fn,pos){
+  const b=document.createElement('div');
+  b.className='box'; b.dataset.fn=fn; b.dataset.pos=pos;
+  // role determines colour class via data-role
+  return b;
+}
+
+function refreshBoxes(){
+  document.querySelectorAll('.box').forEach(b=>{
+    const {fn,pos}=b.dataset;
+    const role=boxes ? boxes[fn][pos] : null;
+    if(role){
+      b.textContent=roleLabel(role);
+      b.dataset.role = role==='opp'?'opp':role==='adj'?'adj':'hyp';
+      b.classList.add('filled'); b.classList.remove('empty');
+    } else {
+      b.textContent=''; delete b.dataset.role;
+      b.classList.remove('filled'); b.classList.add('empty');
+    }
+  });
+  // validate: red backdrop only when BOTH boxes of a ratio are filled and wrong
+  document.querySelectorAll('.ratio').forEach(r=>{
+    const fn=r.dataset.fn; const st=boxes?boxes[fn]:null;
+    if(st && st.num && st.den){
+      const ok = st.num===CORRECT[fn].num && st.den===CORRECT[fn].den;
+      r.classList.toggle('correct', ok);
+      r.classList.toggle('wrong', !ok);
+    } else {
+      r.classList.remove('wrong'); r.classList.remove('correct');
+    }
+  });
+  checkStage1Complete();
+}
+
+function stage1AllCorrect(){
+  if(!boxes) return false;
+  return ['sin','cos','tan'].every(fn=>{
+    const st=boxes[fn];
+    return st.num===CORRECT[fn].num && st.den===CORRECT[fn].den;
+  });
+}
+function checkStage1Complete(){
+  const btn=document.getElementById('continue');
+  if(document.body.classList.contains('stage2')) return;  // already past stage 1
+  btn.style.display = stage1AllCorrect() ? 'inline-block' : 'none';
+}
+
+// hit-test which stage-1 box is under a client point
+function boxAt(cx,cy){
+  let hit=null;
+  document.querySelectorAll('.box').forEach(b=>{
+    const r=b.getBoundingClientRect();
+    if(cx>=r.left&&cx<=r.right&&cy>=r.top&&cy<=r.bottom) hit=b;
+  });
+  return hit;
+}
+
+// ---- dragging a side from the canvas ----
+let dragSide=null;  // {role,color,label}
+function distToSeg(px,py,a,b){
+  const dx=b.x-a.x, dy=b.y-a.y, L2=dx*dx+dy*dy||1;
+  let t=((px-a.x)*dx+(py-a.y)*dy)/L2; t=Math.max(0,Math.min(1,t));
+  const cxp=a.x+t*dx, cyp=a.y+t*dy;
+  return Math.hypot(px-cxp,py-cyp);
+}
+// like distToSeg but returns Infinity when the nearest point is within
+// `endInset` px of either endpoint, so the band doesn't intrude on the angles.
+function distToSegInset(px,py,a,b,endInset){
+  const dx=b.x-a.x, dy=b.y-a.y, L=Math.hypot(dx,dy)||1, L2=L*L;
+  let t=((px-a.x)*dx+(py-a.y)*dy)/L2; t=Math.max(0,Math.min(1,t));
+  const along=t*L;
+  if(along<endInset || along>L-endInset) return Infinity;
+  const cxp=a.x+t*dx, cyp=a.y+t*dy;
+  return Math.hypot(px-cxp,py-cyp);
+}
+function sideAt(canvasPt){
+  const info=currentSides(); if(!info) return null;
+  // centroid of the triangle (from the three distinct vertices among the sides)
+  const pts=triangle.pts;
+  const cx=(pts[0].x+pts[1].x+pts[2].x)/3, cy=(pts[0].y+pts[1].y+pts[2].y)/3;
+  const LINE_BAND=8;     // tight band hugging the edge itself
+  const END_INSET=40;    // keep the band clear of the angle vertices
+  const LABEL_R=52;      // catch radius around the label text
+  let best=null, bestScore=Infinity;
+  for(const s of info.sides){
+    // 1) distance to the line segment, excluding the near-vertex ends
+    const dLine=distToSegInset(canvasPt.x,canvasPt.y,s.a,s.b,END_INSET);
+    let hit = dLine<LINE_BAND ? dLine : Infinity;
+    // 2) distance to the label centre (midpoint pushed 22px outward from centroid)
+    const mx=(s.a.x+s.b.x)/2, my=(s.a.y+s.b.y)/2;
+    const out=norm({x:mx-cx,y:my-cy});
+    const lx=mx+out.x*34, ly=my+out.y*34;
+    const dLabel=Math.hypot(canvasPt.x-lx, canvasPt.y-ly);
+    if(dLabel<LABEL_R) hit=Math.min(hit, dLabel);
+    if(hit<bestScore){ bestScore=hit; best=s; }
+  }
+  return bestScore<Infinity ? best : null;
+}
+function showChip(clientX,clientY){
+  if(!dragSide) return;
+  dragChip.style.display='block';
+  dragChip.style.left=clientX+'px';
+  dragChip.style.top=clientY+'px';
+  dragChip.style.color=dragSide.color;
+  dragChip.textContent=dragSide.label;
+}
+function hideChip(){ dragChip.style.display='none'; }
+
+// ---------- stage 2: propriétés ----------
+// Each expression is a template with {fn} drop slots; correct[] gives the
+// required function in each slot, in order.
+function propTemplates(sym){
+  // complementary angle symbol (the other acute angle)
+  const co = sym==='α' ? 'β' : sym==='β' ? 'α' : 'θ';
+  return [
+    {id:'pyth', correct:['sin','cos'],
+     parts:['', {b:0}, {sup:'2'}, ' + ', {b:1}, {sup:'2'}, ' = 1'],
+     check:st=>st.every(v=>v!==null) && new Set(st).size===2 &&
+               st.includes('sin') && st.includes('cos')},
+    {id:'sinrange', correct:['sin'],
+     parts:['0 < ', {b:0}, ' < 1'],
+     check:st=>st[0]==='sin'||st[0]==='cos'},
+    {id:'cosrange', correct:['cos'],
+     parts:['0 < ', {b:0}, ' < 1'],
+     check:st=>st[0]==='sin'||st[0]==='cos'},
+    {id:'cofunc', correct:['sin'],
+     parts:['', {b:0}, ` = cos(${co})`],
+     check:st=>st[0]==='sin'},
+    {id:'tan', correct:['tan','sin','cos'],
+     parts:['', {b:0}, ' = ', {frac:[1,2]}],
+     check:st=>st[0]==='tan'&&st[1]==='sin'&&st[2]==='cos'},
+  ];
+}
+let propState=null; // {id: [fn|null,...]}
+
+function buildProps(){
+  const sym = activeSym();
+  const tmpl=propTemplates(sym);
+  if(!propState){ propState={}; tmpl.forEach(t=>propState[t.id]=t.correct.map(()=>null)); }
+  const props=document.getElementById('props');
+  props.innerHTML='<h2>Propriétés</h2>';
+  const quant=document.createElement('div');
+  quant.className='quant';
+  quant.textContent=`∀${sym} ∈ ]0° ; 90°[ :`;
+  props.append(quant);
+  tmpl.forEach(t=>{
+    const row=document.createElement('div'); row.className='prop'; row.dataset.id=t.id;
+    t.parts.forEach(part=>{
+      if(typeof part==='string'){ row.append(document.createTextNode(part)); }
+      else if(part.sup){ const s=document.createElement('span'); s.className='sup'; s.textContent=part.sup; row.append(s); }
+      else if(part.frac){
+        // stacked fraction: numerator box over denominator box
+        const f=document.createElement('span'); f.className='pfrac';
+        const num=mkPBox(t.id, part.frac[0]);
+        const bar=document.createElement('span'); bar.className='pbar';
+        const den=mkPBox(t.id, part.frac[1]);
+        f.append(num,bar,den); row.append(f);
+      }
+      else if(part.b!==undefined){ row.append(mkPBox(t.id, part.b)); }
+    });
+    props.append(row);
+  });
+  refreshProps();
+}
+
+function mkPBox(id,slot){
+  const box=document.createElement('span');
+  box.className='pbox'; box.dataset.id=id; box.dataset.slot=slot;
+  return box;
+}
+
+function refreshProps(){
+  if(!propState) return;
+  const sym = activeSym();
+  document.querySelectorAll('.pbox').forEach(b=>{
+    const fn=propState[b.dataset.id][+b.dataset.slot];
+    if(fn){ b.textContent=`${fn}(${sym})`; b.classList.add('filled'); }
+    else { b.textContent=''; b.classList.remove('filled'); }
+  });
+  const tmpl=propTemplates(sym);
+  document.querySelectorAll('.prop').forEach(row=>{
+    const t=tmpl.find(x=>x.id===row.dataset.id);
+    const st=propState[row.dataset.id];
+    if(st.every(v=>v!==null)){
+      const ok=t.check(st);
+      row.classList.toggle('correct', ok);
+      row.classList.toggle('wrong', !ok);
+    } else { row.classList.remove('correct'); row.classList.remove('wrong'); }
+  });
+}
+
+function pboxAt(cx,cy){
+  let hit=null;
+  document.querySelectorAll('.pbox').forEach(b=>{
+    const r=b.getBoundingClientRect();
+    if(cx>=r.left&&cx<=r.right&&cy>=r.top&&cy<=r.bottom) hit=b;
+  });
+  return hit;
+}
+
+// drag fn tokens (HTML) into pboxes
+let dragFn=null;
+function enableFnDrag(){
+  document.querySelectorAll('.ratio .fn').forEach(fnEl=>{
+    fnEl.onpointerdown=ev=>{
+      if(!document.body.classList.contains('stage2')) return;
+      ev.preventDefault();
+      const fn=fnEl.closest('.ratio').dataset.fn;
+      dragFn=fn;
+      try{ fnEl.setPointerCapture(ev.pointerId); }catch(_){}
+      dragChip.style.display='block';
+      dragChip.style.color=getCSS('--ink');
+      dragChip.textContent=`${fn}(${activeSym()})`;
+      dragChip.style.left=ev.clientX+'px'; dragChip.style.top=ev.clientY+'px';
+    };
+    fnEl.onpointermove=ev=>{
+      if(!dragFn) return; ev.preventDefault();
+      dragChip.style.left=ev.clientX+'px'; dragChip.style.top=ev.clientY+'px';
+      document.querySelectorAll('.pbox.over').forEach(x=>x.classList.remove('over'));
+      const b=pboxAt(ev.clientX,ev.clientY); if(b) b.classList.add('over');
+    };
+    fnEl.onpointerup=ev=>{
+      if(!dragFn) return; ev.preventDefault();
+      hideChip();
+      document.querySelectorAll('.pbox.over').forEach(x=>x.classList.remove('over'));
+      const b=pboxAt(ev.clientX,ev.clientY);
+      if(b){ propState[b.dataset.id][+b.dataset.slot]=dragFn; refreshProps(); }
+      dragFn=null;
+    };
+  });
+}
+
+document.getElementById('continue').addEventListener('click',()=>{
+  // allow testing stage 2 even if stage 1 isn't solved: ensure an angle + a triangle
+  if(!triangle){
+    // make a default right triangle so the canvas has something to show
+    const cxp=W*0.45, cyp=H*0.4, s=Math.min(W,H)*0.28;
+    const pts=[{x:cxp,y:cyp},{x:cxp+s*1.4,y:cyp},{x:cxp,y:cyp+s}];
+    triangle={pts, rightIndex:0, angles:triangleAngles(pts), dev:0};
+    mode='snapped';
+  }
+  if(selected===null) selected='A';
+  document.body.classList.add('stage2');
+  document.getElementById('continue').style.display='none';
+  // page 2 shows the completed reference fractions regardless of stage-1 state
+  boxes={
+    sin:{num:CORRECT.sin.num, den:CORRECT.sin.den},
+    cos:{num:CORRECT.cos.num, den:CORRECT.cos.den},
+    tan:{num:CORRECT.tan.num, den:CORRECT.tan.den},
+  };
+  propState=null;
+  buildPanel();   // relabel bottom ratios to α for stage 2
+  buildProps();
+  enableFnDrag(); // must run after buildPanel rebuilds the .fn elements
+  // the stage region resized; remeasure, refit the triangle, repaint
+  requestAnimationFrame(()=>{
+    resize();
+    fitTriangleToCanvas();
+    draw();
+  });
+});
+
+// Scale + center the current triangle to comfortably fit the (possibly smaller)
+// canvas area, leaving margin for labels.
+function fitTriangleToCanvas(){
+  if(!triangle) return;
+  const p=triangle.pts;
+  let minx=Infinity,miny=Infinity,maxx=-Infinity,maxy=-Infinity;
+  for(const v of p){minx=Math.min(minx,v.x);miny=Math.min(miny,v.y);maxx=Math.max(maxx,v.x);maxy=Math.max(maxy,v.y);}
+  const bw=maxx-minx||1, bh=maxy-miny||1;
+  const margin=80; // room for vertex letters + edge labels
+  const sx=(W-margin*2)/bw, sy=(H-margin*2)/bh;
+  const sc=Math.min(sx,sy);
+  const bcx=(minx+maxx)/2, bcy=(miny+maxy)/2;
+  const tcx=W/2, tcy=H/2;
+  triangle.pts=p.map(v=>({x:tcx+(v.x-bcx)*sc, y:tcy+(v.y-bcy)*sc}));
+}
+// ---------- end stage 2 ----------
+
+undoBtn.addEventListener('click',reset);
+function reset(){
+  mode='idle';path=[];verts=[];triangle=null;snapTarget=null;selected=null;
+  boxes=null; dragSide=null; dragFn=null; propState=null; hideChip();
+  document.body.classList.remove('stage2');
+  document.getElementById('continue').style.display='none';
+  document.getElementById('props').innerHTML='';
+  buildPanel();
+  promptEl.style.opacity=1;
+  draw();
+}
+
+// continuous glow animation while a triangle is snapped (stage 1 only)
+function glowLoop(t){
+  glowPhase = t*0.004;
+  if(mode==='snapped' && !document.body.classList.contains('stage2')){
+    draw();
+  }
+  requestAnimationFrame(glowLoop);
+}
+requestAnimationFrame(glowLoop);
+
+buildPanel();
+resize();
+</script>
+</body>
+</html>

@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Réseau de neurones</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<script>
+  let mathReady = false;
+  window.MathJax = {
+    tex: { inlineMath: [['\\(','\\)']] },
+    svg: { fontCache: 'global' },
+    startup: {
+      ready: () => {
+        MathJax.startup.defaultReady();
+        mathReady = true;
+        if(window.__onMathReady) window.__onMathReady();
+      }
+    }
+  };
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js" async></script>
+<style>
+  :root{
+    --cream:#EDE4D8;
+    --paper:#F6F0E6;
+    --paper-edge:#E0D2BF;
+    --headred:#8B1A1A;
+    --terracotta:#C56A4A;
+    --terracotta-soft:#E8C9B8;
+    --softbrown:#5A4632;
+    --softbrown-mute:#8A7560;
+    --ink:#3A2E22;
+  }
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; padding:0; }
+  body{
+    background:var(--cream);
+    color:var(--softbrown);
+    font-family:'Inter',system-ui,sans-serif;
+    line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{ max-width:760px; margin:0 auto; padding:3rem 1.5rem 4rem; }
+
+  h1{
+    font-family:'Fraunces',serif; font-weight:600; font-size:2.3rem; line-height:1.1;
+    color:var(--headred); margin:0 0 1.5rem; letter-spacing:-0.01em;
+  }
+
+  .ctrl-row{ display:flex; gap:0.55rem; align-items:center; flex-wrap:wrap; }
+  .toggle{
+    display:inline-flex; align-items:center; gap:0.55rem; height:38px; padding:0 1.05rem;
+    font-family:'Inter',sans-serif; font-size:0.9rem; font-weight:500;
+    border:1px solid var(--paper-edge); border-radius:9px; background:var(--paper);
+    color:var(--softbrown); cursor:pointer; transition:background .15s;
+  }
+  .toggle:hover{ background:#EFE7DA; }
+  .toggle-ic{ display:inline-block; transition:transform .2s; color:var(--terracotta); font-size:0.8rem; }
+  .toggle[aria-expanded="true"] .toggle-ic{ transform:rotate(90deg); }
+  .sig-btn{
+    height:38px; min-width:42px; padding:0 0.95rem;
+    font-family:'Fraunces',serif; font-size:1.1rem; font-weight:600;
+    border:1px solid var(--paper-edge); border-radius:9px; background:var(--paper);
+    color:var(--terracotta); cursor:pointer; transition:background .15s;
+  }
+  .sig-btn:hover{ background:#EFE7DA; }
+
+  .param-wrap{ max-height:0; overflow:hidden; transition:max-height .32s ease; }
+  .param-wrap.open{ max-height:680px; }
+
+  .panel{
+    background:var(--paper); border:1px solid var(--paper-edge); border-radius:14px;
+    padding:1.25rem 1.4rem; margin-top:0.85rem;
+  }
+  .grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:0.55rem 1rem; }
+  .fld{ display:flex; align-items:center; gap:0.5rem; }
+  .fld label{ font-family:'Fraunces',serif; font-size:0.95rem; color:var(--softbrown); min-width:2.1rem; }
+  .fld label sub{ font-size:0.7em; }
+  .fld input{
+    width:100%; height:34px; border:1px solid var(--paper-edge); border-radius:8px;
+    background:#FFFDF9; color:var(--ink); font-family:'Inter',sans-serif; font-size:0.95rem;
+    padding:0 0.5rem; transition:border-color .15s, box-shadow .15s;
+  }
+  .fld input:focus{ outline:none; border-color:var(--terracotta); box-shadow:0 0 0 3px var(--terracotta-soft); }
+  .fld input:disabled{ opacity:0.55; }
+  .sublbl{ font-size:0.74rem; font-weight:600; letter-spacing:0.08em; text-transform:uppercase; color:var(--softbrown-mute); margin:0.9rem 0 0.5rem; }
+  .sublbl:first-of-type{ margin-top:0; }
+
+  .bar{ display:flex; align-items:center; gap:0.6rem; flex-wrap:wrap; margin:1.5rem 0 0.5rem; }
+  .btn{
+    height:38px; padding:0 1.1rem; font-family:'Inter',sans-serif; font-size:0.92rem; font-weight:500;
+    border-radius:9px; cursor:pointer; border:1px solid var(--softbrown); background:transparent; color:var(--softbrown);
+    transition:background .15s, transform .05s, opacity .15s;
+  }
+  .btn:hover{ background:rgba(90,70,50,0.06); }
+  .btn:active{ transform:scale(0.98); }
+  .btn.primary{ background:var(--headred); border-color:var(--headred); color:#FBF3E9; }
+  .btn.primary:hover{ background:#7A1616; }
+  .btn:disabled{ opacity:0.35; cursor:default; }
+  .btn:disabled:hover{ background:transparent; }
+  .msg{ font-size:0.9rem; color:var(--softbrown-mute); flex:1; min-width:220px; line-height:1.4; }
+
+  .stage{ position:relative; width:100%; aspect-ratio:680/360; margin-top:0.5rem; }
+  .canvas{ position:absolute; inset:0; width:100%; height:100%; }
+
+  .formula{
+    position:absolute; left:0; transform:translateY(-100%);
+    background:var(--paper); border:1px solid var(--terracotta); border-radius:11px;
+    padding:0.45rem 0.85rem; white-space:nowrap; pointer-events:none;
+    opacity:0; transition:opacity .18s, left .35s ease, top .35s ease;
+    box-shadow:0 6px 18px rgba(90,70,50,0.16);
+    color:var(--ink); font-size:1.05rem; z-index:5;
+  }
+  .formula.show{ opacity:1; }
+  .formula::after{
+    content:''; position:absolute; left:var(--arrow-left,50%); bottom:-6px;
+    transform:translateX(-50%) rotate(45deg);
+    width:11px; height:11px; background:var(--paper);
+    border-right:1px solid var(--terracotta); border-bottom:1px solid var(--terracotta);
+  }
+  .formula mjx-container{ color:var(--headred); }
+
+  .nlbl{ position:absolute; transform:translate(-50%,0); font-family:'Fraunces',serif; font-size:0.76rem; color:var(--softbrown-mute); white-space:nowrap; }
+  .nval{ position:absolute; transform:translate(-50%,-50%); font-family:'Inter',sans-serif; font-size:0.95rem; font-weight:600; color:var(--headred); }
+
+  .modal-backdrop{ position:fixed; inset:0; background:rgba(58,46,34,0.42); display:flex; align-items:center; justify-content:center; z-index:50; padding:1.5rem; }
+  .modal-backdrop[hidden]{ display:none; }
+  .modal{ position:relative; background:var(--cream); border:1px solid var(--paper-edge); border-radius:16px; padding:1.4rem 1.6rem 1.2rem; max-width:480px; width:100%; box-shadow:0 24px 60px rgba(58,46,34,0.32); }
+  .modal-h{ font-family:'Fraunces',serif; font-weight:600; font-size:1.15rem; color:var(--headred); margin:0 0 0.75rem; }
+  .modal-close{ position:absolute; top:0.6rem; right:0.8rem; width:30px; height:30px; border:none; background:transparent; color:var(--softbrown-mute); font-size:1.45rem; line-height:1; cursor:pointer; border-radius:6px; }
+  .modal-close:hover{ background:rgba(90,70,50,0.08); color:var(--softbrown); }
+  #sigPlot{ display:block; }
+
+  @media (max-width:520px){
+    h1{ font-size:1.85rem; }
+    .formula{ font-size:0.92rem; padding:0.4rem 0.65rem; }
+    .nlbl{ font-size:0.68rem; }
+  }
+  @media (prefers-reduced-motion: reduce){
+    .formula{ transition:opacity .18s; }
+    .param-wrap{ transition:none; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Réseau de neurones</h1>
+
+  <div class="ctrl-row">
+    <button class="toggle" id="paramToggle" aria-expanded="false" aria-controls="paramWrap">
+      <span class="toggle-ic">&#9656;</span>
+      <span>Paramètres</span>
+    </button>
+    <button class="sig-btn" id="sigBtn" title="Fonction d'activation σ" aria-label="Afficher la fonction sigmoïde">&#963;</button>
+  </div>
+
+  <div class="param-wrap" id="paramWrap">
+    <div class="panel">
+      <div class="sublbl">Entrée</div>
+      <div class="grid">
+        <div class="fld"><label>x</label><input type="number" id="x" value="1" step="0.1"></div>
+      </div>
+      <div class="sublbl">Couche 1 — entrée vers cachée</div>
+      <div class="grid">
+        <div class="fld"><label>w<sub>1</sub></label><input type="number" id="w10" value="1.5" step="0.1"></div>
+        <div class="fld"><label>b<sub>1</sub></label><input type="number" id="b10" value="-0.5" step="0.1"></div>
+        <div class="fld"><label>w<sub>2</sub></label><input type="number" id="w11" value="-2" step="0.1"></div>
+        <div class="fld"><label>b<sub>2</sub></label><input type="number" id="b11" value="0.3" step="0.1"></div>
+        <div class="fld"><label>w<sub>3</sub></label><input type="number" id="w12" value="0.8" step="0.1"></div>
+        <div class="fld"><label>b<sub>3</sub></label><input type="number" id="b12" value="1" step="0.1"></div>
+      </div>
+      <div class="sublbl">Couche 2 — cachée vers sortie</div>
+      <div class="grid">
+        <div class="fld"><label>w<sub>4</sub></label><input type="number" id="w20" value="1.2" step="0.1"></div>
+        <div class="fld"><label>w<sub>5</sub></label><input type="number" id="w21" value="-1.5" step="0.1"></div>
+        <div class="fld"><label>w<sub>6</sub></label><input type="number" id="w22" value="0.9" step="0.1"></div>
+        <div class="fld"><label>b<sub>4</sub></label><input type="number" id="b20" value="-0.2" step="0.1"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="bar">
+    <button class="btn primary" id="start">Démarrer</button>
+    <button class="btn" id="next" disabled>Continuer</button>
+    <button class="btn" id="reset" disabled>Réinitialiser</button>
+    <span class="msg" id="msg">Réglez les paramètres, puis appuyez sur Démarrer.</span>
+  </div>
+
+  <div class="stage" id="stage">
+    <svg class="canvas" id="svg" viewBox="0 0 680 360" preserveAspectRatio="xMidYMid meet" aria-hidden="true"></svg>
+    <div class="formula" id="formula"></div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="sigModal" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-label="Fonction sigmoïde">
+    <button class="modal-close" id="sigClose" aria-label="Fermer">&#215;</button>
+    <h2 class="modal-h">Fonction sigmoïde</h2>
+    <svg id="sigPlot" width="100%" aria-hidden="true"></svg>
+  </div>
+</div>
+
+<script>
+(function(){
+  const svg = document.getElementById('svg');
+  const stageEl = document.getElementById('stage');
+  const fEl = document.getElementById('formula');
+  const SVGNS = 'http://www.w3.org/2000/svg';
+  const sigmoid = z => 1/(1+Math.exp(-z));
+  const fmt = (v,d=2) => { const n = Math.round(v*Math.pow(10,d))/Math.pow(10,d); return n.toFixed(d); };
+  const fmtT = (v,d=2) => fmt(v,d).replace('.',',');
+  const fmtM = (v,d=2) => fmt(v,d).replace('.','{,}');
+  const parM = v => (v<0 ? '('+fmtM(v)+')' : fmtM(v));
+
+  const VBW=680, VBH=360;
+  const IN={x:78,y:170}, OUT={x:602,y:170};
+  const H=[{x:340,y:62},{x:340,y:170},{x:340,y:278}];
+  const R=30;
+
+  const C={
+    inactive:'#B7A88F', inactiveFill:'#F6F0E6',
+    inputStroke:'#5A4632',
+    active:'#8B1A1A',
+    done:'#C56A4A', doneFill:'#F2DECF',
+    edge:'#C9BBA2', edgeActive:'#C56A4A'
+  };
+
+  const HP=[
+    {w:'w10', b:'b10', ws:'w\u2081', bs:'b\u2081'},
+    {w:'w11', b:'b11', ws:'w\u2082', bs:'b\u2082'},
+    {w:'w12', b:'b12', ws:'w\u2083', bs:'b\u2083'}
+  ];
+
+  function el(t,a,txt){ const e=document.createElementNS(SVGNS,t); for(const k in a) e.setAttribute(k,a[k]); if(txt!=null) e.textContent=txt; return e; }
+  function overlay(cls,vx,vy,txt,id){
+    const d=document.createElement('div'); d.className=cls; if(id) d.id=id;
+    d.style.left=(vx/VBW*100)+'%'; d.style.top=(vy/VBH*100)+'%';
+    if(txt!=null) d.textContent=txt; stageEl.appendChild(d); return d;
+  }
+
+  function pvalDisp(id){ const v=document.getElementById(id).value; return ((v===''||v==null)?'0':v).replace('.',','); }
+  function updateParamLabels(){
+    for(let j=0;j<3;j++){
+      const lab=document.getElementById('plbl-'+j);
+      if(lab) lab.textContent='('+HP[j].ws+'='+pvalDisp(HP[j].w)+' ; '+HP[j].bs+'='+pvalDisp(HP[j].b)+')';
+    }
+    const o=document.getElementById('plbl-out');
+    if(o) o.innerHTML="(w\u2084="+pvalDisp('w20')+" ; w\u2085="+pvalDisp('w21')+" ;<br>w\u2086="+pvalDisp('w22')+" ; b\u2084="+pvalDisp('b20')+")";
+  }
+
+  function drawBase(){
+    svg.innerHTML='';
+    stageEl.querySelectorAll('.nlbl,.nval').forEach(n=>n.remove());
+
+    for(let j=0;j<3;j++) svg.appendChild(el('line',{x1:IN.x+R,y1:IN.y,x2:H[j].x-R,y2:H[j].y,stroke:C.edge,'stroke-width':1.5,'stroke-linecap':'round',id:'e1-'+j}));
+    for(let j=0;j<3;j++) svg.appendChild(el('line',{x1:H[j].x+R,y1:H[j].y,x2:OUT.x-R,y2:OUT.y,stroke:C.edge,'stroke-width':1.5,'stroke-linecap':'round',id:'e2-'+j}));
+
+    svg.appendChild(el('circle',{cx:IN.x,cy:IN.y,r:R,fill:C.inactiveFill,stroke:C.inputStroke,'stroke-width':1.5,id:'in-c'}));
+    for(let j=0;j<3;j++) svg.appendChild(el('circle',{cx:H[j].x,cy:H[j].y,r:R,fill:C.inactiveFill,stroke:C.inactive,'stroke-width':1.25,id:'h-c-'+j}));
+    svg.appendChild(el('circle',{cx:OUT.x,cy:OUT.y,r:R,fill:C.inactiveFill,stroke:C.inactive,'stroke-width':1.5,id:'o-c'}));
+
+    overlay('nlbl', IN.x, IN.y+R+7, 'entrée x');
+    overlay('nlbl', H[0].x, H[0].y+R+7, '', 'plbl-0');
+    overlay('nlbl', H[1].x, H[1].y+R+7, '', 'plbl-1');
+    overlay('nlbl', H[2].x, H[2].y+R+7, '', 'plbl-2');
+    const outLab=overlay('nlbl', OUT.x, OUT.y+R+7, '', 'plbl-out');
+    outLab.style.textAlign='center'; outLab.style.lineHeight='1.3';
+
+    overlay('nval', IN.x, IN.y, '', 'in-v');
+    overlay('nval', H[0].x, H[0].y, '', 'h-v-0');
+    overlay('nval', H[1].x, H[1].y, '', 'h-v-1');
+    overlay('nval', H[2].x, H[2].y, '', 'h-v-2');
+    overlay('nval', OUT.x, OUT.y, '', 'o-v');
+
+    updateParamLabels();
+  }
+
+  function setEdge(id,on){ const e=document.getElementById(id); if(e){ e.setAttribute('stroke', on?C.edgeActive:C.edge); e.setAttribute('stroke-width', on?2.5:1.5);} }
+  function clearEdges(){ for(let j=0;j<3;j++){ setEdge('e1-'+j,false); setEdge('e2-'+j,false);} }
+  function litNode(id,mode){
+    const c=document.getElementById(id); if(!c) return;
+    const isEnd = (id==='o-c'||id==='in-c');
+    if(mode==='active'){ c.setAttribute('stroke',C.active); c.setAttribute('stroke-width',2.75); c.setAttribute('fill',C.inactiveFill); }
+    else if(mode==='done'){ c.setAttribute('stroke',C.done); c.setAttribute('stroke-width',2.5); c.setAttribute('fill',C.doneFill); }
+    else { c.setAttribute('stroke', id==='in-c'?C.inputStroke:C.inactive); c.setAttribute('stroke-width', isEnd?1.5:1.25); c.setAttribute('fill',C.inactiveFill); }
+  }
+
+  let curTex=null, curVx=0, curVy=0, pendingTypeset=false;
+  function applyPlacement(){
+    const stageW = stageEl.clientWidth || stageEl.offsetWidth;
+    const nodePx = curVx/VBW*stageW;
+    const w = fEl.offsetWidth;
+    let cl = nodePx - w/2;
+    cl = Math.min(Math.max(cl, 4), Math.max(4, stageW - w - 4));
+    fEl.style.left = cl+'px';
+    let arrowLeft = nodePx - cl;
+    arrowLeft = Math.min(Math.max(arrowLeft, 14), Math.max(14, w-14));
+    fEl.style.setProperty('--arrow-left', arrowLeft+'px');
+  }
+  function renderFormula(){
+    if(curTex==null) return;
+    fEl.innerHTML='\\('+curTex+'\\)';
+    fEl.style.top=(curVy/VBH*100)+'%';
+    if(!mathReady){ pendingTypeset=true; return; }
+    if(window.MathJax && MathJax.typesetClear) MathJax.typesetClear([fEl]);
+    MathJax.typesetPromise([fEl]).then(applyPlacement).catch(applyPlacement);
+  }
+  window.__onMathReady = ()=>{ if(pendingTypeset){ pendingTypeset=false; renderFormula(); } };
+
+  function setFormula(tex,vx,vy){ curTex=tex; curVx=vx; curVy=vy; fEl.classList.add('show'); renderFormula(); }
+  function hideFormula(){ fEl.classList.remove('show'); }
+
+  const msg=document.getElementById('msg');
+  const startBtn=document.getElementById('start'), nextBtn=document.getElementById('next'), resetBtn=document.getElementById('reset');
+  const inputIds=['x','w10','b10','w11','b11','w12','b12','w20','w21','w22','b20'];
+
+  let P=null, steps=[], idx=0;
+
+  function buildSteps(){
+    const g=id=>parseFloat(document.getElementById(id).value)||0;
+    P={ x:g('x'), w1:[g('w10'),g('w11'),g('w12')], b1:[g('b10'),g('b11'),g('b12')], w2:[g('w20'),g('w21'),g('w22')], b2:g('b20') };
+    const z1=[0,0,0], a1=[0,0,0];
+    for(let j=0;j<3;j++){ z1[j]=P.w1[j]*P.x+P.b1[j]; a1[j]=sigmoid(z1[j]); }
+    let z2=P.b2; for(let j=0;j<3;j++) z2+=P.w2[j]*a1[j];
+    P.z1=z1; P.a1=a1; P.z2=z2; P.yhat=sigmoid(z2);
+
+    const topY = j => H[j].y - R - 12;
+    steps=[];
+
+    steps.push({ msg:'L\u2019entr\u00e9e x = '+fmtT(P.x)+' p\u00e9n\u00e8tre dans le r\u00e9seau.', run:()=>{
+      clearEdges(); litNode('in-c','active');
+      document.getElementById('in-v').textContent=fmtT(P.x);
+      hideFormula();
+    }});
+
+    for(let j=0;j<3;j++){
+      const n=j+1;
+      steps.push({ msg:'Vers le neurone '+(j+1)+' : on applique \u03c3 \u00e0 la somme, poids en lettres.', run:()=>{
+        clearEdges(); litNode('h-c-'+j,'active'); setEdge('e1-'+j,true);
+        setFormula('\\sigma\\!\\left(w_{'+n+'} \\cdot '+parM(P.x)+' + b_{'+n+'}\\right)', H[j].x, topY(j));
+      }});
+      steps.push({ msg:'On remplace les poids par leurs valeurs.', run:()=>{
+        setFormula('\\sigma\\!\\left('+parM(P.w1[j])+'\\cdot'+parM(P.x)+' + '+parM(P.b1[j])+'\\right)', H[j].x, topY(j));
+      }});
+      steps.push({ msg:'On calcule la somme \u00e0 l\u2019int\u00e9rieur de \u03c3.', run:()=>{
+        setFormula('\\sigma\\!\\left('+fmtM(P.z1[j])+'\\right)', H[j].x, topY(j));
+      }});
+      steps.push({ msg:'\u03c3 donne l\u2019activation '+fmtT(P.a1[j],3)+', qui se loge dans le neurone.', run:()=>{
+        litNode('h-c-'+j,'done'); setEdge('e1-'+j,false);
+        document.getElementById('h-v-'+j).textContent=fmtT(P.a1[j],3);
+        setFormula(fmtM(P.a1[j],3), H[j].x, topY(j));
+      }});
+    }
+
+    steps.push({ msg:'Pour la sortie : on applique \u03c3 \u00e0 la somme, poids en lettres.', run:()=>{
+      clearEdges(); litNode('o-c','active');
+      for(let j=0;j<3;j++) setEdge('e2-'+j,true);
+      setFormula('\\sigma\\!\\left(w_{4} \\cdot '+fmtM(P.a1[0],3)+' + w_{5} \\cdot '+fmtM(P.a1[1],3)+' + w_{6} \\cdot '+fmtM(P.a1[2],3)+' + b_{4}\\right)', OUT.x, OUT.y-R-12);
+    }});
+    steps.push({ msg:'On remplace les poids par leurs valeurs.', run:()=>{
+      setFormula('\\sigma\\!\\left('+parM(P.w2[0])+'\\cdot'+fmtM(P.a1[0],3)+' + '+parM(P.w2[1])+'\\cdot'+fmtM(P.a1[1],3)+' + '+parM(P.w2[2])+'\\cdot'+fmtM(P.a1[2],3)+' + '+parM(P.b2)+'\\right)', OUT.x, OUT.y-R-12);
+    }});
+    steps.push({ msg:'On calcule la somme \u00e0 l\u2019int\u00e9rieur de \u03c3.', run:()=>{
+      setFormula('\\sigma\\!\\left('+fmtM(P.z2)+'\\right)', OUT.x, OUT.y-R-12);
+    }});
+    steps.push({ msg:'\u03c3 donne la sortie \u0177 = '+fmtT(P.yhat,3)+'. Propagation termin\u00e9e.', run:()=>{
+      litNode('o-c','done');
+      for(let j=0;j<3;j++) setEdge('e2-'+j,false);
+      document.getElementById('o-v').textContent=fmtT(P.yhat,3);
+      setFormula(fmtM(P.yhat,3), OUT.x, OUT.y-R-12);
+    }});
+  }
+
+  function start(){
+    inputIds.forEach(id=>document.getElementById(id).disabled=true);
+    drawBase(); buildSteps(); idx=0;
+    startBtn.disabled=true; nextBtn.disabled=false; resetBtn.disabled=false; nextBtn.textContent='Continuer';
+    steps[0].run(); msg.textContent=steps[0].msg; idx=1;
+  }
+  function next(){
+    if(idx>=steps.length) return;
+    steps[idx].run(); msg.textContent=steps[idx].msg; idx++;
+    if(idx>=steps.length){ nextBtn.disabled=true; nextBtn.textContent='Termin\u00e9'; }
+  }
+  function reset(){
+    inputIds.forEach(id=>document.getElementById(id).disabled=false);
+    drawBase(); hideFormula();
+    startBtn.disabled=false; nextBtn.disabled=true; resetBtn.disabled=true; nextBtn.textContent='Continuer';
+    msg.textContent='R\u00e9glez les param\u00e8tres, puis appuyez sur D\u00e9marrer.';
+  }
+
+  function buildSigmoidPlot(){
+    const s=document.getElementById('sigPlot');
+    if(!s || s.dataset.built) return;
+    const W=440,H2=300,mL=54,mR=30,mT=30,mB=46;
+    const plotW=W-mL-mR, plotH=H2-mT-mB;
+    const xmin=-6,xmax=6;
+    const px=x=>mL+(x-xmin)/(xmax-xmin)*plotW;
+    const py=y=>mT+(1-y)*plotH;
+    const mk=(t,a,txt)=>{const e=document.createElementNS(SVGNS,t);for(const k in a)e.setAttribute(k,a[k]);if(txt!=null)e.textContent=txt;return e;};
+    s.setAttribute('viewBox','0 0 '+W+' '+H2);
+
+    const defs=mk('defs',{});
+    const marker=mk('marker',{id:'axarrow',viewBox:'0 0 10 10',refX:'8',refY:'5',markerWidth:'8',markerHeight:'8',orient:'auto-start-reverse'});
+    marker.appendChild(mk('path',{d:'M0 1 L9 5 L0 9 Z',fill:'#5A4632'}));
+    defs.appendChild(marker);
+    s.appendChild(defs);
+
+    s.appendChild(mk('line',{x1:px(xmin),y1:py(1),x2:px(xmax),y2:py(1),stroke:'#D9C9B4','stroke-width':1,'stroke-dasharray':'4 4'}));
+    s.appendChild(mk('line',{x1:px(xmin),y1:py(0.5),x2:px(xmax),y2:py(0.5),stroke:'#D9C9B4','stroke-width':1,'stroke-dasharray':'4 4'}));
+
+    s.appendChild(mk('line',{x1:px(xmin),y1:py(0),x2:px(xmax)+12,y2:py(0),stroke:'#5A4632','stroke-width':1.4,'marker-end':'url(#axarrow)'}));
+    s.appendChild(mk('line',{x1:px(0),y1:py(0),x2:px(0),y2:py(1)-16,stroke:'#5A4632','stroke-width':1.4,'marker-end':'url(#axarrow)'}));
+
+    [-4,-2,2,4].forEach(t=>{
+      s.appendChild(mk('line',{x1:px(t),y1:py(0),x2:px(t),y2:py(0)+5,stroke:'#5A4632','stroke-width':1}));
+      s.appendChild(mk('text',{x:px(t),y:py(0)+18,'text-anchor':'middle','font-size':11,'font-family':'Inter,sans-serif',fill:'#8A7560'},String(t)));
+    });
+    [[0,'0'],[0.5,'0,5'],[1,'1']].forEach(p=>{
+      s.appendChild(mk('line',{x1:px(xmin),y1:py(p[0]),x2:px(xmin)-5,y2:py(p[0]),stroke:'#5A4632','stroke-width':1}));
+      s.appendChild(mk('text',{x:px(xmin)-9,y:py(p[0])+4,'text-anchor':'end','font-size':11,'font-family':'Inter,sans-serif',fill:'#8A7560'},p[1]));
+    });
+
+    let pts=[];
+    for(let i=0;i<=140;i++){ const x=xmin+(xmax-xmin)*i/140; const y=1/(1+Math.exp(-x)); pts.push(px(x).toFixed(1)+','+py(y).toFixed(1)); }
+    s.appendChild(mk('polyline',{points:pts.join(' '),fill:'none',stroke:'#C56A4A','stroke-width':2.4,'stroke-linecap':'round','stroke-linejoin':'round'}));
+
+    s.appendChild(mk('text',{x:px(xmax)+12,y:py(0)+18,'text-anchor':'middle','font-size':13,'font-family':'Inter,sans-serif','font-style':'italic',fill:'#5A4632'},'x'));
+    s.appendChild(mk('text',{x:px(0)+10,y:py(1)-10,'text-anchor':'start','font-size':13,'font-family':'Inter,sans-serif',fill:'#5A4632'},'y = \u03c3(x)'));
+    s.dataset.built='1';
+  }
+
+  const pt=document.getElementById('paramToggle'), pw=document.getElementById('paramWrap');
+  pt.addEventListener('click', ()=>{
+    const open=pw.classList.toggle('open');
+    pt.setAttribute('aria-expanded', open?'true':'false');
+  });
+
+  const sigBtn=document.getElementById('sigBtn'), sigModal=document.getElementById('sigModal'), sigClose=document.getElementById('sigClose');
+  function openSig(){ buildSigmoidPlot(); sigModal.hidden=false; }
+  function closeSig(){ sigModal.hidden=true; }
+  sigBtn.addEventListener('click', openSig);
+  sigClose.addEventListener('click', closeSig);
+  sigModal.addEventListener('click', e=>{ if(e.target===sigModal) closeSig(); });
+  document.addEventListener('keydown', e=>{ if(e.key==='Escape' && !sigModal.hidden) closeSig(); });
+
+  ['w10','b10','w11','b11','w12','b12','w20','w21','w22','b20'].forEach(id=>{
+    document.getElementById(id).addEventListener('input', updateParamLabels);
+  });
+
+  drawBase();
+  startBtn.addEventListener('click', start);
+  nextBtn.addEventListener('click', next);
+  resetBtn.addEventListener('click', reset);
+})();
+</script>
+</body>
+</html>

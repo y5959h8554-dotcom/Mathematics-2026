@@ -1,0 +1,309 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Signe et racines d'un polynôme</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  color-scheme:dark;
+  --bg:#1B2431; --bg2:#26313F; --card:#212B39; --ink:#F3EEE3; --ink2:#A7B0BD; --line:#3B4859;
+  --plus:#F2A93B; --minus:#5FA8F0; --accent:#E8B48A; --onsign:#1B2431;
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px);height:100%}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;min-height:100%;background:var(--bg);color:var(--ink);font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;font-size:16px;line-height:1.45;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1480px;margin:0 auto;padding:18px 22px 30px}
+i{font-family:Fraunces,Georgia,serif;font-style:italic}
+sup{font-size:.6em;line-height:0;vertical-align:.5em}
+
+.top{display:flex;align-items:baseline;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:14px}
+h1{font-family:Fraunces,Georgia,serif;font-weight:500;font-size:clamp(26px,2.6vw,38px);letter-spacing:-.01em;line-height:1.05;margin:0}
+.btn{border:1px solid var(--line);background:var(--card);color:var(--ink);font:500 15px Inter,system-ui,sans-serif;padding:7px 14px;border-radius:10px;cursor:pointer}
+.btn:hover{background:var(--bg2)}
+button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+.main{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:16px;align-items:start}
+@media (max-width:960px){.main{grid-template-columns:1fr}}
+.col{display:grid;gap:16px;min-width:0}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px 20px;min-width:0}
+
+/* graph */
+.graph{padding:0;overflow:hidden;position:relative}
+.graph svg{display:block;width:100%;height:auto;font-family:Inter,system-ui,sans-serif;user-select:none;touch-action:none;cursor:grab}
+.graph svg.panning{cursor:grabbing}
+.reset{position:absolute;top:10px;right:10px;padding:5px 10px;font-size:13px}
+.grid{stroke:var(--line);stroke-width:1;opacity:.55}
+.axis{stroke:var(--ink2);stroke-width:1.5}
+.tick{font-size:12px;fill:var(--ink2)}
+.curve{fill:none;stroke:var(--ink);stroke-width:3.5;stroke-linejoin:round;stroke-linecap:round}
+.xsign{stroke-width:6} .xsign.xp{stroke:var(--plus)} .xsign.xm{stroke:var(--minus)}
+.link{stroke:var(--ink2);stroke-dasharray:3 5;stroke-width:1;opacity:.7}
+.rootpt .dot{fill:var(--card);stroke:var(--ink);stroke-width:3}
+.rootpt .ring{fill:none;stroke:var(--ink);stroke-width:1.5}
+.seg-s rect{stroke:none}
+.seg-s.sp rect{fill:var(--plus)} .seg-s.sm rect{fill:var(--minus)} .seg-s.s0 rect{fill:var(--line)}
+.seg-s text{font-family:Fraunces,Georgia,serif;font-weight:600;font-size:19px;fill:var(--onsign);pointer-events:none}
+.rdot circle{fill:var(--card);stroke:var(--ink);stroke-width:2}
+.rdot text{font-family:Fraunces,Georgia,serif;font-weight:600;font-size:13px;fill:var(--ink)}
+.rlab{font-family:Fraunces,Georgia,serif;font-size:16px;fill:var(--ink)}
+.readout{font-size:14px;fill:var(--ink2)}
+
+/* polynomial */
+.expr{font-family:Fraunces,Georgia,serif;font-size:clamp(22px,2vw,30px);line-height:1.3;word-wrap:break-word}
+
+/* sliders */
+.deg{display:flex;align-items:center;gap:10px;color:var(--ink2);font-size:14px;margin-bottom:10px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:999px;padding:3px;background:var(--bg2)}
+.seg button{border:0;background:transparent;color:var(--ink);font:500 14px Inter,system-ui,sans-serif;padding:5px 12px;border-radius:999px;cursor:pointer}
+.seg button.on{background:var(--ink);color:var(--bg)}
+.sliders{display:grid;gap:6px}
+.sl{display:grid;grid-template-columns:1.6em minmax(120px,1fr) 4.6em;align-items:center;gap:10px}
+.sl .k{font-family:Fraunces,Georgia,serif;font-size:20px;text-align:right}
+.sl input[type=range]{width:100%;accent-color:var(--ink);cursor:pointer;margin:0;height:28px}
+.sl .v{font-family:Fraunces,Georgia,serif;font-size:19px;width:100%;padding:3px 6px;border:1px solid var(--line);border-radius:8px;background:var(--bg2);color:var(--ink);-moz-appearance:textfield}
+.sl .v::-webkit-outer-spin-button,.sl .v::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <h1>Signe et racines d'un polynôme</h1>
+  </header>
+
+  <div class="main">
+    <div class="col">
+      <section class="card graph">
+        <svg id="graph" viewBox="0 0 1000 640" aria-label="Courbe du polynôme et bande des signes"></svg>
+      </section>
+    </div>
+    <div class="col">
+      <section class="card">
+        <div class="expr" id="expr"></div>
+      </section>
+      <section class="card">
+        <div class="deg">degré
+          <div class="seg" id="degSeg">
+            <button data-d="1">1</button><button data-d="2">2</button><button data-d="3" class="on">3</button><button data-d="4">4</button>
+          </div>
+        </div>
+        <div class="sliders" id="sliders"></div>
+      </section>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+const PL=48,PR=952,PT=26,PB=553,PCX=(PL+PR)/2,PCY=(PT+PB)/2,SY=PB+22,SH=26,N=600;
+const U0=(PR-PL)/12; // initial: x in [-6,6], orthonormal
+const LETTERS=['a','b','c','d','e'];
+const state={co:[0.5,0,-2,0],hover:null,model:null,view:{cx:0,cy:0,U:U0}};
+const $=s=>document.querySelector(s);
+const svg=$('#graph');
+
+/* ---------- number formatting ---------- */
+const fmt=n=>parseFloat(n.toFixed(4)).toString().replace('.',',').replace('-','−');
+const nice=r=>Math.abs(r*2-Math.round(r*2))<1e-6;
+const rt=r=>nice(r)?fmt(Math.round(r*2)/2):(Math.round(r*100)/100).toFixed(2).replace('.',',').replace('-','−');
+
+/* ---------- polynomial algebra (ascending coefficient arrays) ---------- */
+const trim=a=>{a=a.slice();while(a.length>1&&Math.abs(a[a.length-1])<1e-12)a.pop();return a;};
+const evalAsc=(a,x)=>{let v=0;for(let i=a.length-1;i>=0;i--)v=v*x+a[i];return v;};
+const deriv=a=>a.slice(1).map((c,i)=>c*(i+1));
+function realRoots(a){
+  a=trim(a);const d=a.length-1;
+  if(d<=0)return[];
+  if(d===1)return[-a[0]/a[1]];
+  const scale=Math.max(...a.map(Math.abs)),eps=1e-9*Math.max(1,scale);
+  const R=1+Math.max(...a.slice(0,d).map(c=>Math.abs(c/a[d])));
+  const dr=realRoots(deriv(a)).filter(x=>x>-R&&x<R).sort((p,q)=>p-q);
+  const pts=[-R,...dr,R],out=[];
+  for(let i=0;i<pts.length-1;i++){
+    let lo=pts[i],hi=pts[i+1],plo=evalAsc(a,lo),phi=evalAsc(a,hi);
+    if(plo*phi<0){for(let k=0;k<80;k++){const m=(lo+hi)/2,pm=evalAsc(a,m);if(pm===0){lo=hi=m;break;}if(plo*pm<0){hi=m;phi=pm;}else{lo=m;plo=pm;}}out.push((lo+hi)/2);}
+  }
+  for(const x of dr)if(Math.abs(evalAsc(a,x))<eps)out.push(x);
+  out.sort((p,q)=>p-q);
+  const res=[];for(const x of out)if(!res.length||Math.abs(x-res[res.length-1])>1e-6)res.push(x);
+  return res;
+}
+function divideOut(a,r){const n=a.length-1,q=new Array(n).fill(0);let carry=a[n];for(let i=n-1;i>=0;i--){q[i]=carry;carry=a[i]+carry*r;}return q;}
+function analyze(){
+  const asc=trim(state.co.slice().reverse());
+  const deg=asc.length-1,zero=deg===0&&Math.abs(asc[0])<1e-12;
+  const scale=Math.max(1,...asc.map(Math.abs)),eps=1e-7*scale;
+  const roots=zero?[]:realRoots(asc).map(r=>{
+    let m=1,dd=deriv(asc);
+    while(dd.length&&Math.abs(evalAsc(dd,r))<eps*Math.pow(1+Math.abs(r),deg)){m++;dd=deriv(dd);}
+    return{r,m};
+  });
+  let Q=asc;for(const q of roots)for(let i=0;i<q.m;i++)Q=divideOut(Q,q.r);
+  Q=trim(Q);const lead=asc[deg];
+  return{asc,deg,zero,roots,lead,Q:Q.map(c=>c/lead),exact:roots.every(q=>nice(q.r))};
+}
+const P=x=>evalAsc(state.model.asc,x);
+function signIv(k){
+  const m=state.model,rs=m.roots,n=rs.length;
+  if(m.zero)return 0;
+  const mid=n===0?0:k===0?rs[0].r-1:k===n?rs[n-1].r+1:(rs[k-1].r+rs[k].r)/2;
+  return Math.sign(P(mid));
+}
+function polyHTML(asc){
+  let out='';
+  for(let k=asc.length-1;k>=0;k--){
+    const v=asc[k];if(Math.abs(v)<1e-9)continue;
+    const neg=v<0,av=Math.abs(v);
+    const term=k===0?fmt(av):(Math.abs(av-1)<1e-9?'':fmt(av))+'<i>x</i>'+(k>1?'<sup>'+k+'</sup>':'');
+    out+=out===''?(neg?'−':'')+term:(neg?' − ':' + ')+term;
+  }
+  return out||'0';
+}
+/* ---------- graph (orthonormal, zoomable) ---------- */
+const V=state.view;
+const X=x=>PCX+(x-V.cx)*V.U, Y=y=>PCY-(y-V.cy)*V.U;
+const xOf=px=>V.cx+(px-PCX)/V.U, yOf=py=>V.cy-(py-PCY)/V.U;
+const cl=v=>Math.max(PT-60,Math.min(PB+60,v));
+const clampN=(v,a,b)=>Math.max(a,Math.min(b,v));
+function niceStep(v){const p=Math.pow(10,Math.floor(Math.log10(v)));const m=v/p;return(m<1.5?1:m<3.5?2:m<7.5?5:10)*p;}
+function drawGraph(){
+  const rs=state.model.roots,n=rs.length;
+  const xmin=xOf(PL),xmax=xOf(PR),ymin=yOf(PB),ymax=yOf(PT);
+  const bounds=[xmin,...rs.map(q=>q.r),xmax];
+  const vb=k=>[Math.max(xmin,bounds[k]),Math.min(xmax,bounds[k+1])];
+  let g=`<defs><clipPath id="plot"><rect x="${PL}" y="${PT}" width="${PR-PL}" height="${PB-PT}"/></clipPath></defs><g clip-path="url(#plot)">`;
+  const step=niceStep(60/V.U);
+  const lblY=clampN(Y(0)+16,PT+14,PB-6), lblX=clampN(X(0)-7,PL+34,PR-4);
+  for(let x=Math.ceil(xmin/step)*step;x<=xmax;x+=step){
+    if(Math.abs(x)<1e-9)continue;
+    g+=`<line class="grid" x1="${X(x)}" y1="${PT}" x2="${X(x)}" y2="${PB}"/><text class="tick" x="${X(x)}" y="${lblY}" text-anchor="middle">${fmt(x)}</text>`;
+  }
+  for(let y=Math.ceil(ymin/step)*step;y<=ymax;y+=step){
+    if(Math.abs(y)<1e-9)continue;
+    g+=`<line class="grid" x1="${PL}" y1="${Y(y)}" x2="${PR}" y2="${Y(y)}"/><text class="tick" x="${lblX}" y="${Y(y)+4}" text-anchor="end">${fmt(y)}</text>`;
+  }
+  g+=`<line class="axis" x1="${PL}" y1="${Y(0)}" x2="${PR}" y2="${Y(0)}"/><line class="axis" x1="${X(0)}" y1="${PT}" x2="${X(0)}" y2="${PB}"/>`;
+  for(let k=0;k<=n;k++){
+    const [lo,hi]=vb(k);if(hi<=lo)continue;const s=signIv(k);if(s===0)continue;
+    g+=`<line class="xsign ${s>0?'xp':'xm'}" x1="${X(lo)}" y1="${Y(0)}" x2="${X(hi)}" y2="${Y(0)}"/>`;
+  }
+  let d='';
+  for(let i=0;i<=N;i++){const x=xmin+(xmax-xmin)*i/N;d+=(i?' L':'M')+X(x).toFixed(1)+','+cl(Y(P(x))).toFixed(1);}
+  g+=`<path class="curve" d="${d}"/>`;
+  rs.forEach(q=>{
+    if(q.r<xmin||q.r>xmax)return;
+    const cx=X(q.r),cy=Y(0);
+    g+=`<line class="link" x1="${cx}" y1="${cy}" x2="${cx}" y2="${PB}"/><g class="rootpt">`;
+    if(q.m>1)g+=`<circle class="ring" cx="${cx}" cy="${cy}" r="15"/>`;
+    g+=`<circle class="dot" cx="${cx}" cy="${cy}" r="8"/></g>`;
+  });
+  g+=`</g>`;
+  for(let k=0;k<=n;k++){
+    const [lo,hi]=vb(k);if(hi<=lo)continue;
+    const x1=X(lo)+(lo>xmin?12:0),x2=X(hi)-(hi<xmax?12:0),s=signIv(k);
+    if(x2-x1<4)continue;
+    g+=`<g class="seg-s ${s>0?'sp':s<0?'sm':'s0'}"><rect x="${x1}" y="${SY}" width="${x2-x1}" height="${SH}" rx="6"/>${x2-x1>22?`<text x="${(x1+x2)/2}" y="${SY+SH/2+7}" text-anchor="middle">${s>0?'+':s<0?'−':'0'}</text>`:''}</g>`;
+  }
+  rs.forEach(q=>{
+    if(q.r<xmin||q.r>xmax)return;
+    const cx=X(q.r);
+    g+=`<g class="rdot"><circle cx="${cx}" cy="${SY+SH/2}" r="10"/><text x="${cx}" y="${SY+SH/2+5}" text-anchor="middle">0</text></g>`;
+    g+=`<text class="rlab" x="${cx}" y="${SY+SH+24}" text-anchor="middle">${rt(q.r)}</text>`;
+  });
+  if(state.hover)
+    g+=`<text class="readout" x="${PR}" y="${PT+14}" text-anchor="end">x ≈ ${fmt(Math.round(state.hover.x*100)/100)}   P(x) ≈ ${fmt(Math.round(P(state.hover.x)*100)/100)}</text>`;
+  svg.innerHTML=g;
+}
+
+/* ---------- panels ---------- */
+function renderSliders(){
+  const deg=state.co.length-1;let h='';
+  state.co.forEach((v,i)=>{
+    const lo=Math.min(-20,Math.floor(v)),hi=Math.max(20,Math.ceil(v));
+    h+=`<div class="sl"><span class="k"><i>${LETTERS[i]}</i></span><input type="range" min="${lo}" max="${hi}" step="0.1" value="${v}" data-i="${i}" aria-label="coefficient ${LETTERS[i]} (curseur)"><input type="number" class="v" step="0.1" value="${v}" data-i="${i}" aria-label="coefficient ${LETTERS[i]} (valeur)"></div>`;
+  });
+  $('#sliders').innerHTML=h;
+  document.querySelectorAll('#degSeg button').forEach(b=>b.classList.toggle('on',+b.dataset.d===deg));
+}
+function renderPanels(){
+  const m=state.model,rs=m.roots;
+  $('#expr').innerHTML='<i>P</i>(<i>x</i>) = '+polyHTML(m.asc);
+}
+function onChange(){state.model=analyze();renderPanels();drawGraph();}
+
+/* ---------- graph interactions: hover, pan, wheel zoom, pinch ---------- */
+function svgPoint(e){const pt=svg.createSVGPoint();pt.x=e.clientX;pt.y=e.clientY;return pt.matrixTransform(svg.getScreenCTM().inverse());}
+const ptrs=new Map();let pan=null,pinch=null;
+svg.addEventListener('pointerdown',e=>{
+  svg.setPointerCapture(e.pointerId);
+  const p=svgPoint(e);ptrs.set(e.pointerId,p);
+  if(ptrs.size===1){pan={x:p.x,y:p.y,cx:V.cx,cy:V.cy};svg.classList.add('panning');}
+  else if(ptrs.size===2){const [a,b]=[...ptrs.values()];pan=null;pinch={d:Math.hypot(a.x-b.x,a.y-b.y),U:V.U,mx:(a.x+b.x)/2,my:(a.y+b.y)/2,wx:xOf((a.x+b.x)/2),wy:yOf((a.y+b.y)/2)};}
+  state.hover=null;e.preventDefault();
+});
+svg.addEventListener('pointermove',e=>{
+  const p=svgPoint(e);
+  if(ptrs.has(e.pointerId))ptrs.set(e.pointerId,p);
+  if(pinch&&ptrs.size===2){
+    const [a,b]=[...ptrs.values()];const d=Math.hypot(a.x-b.x,a.y-b.y);
+    V.U=clampN(pinch.U*d/Math.max(1,pinch.d),U0/40,U0*60);
+    const mx=(a.x+b.x)/2,my=(a.y+b.y)/2;
+    V.cx=pinch.wx-(mx-PCX)/V.U;V.cy=pinch.wy+(my-PCY)/V.U;
+    drawGraph();return;
+  }
+  if(pan){
+    V.cx=pan.cx-(p.x-pan.x)/V.U;V.cy=pan.cy+(p.y-pan.y)/V.U;
+    drawGraph();return;
+  }
+  if(p.x>=PL&&p.x<=PR&&p.y>=PT&&p.y<=PB)state.hover={x:xOf(p.x)};else state.hover=null;
+  drawGraph();
+});
+const endPtr=e=>{ptrs.delete(e.pointerId);if(ptrs.size<2)pinch=null;if(ptrs.size===0){pan=null;svg.classList.remove('panning');}else if(ptrs.size===1){const p=[...ptrs.values()][0];pan={x:p.x,y:p.y,cx:V.cx,cy:V.cy};}};
+svg.addEventListener('pointerup',endPtr);
+svg.addEventListener('pointercancel',endPtr);
+svg.addEventListener('pointerleave',()=>{if(!pan&&!pinch){state.hover=null;drawGraph();}});
+svg.addEventListener('wheel',e=>{
+  e.preventDefault();
+  const p=svgPoint(e),wx=xOf(p.x),wy=yOf(p.y);
+  const f=Math.exp(-e.deltaY*(e.deltaMode===1?0.05:0.0015));
+  V.U=clampN(V.U*f,U0/40,U0*60);
+  V.cx=wx-(p.x-PCX)/V.U;V.cy=wy+(p.y-PCY)/V.U;
+  drawGraph();
+},{passive:false});
+svg.addEventListener('dblclick',()=>{V.cx=0;V.cy=0;V.U=U0;drawGraph();});
+
+/* ---------- controls ---------- */
+$('#sliders').addEventListener('input',e=>{
+  const inp=e.target,i=+inp.dataset.i,row=inp.parentElement;
+  const v=parseFloat(String(inp.value).replace(',','.'));
+  if(!Number.isFinite(v))return;
+  if(inp.type==='range'){row.querySelector('.v').value=Math.round(v*10)/10;}
+  else{const r=row.querySelector('input[type=range]');if(v<+r.min)r.min=Math.floor(v);if(v>+r.max)r.max=Math.ceil(v);r.value=v;}
+  state.co[i]=v;
+  onChange();
+});
+$('#sliders').addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.type==='number')e.target.blur();});
+$('#degSeg').addEventListener('click',e=>{
+  const b=e.target.closest('button');if(!b)return;
+  const d=+b.dataset.d,cur=state.co.length-1;
+  if(d===cur)return;
+  if(d>cur)state.co=[...new Array(d-cur).fill(0),...state.co];
+  else state.co=state.co.slice(cur-d);
+  if(state.co[0]===0)state.co[0]=1;
+  renderSliders();onChange();
+});
+renderSliders();onChange();
+})();
+</script>
+</body>
+</html>
+
+</body></html>

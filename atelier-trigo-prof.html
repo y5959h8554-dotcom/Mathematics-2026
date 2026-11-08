@@ -91,11 +91,12 @@
 </div>
 
 <script type="module">
-import { ACTIVITES, mesures, fmt, stockage, MODE_LOCAL, derniersEnvois, ANGLE_ACT3 } from "./atelier-trigo-commun.js";
+import { ACTIVITES, mesures, fmt, stockage, MODE_LOCAL, derniersEnvois, ANGLE_ACT3 } from "./atelier-trigo-commun.js?v=3";
 const $ = id => document.getElementById(id);
 let st, code, act = 0, envois = [], niveau = { 1: 0, 2: 0, 3: 0, 4: 0 };
 
 if (MODE_LOCAL) $("demo").textContent = "Mode démo local : Firebase non configuré";
+else { $("demo").textContent = "Firebase connecté"; $("demo").style.color = "var(--accent2)"; }
 
 // ---------- début
 (async () => {

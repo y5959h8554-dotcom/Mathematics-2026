@@ -139,7 +139,7 @@
 
 <script type="module">
 import { ACTIVITES, parametre, unite, mesures, verifier, fmt, stockage, MODE_LOCAL, ANGLE_ACT3 }
-  from "./atelier-trigo-commun.js";
+  from "./atelier-trigo-commun.js?v=3";
 
 const $ = id => document.getElementById(id);
 const NS = "http://www.w3.org/2000/svg";
@@ -167,12 +167,12 @@ $("go").onclick = async () => {
   $("who").textContent = `séance ${c}  ·  n° ${n}` + (MODE_LOCAL ? "  ·  démo locale" : "");
   let premier = true;
   st.suivreSeance(code, s => {
-    if (!s) { if (premier) { $("msgJoin").textContent = "Aucune séance avec ce code."; montrer("rejoindre"); } else montrer("fin"); return; }
+    if (!s) { if (premier) { $("msgJoin").textContent = "Aucune séance avec le code " + code + "."; montrer("rejoindre"); } else montrer("fin"); return; }
     premier = false;
     if (!s.open) { montrer("fin"); return; }
     if (!s.act) { act = 0; montrer("attente"); return; }
     if (s.act !== act) demarrer(s.act);
-  });
+  }, e => { $("msgJoin").textContent = "Erreur de connexion : " + (e.code || e.message); montrer("rejoindre"); });
 };
 if (params.get("s") && $("num").value) $("go").click();
 

@@ -22,6 +22,7 @@ const FB_VERSION = "10.12.2";
 const FB = `https://www.gstatic.com/firebasejs/${FB_VERSION}`;
 
 export const MODE_LOCAL = !FIREBASE_CONFIG.apiKey;
+export const VERSION = "3";
 
 // ---- 2. Activités ---------------------------------------------
 export const ACTIVITES = {
@@ -122,7 +123,7 @@ function stockageLocal() {
       return code;
     },
     async changerActivite(code, act) { const v = lire(code); if (v) { v.seance.act = act; ecrire(code, v); } },
-    suivreSeance(code, cb) { abonner(code, () => { const v = lire(code); cb(v ? v.seance : null); }); },
+    suivreSeance(code, cb, erreur) { abonner(code, () => { const v = lire(code); cb(v ? v.seance : null); }); },
     async envoyer(code, envoi) {
       const v = lire(code);
       if (!v || !v.seance.open) throw new Error("Séance introuvable ou fermée.");
@@ -161,8 +162,11 @@ async function stockageFirebase() {
       throw new Error("Impossible de créer un code de séance.");
     },
     async changerActivite(code, act) { await connexion(); await fs.updateDoc(docSeance(code), { act }); },
-    suivreSeance(code, cb) {
-      return fs.onSnapshot(docSeance(code), s => cb(s.exists() ? s.data() : null), () => cb(null));
+    suivreSeance(code, cb, erreur) {
+      return fs.onSnapshot(docSeance(code), { includeMetadataChanges: true }, s => {
+        if (!s.exists() && s.metadata.fromCache) return;     // attendre la réponse du serveur
+        cb(s.exists() ? s.data() : null);
+      }, e => { console.error(e); erreur ? erreur(e) : cb(null); });
     },
     async envoyer(code, envoi) { await fs.addDoc(colEnvois(code), { ...envoi, t: fs.serverTimestamp() }); },
     suivreEnvois(code, cb) {

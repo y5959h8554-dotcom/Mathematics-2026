@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Atelier — Triangle rectangle</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,400&family=Spline+Sans+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#f4efe6; --ink:#1c2321; --line:#2b3a36;
+    --accent:#c2410c; --accent2:#0e7c6b; --red:#c0392b;
+    --faint:#c9c0b1; --grid:#e4ddcf; --grid2:#d6ccb9;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;height:100%;overflow:hidden;}
+  body{
+    background:var(--paper);color:var(--ink);
+    font-family:"Fraunces",Georgia,serif;
+    display:flex;flex-direction:column;
+    touch-action:none;user-select:none;-webkit-user-select:none;
+  }
+  header{
+    padding:14px 22px 10px;border-bottom:1px solid var(--faint);
+    display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;
+  }
+  header h1{font-size:1.4rem;font-weight:600;margin:0;letter-spacing:-0.01em;}
+  .mono{font-family:"Spline Sans Mono",monospace;}
+  header .sub{font-family:"Spline Sans Mono",monospace;font-size:0.72rem;color:var(--accent2);
+    text-transform:uppercase;letter-spacing:0.14em;}
+  header .who{margin-left:auto;font-family:"Spline Sans Mono",monospace;font-size:0.75rem;color:var(--line);}
+  button{
+    font-family:"Spline Sans Mono",monospace;font-size:0.8rem;
+    text-transform:uppercase;letter-spacing:0.08em;
+    background:transparent;border:1.5px solid var(--line);color:var(--line);
+    padding:12px 20px;border-radius:2px;cursor:pointer;transition:.15s;
+  }
+  button:active{background:var(--line);color:var(--paper);}
+  button.primary{border-color:var(--accent);color:var(--accent);}
+  button.primary:active{background:var(--accent);color:var(--paper);}
+  button:disabled{opacity:.35;pointer-events:none;}
+  input{
+    font-family:"Spline Sans Mono",monospace;font-size:1.3rem;padding:10px 12px;width:9em;
+    border:1.5px solid var(--line);background:#fffaf2;color:var(--ink);border-radius:2px;
+    text-transform:uppercase;letter-spacing:0.15em;
+  }
+  label{display:block;font-family:"Spline Sans Mono",monospace;font-size:0.72rem;text-transform:uppercase;
+    letter-spacing:0.12em;color:var(--accent2);margin:18px 0 6px;}
+
+  .ecran{flex:1;min-height:0;display:none;}
+  .ecran.on{display:flex;}
+  .centre{flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px;}
+  .centre .big{font-size:1.6rem;font-style:italic;color:var(--line);line-height:1.35;max-width:30em;}
+  .centre p{max-width:32em;line-height:1.5;}
+
+  /* activité */
+  #activite{display:none;}
+  #activite.on{display:grid;grid-template-columns:1fr 320px;grid-template-rows:auto 1fr;
+    grid-template-areas:"consigne panneau" "plateau panneau";}
+  .consigne{grid-area:consigne;padding:12px 22px 10px;}
+  .consigne h2{margin:0 0 4px;font-size:1.25rem;font-weight:600;}
+  .consigne p{margin:0;line-height:1.4;}
+  .consigne .perso{display:inline-block;margin-top:6px;padding:4px 10px;border:1.5px solid var(--accent);
+    color:var(--accent);font-family:"Spline Sans Mono",monospace;font-size:0.8rem;border-radius:2px;}
+  .plateau{grid-area:plateau;position:relative;min-width:0;min-height:0;}
+  svg#svg{position:absolute;inset:0;width:100%;height:100%;touch-action:none;}
+  .panneau{grid-area:panneau;border-left:1px solid var(--faint);padding:16px 20px;
+    display:flex;flex-direction:column;gap:14px;overflow-y:auto;}
+  .panneau h3{margin:0;font-family:"Spline Sans Mono",monospace;font-size:0.72rem;letter-spacing:0.14em;
+    text-transform:uppercase;color:var(--accent2);}
+  table.mes{border-collapse:collapse;font-size:1.05rem;}
+  table.mes td{padding:3px 10px 3px 0;}
+  table.mes td.v{font-family:"Spline Sans Mono",monospace;text-align:right;}
+  ul.checks{list-style:none;margin:0;padding:0;}
+  ul.checks li{padding:4px 0;font-size:0.95rem;}
+  ul.checks li::before{content:"○ ";color:var(--faint);font-weight:600;}
+  ul.checks li.ok::before{content:"✓ ";color:var(--accent2);}
+  ul.checks li.ok{color:var(--accent2);}
+  .note{border:1.5px dashed var(--accent);border-radius:4px;padding:10px 12px;background:rgba(194,65,12,0.05);
+    font-size:0.95rem;line-height:1.5;display:none;}
+  .note.on{display:block;}
+  .aimant{font-family:"Spline Sans Mono",monospace;font-size:0.72rem;display:flex;gap:8px;align-items:center;}
+  .msg{font-family:"Spline Sans Mono",monospace;font-size:0.75rem;color:var(--red);min-height:1em;}
+  @media (max-width: 760px), (orientation: portrait) {
+    #activite.on{grid-template-columns:1fr;grid-template-rows:auto 1fr auto;
+      grid-template-areas:"consigne" "plateau" "panneau";}
+    .panneau{border-left:none;border-top:1px solid var(--faint);max-height:38vh;
+      flex-direction:row;flex-wrap:wrap;align-items:flex-start;}
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>Le triangle rectangle</h1>
+  <span class="sub">Atelier en classe</span>
+  <span class="who" id="who"></span>
+</header>
+
+<!-- Rejoindre -->
+<div class="ecran centre on" id="rejoindre">
+  <div class="big">Rejoins la séance de la classe.</div>
+  <div>
+    <label for="code">Code de la séance</label>
+    <input id="code" maxlength="4" autocomplete="off" autocapitalize="characters">
+    <label for="num">Ton numéro</label>
+    <input id="num" type="number" min="1" max="40" inputmode="numeric" style="width:5em">
+  </div>
+  <p><button class="primary" id="go">Rejoindre</button></p>
+  <div class="msg" id="msgJoin"></div>
+</div>
+
+<!-- Attente -->
+<div class="ecran centre" id="attente">
+  <div class="big">Tu as rejoint la séance.<br>Attends que l'enseignant lance l'activité.</div>
+</div>
+
+<!-- Fin -->
+<div class="ecran centre" id="fin">
+  <div class="big">La séance est terminée.</div>
+  <p>Merci ! Les données de la séance ont été effacées.</p>
+</div>
+
+<!-- Activité -->
+<div class="ecran" id="activite">
+  <div class="consigne">
+    <h2 id="titre"></h2>
+    <p id="consigne"></p>
+    <span class="perso" id="perso" style="display:none"></span>
+  </div>
+  <div class="plateau" id="plateau"><svg id="svg"></svg></div>
+  <div class="panneau">
+    <div><h3>Mesures</h3><table class="mes" id="mes"></table></div>
+    <div><h3>Conditions</h3><ul class="checks" id="checks"></ul></div>
+    <label class="aimant"><input type="checkbox" id="aimant" checked style="width:auto"> aimant à angle droit</label>
+    <button class="primary" id="envoyer" disabled>Envoyer</button>
+    <div class="msg" id="msgEnvoi"></div>
+    <div class="note" id="note"></div>
+  </div>
+</div>
+
+<script type="module">
+import { ACTIVITES, parametre, unite, mesures, verifier, fmt, stockage, MODE_LOCAL, ANGLE_ACT3 }
+  from "./atelier-trigo-commun.js";
+
+const $ = id => document.getElementById(id);
+const NS = "http://www.w3.org/2000/svg";
+let st = null, code = null, numero = null, act = null;
+let P = { A: [0, 0], B: [0, 0], C: [0, 0] };
+let W = 16, H = 10, ppu = 50;   // taille du plateau en unités, pixels par unité
+
+// ---------- rejoindre
+const params = new URLSearchParams(location.search);
+$("code").value = (params.get("s") || localStorage.getItem("atelier-eleve-code") || "").toUpperCase();
+$("num").value = localStorage.getItem("atelier-eleve-num") || "";
+
+function montrer(id) {
+  ["rejoindre", "attente", "fin", "activite"].forEach(e => $(e).classList.toggle("on", e === id));
+}
+
+$("go").onclick = async () => {
+  const c = $("code").value.trim().toUpperCase(), n = parseInt($("num").value, 10);
+  if (c.length !== 4) { $("msgJoin").textContent = "Le code a 4 caractères."; return; }
+  if (!(n >= 1 && n <= 40)) { $("msgJoin").textContent = "Choisis un numéro entre 1 et 40."; return; }
+  $("msgJoin").textContent = "";
+  try { st = st || await stockage(); } catch (e) { $("msgJoin").textContent = "Connexion impossible."; return; }
+  code = c; numero = n;
+  localStorage.setItem("atelier-eleve-code", c); localStorage.setItem("atelier-eleve-num", n);
+  $("who").textContent = `séance ${c}  ·  n° ${n}` + (MODE_LOCAL ? "  ·  démo locale" : "");
+  let premier = true;
+  st.suivreSeance(code, s => {
+    if (!s) { if (premier) { $("msgJoin").textContent = "Aucune séance avec ce code."; montrer("rejoindre"); } else montrer("fin"); return; }
+    premier = false;
+    if (!s.open) { montrer("fin"); return; }
+    if (!s.act) { act = 0; montrer("attente"); return; }
+    if (s.act !== act) demarrer(s.act);
+  });
+};
+if (params.get("s") && $("num").value) $("go").click();
+
+// ---------- activité
+function demarrer(a) {
+  act = a;
+  const A = ACTIVITES[a];
+  $("titre").textContent = `${a}. ${A.titre}`;
+  $("consigne").textContent = A.consigne;
+  const p = parametre(a, numero);
+  $("perso").style.display = p ? "inline-block" : "none";
+  if (a === 3) $("perso").textContent = `Ton hypoténuse : AB = ${p}`;
+  if (a === 4) $("perso").textContent = `Ton angle : Â = ${p}°  ·  hypoténuse AB = 1 (= 8 carreaux)`;
+  $("note").classList.remove("on"); $("msgEnvoi").textContent = "";
+  montrer("activite");
+  requestAnimationFrame(() => { dimensionner(); positionInitiale(); dessiner(); });
+}
+
+function dimensionner() {
+  const r = $("plateau").getBoundingClientRect();
+  ppu = Math.min(r.width, r.height) / 11;          // le petit côté compte 11 unités
+  W = r.width / ppu; H = r.height / ppu;
+  $("svg").setAttribute("viewBox", `0 0 ${W} ${H}`);
+}
+window.addEventListener("resize", () => { if (act) { dimensionner(); dessiner(); } });
+
+function positionInitiale() {
+  // triangle volontairement « presque » rectangle : à l'élève de l'ajuster
+  const y0 = H - 1.5;
+  P.A = [1.5, y0];
+  P.C = [Math.min(W - 2, 9.5), y0 - 0.6];
+  P.B = [Math.min(W - 3, 8.2), 2.2];
+}
+
+// ---------- dessin
+function el(tag, attrs, parent) {
+  const e = document.createElementNS(NS, tag);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  (parent || $("svg")).appendChild(e); return e;
+}
+function texte(x, y, t, cls = {}) {
+  const e = el("text", { x, y, "font-size": 0.42, "text-anchor": "middle", "dominant-baseline": "middle",
+    "font-family": "Fraunces, Georgia, serif", fill: "#1c2321", ...cls });
+  e.textContent = t; return e;
+}
+function dessiner() {
+  const svg = $("svg"); svg.innerHTML = "";
+  const u = unite(act);
+  // quadrillage
+  for (let x = 0; x <= W; x += 1) el("line", { x1: x, y1: 0, x2: x, y2: H, stroke: (u > 1 && x % u === 0) ? "#c9bea9" : "#e4ddcf", "stroke-width": 0.025 });
+  for (let y = 0; y <= H; y += 1) el("line", { x1: 0, y1: y, x2: W, y2: y, stroke: (u > 1 && y % u === 0) ? "#c9bea9" : "#e4ddcf", "stroke-width": 0.025 });
+  if (u > 1) { // repère d'unité
+    el("line", { x1: 0.5, y1: 0.6, x2: 0.5 + u, y2: 0.6, stroke: "#0e7c6b", "stroke-width": 0.08 });
+    texte(0.5 + u / 2, 0.25, "1 unité", { fill: "#0e7c6b", "font-size": 0.36 });
+  }
+  const { A, B, C } = P;
+  const m = mesures(A, B, C, u);
+  const checks = verifier(act, m, parametre(act, numero));
+  const droit = checks[0].ok;
+  // triangle
+  el("polygon", { points: [A, B, C].map(p => p.join(",")).join(" "), fill: "rgba(14,124,107,0.08)",
+    stroke: "#2b3a36", "stroke-width": 0.06, "stroke-linejoin": "round" });
+  // angle droit en C
+  if (droit) {
+    const s = 0.4, ua = unitv(C, A), ub = unitv(C, B);
+    const p1 = [C[0] + ua[0] * s, C[1] + ua[1] * s], p2 = [C[0] + ub[0] * s, C[1] + ub[1] * s];
+    const p3 = [p1[0] + ub[0] * s, p1[1] + ub[1] * s];
+    el("polyline", { points: [p1, p3, p2].map(p => p.join(",")).join(" "), fill: "none", stroke: "#0e7c6b", "stroke-width": 0.05 });
+  }
+  // arc en A (activités 3 et 4)
+  if (act >= 3) arc(A, B, C, 0.9, "#c2410c");
+  // longueurs sur les côtés (activités 2 à 4)
+  if (act >= 2) {
+    coteLabel(B, C, "a = " + fmt(m.a), A);
+    coteLabel(A, C, "b = " + fmt(m.b), B);
+    coteLabel(A, B, "c = " + fmt(m.c), C);
+  }
+  // sommets
+  for (const k of ["A", "B", "C"]) {
+    const p = P[k];
+    el("circle", { cx: p[0], cy: p[1], r: 0.42, fill: "rgba(194,65,12,0.15)", stroke: "none" });
+    el("circle", { cx: p[0], cy: p[1], r: 0.13, fill: "#c2410c" });
+    const g = centre(), d = unitv(g, p);
+    texte(p[0] + d[0] * 0.75, p[1] + d[1] * 0.75, k, { "font-size": 0.55, "font-style": "italic", "font-weight": 600 });
+  }
+  panneau(m, checks);
+}
+function unitv(P1, P2) { const d = Math.hypot(P2[0] - P1[0], P2[1] - P1[1]) || 1; return [(P2[0] - P1[0]) / d, (P2[1] - P1[1]) / d]; }
+function centre() { return [(P.A[0] + P.B[0] + P.C[0]) / 3, (P.A[1] + P.B[1] + P.C[1]) / 3]; }
+function arc(S, P1, P2, r, col) {
+  const a1 = Math.atan2(P1[1] - S[1], P1[0] - S[0]), a2 = Math.atan2(P2[1] - S[1], P2[0] - S[0]);
+  let d = a2 - a1; while (d > Math.PI) d -= 2 * Math.PI; while (d < -Math.PI) d += 2 * Math.PI;
+  const x1 = S[0] + r * Math.cos(a1), y1 = S[1] + r * Math.sin(a1), x2 = S[0] + r * Math.cos(a1 + d), y2 = S[1] + r * Math.sin(a1 + d);
+  el("path", { d: `M${x1},${y1} A${r},${r} 0 0 ${d > 0 ? 1 : 0} ${x2},${y2}`, fill: "none", stroke: col, "stroke-width": 0.05 });
+}
+function coteLabel(P1, P2, t, opp) {
+  const mx = (P1[0] + P2[0]) / 2, my = (P1[1] + P2[1]) / 2, d = unitv(opp, [mx, my]);
+  texte(mx + d[0] * 0.5, my + d[1] * 0.5, t, { "font-size": 0.38, "font-family": "Spline Sans Mono, monospace", fill: "#0e7c6b" });
+}
+
+function panneau(m, checks) {
+  const rows = [];
+  if (act === 1) rows.push(["Â", fmt(m.A, 1) + "°"], ["B̂", fmt(m.B, 1) + "°"], ["Ĉ", fmt(m.C, 1) + "°"]);
+  if (act === 2) rows.push(["Ĉ", fmt(m.C, 1) + "°"], ["a = BC", fmt(m.a)], ["b = AC", fmt(m.b)], ["c = AB", fmt(m.c)]);
+  if (act >= 3) rows.push(["Â", fmt(m.A, 1) + "°"], ["Ĉ", fmt(m.C, 1) + "°"], ["AB", fmt(m.c)], ["BC", fmt(m.a)], ["AC", fmt(m.b)]);
+  $("mes").innerHTML = rows.map(r => `<tr><td>${r[0]}</td><td class="v">${r[1]}</td></tr>`).join("");
+  $("checks").innerHTML = checks.map(c => `<li class="${c.ok ? "ok" : ""}">${c.label}</li>`).join("");
+  $("envoyer").disabled = !checks.every(c => c.ok);
+}
+
+// ---------- déplacement des sommets (doigt ou souris)
+let prise = null;
+function versUnites(ev) {
+  const r = $("svg").getBoundingClientRect();
+  return [(ev.clientX - r.left) / ppu, (ev.clientY - r.top) / ppu];
+}
+$("svg").addEventListener("pointerdown", ev => {
+  const q = versUnites(ev);
+  let best = null, dmin = 0.9;                     // rayon de prise : 0,9 unité
+  for (const k of ["A", "B", "C"]) { const d = Math.hypot(P[k][0] - q[0], P[k][1] - q[1]); if (d < dmin) { dmin = d; best = k; } }
+  if (best) { prise = best; $("svg").setPointerCapture(ev.pointerId); }
+});
+$("svg").addEventListener("pointermove", ev => {
+  if (!prise) return;
+  const q = versUnites(ev);
+  P[prise] = [Math.max(0.3, Math.min(W - 0.3, q[0])), Math.max(0.3, Math.min(H - 0.3, q[1]))];
+  if ($("aimant").checked) aimant(prise);
+  dessiner();
+});
+const lacher = () => { prise = null; };
+$("svg").addEventListener("pointerup", lacher);
+$("svg").addEventListener("pointercancel", lacher);
+
+// Aimant : si l'angle en C est presque droit, on le rend exactement droit
+function aimant(k) {
+  const m = mesures(P.A, P.B, P.C);
+  if (Math.abs(m.C - 90) > 1.5) return;
+  const { A, B, C } = P;
+  if (k === "C") {               // C sur le cercle de diamètre [AB] (cercle de Thalès)
+    const M = [(A[0] + B[0]) / 2, (A[1] + B[1]) / 2], r = Math.hypot(B[0] - A[0], B[1] - A[1]) / 2;
+    const d = unitv(M, C); P.C = [M[0] + d[0] * r, M[1] + d[1] * r];
+  } else {                       // le sommet déplacé sur la perpendiculaire en C à l'autre côté
+    const autre = k === "A" ? B : A, v = unitv(C, autre), n = [-v[1], v[0]];
+    const X = P[k], t = (X[0] - C[0]) * n[0] + (X[1] - C[1]) * n[1];
+    P[k] = [C[0] + n[0] * t, C[1] + n[1] * t];
+  }
+}
+
+// ---------- envoi
+$("envoyer").onclick = async () => {
+  const u = unite(act), p = parametre(act, numero);
+  const r4 = x => Math.round(x * 10000) / 10000;
+  const envoi = { act, seat: String(numero), A: P.A.map(r4), B: P.B.map(r4), C: P.C.map(r4), param: p, u };
+  $("envoyer").disabled = true; $("msgEnvoi").textContent = "";
+  try {
+    await st.envoyer(code, envoi);
+    const m = mesures(P.A, P.B, P.C, u);
+    let n = "<b>Envoyé ✓</b> Tu peux encore modifier et renvoyer : seul ton dernier envoi compte.<br>Note dans ton cahier :<br>";
+    if (act === 1) n += `Â = ${fmt(m.A, 1)}°, B̂ = ${fmt(m.B, 1)}°, Ĉ = 90°`;
+    if (act === 2) n += `a = ${fmt(m.a)}, b = ${fmt(m.b)}, c = ${fmt(m.c)}`;
+    if (act === 3) n += `AB = ${fmt(m.c)}, BC = ${fmt(m.a)}, AC = ${fmt(m.b)}<br>BC / AB = ${fmt(m.a / m.c, 3)}`;
+    if (act === 4) n += `Â = ${p}° : BC = ${fmt(m.a, 3)}, AC = ${fmt(m.b, 3)}`;
+    $("note").innerHTML = n; $("note").classList.add("on");
+  } catch (e) {
+    console.error(e); $("msgEnvoi").textContent = "Envoi impossible. Réessaie.";
+  }
+  $("envoyer").disabled = false;
+};
+</script>
+</body>
+</html>

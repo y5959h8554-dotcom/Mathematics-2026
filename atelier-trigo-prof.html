@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Atelier — Triangle rectangle (enseignant)</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,400&family=Spline+Sans+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+<style>
+  :root{
+    --paper:#f4efe6; --ink:#1c2321; --line:#2b3a36;
+    --accent:#c2410c; --accent2:#0e7c6b; --red:#c0392b; --purple:#7d3cb5;
+    --faint:#c9c0b1; --grid:#e4ddcf;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;height:100%;}
+  body{background:var(--paper);color:var(--ink);font-family:"Fraunces",Georgia,serif;display:flex;flex-direction:column;}
+  header{padding:14px 24px 10px;border-bottom:1px solid var(--faint);display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;}
+  header h1{font-size:1.4rem;font-weight:600;margin:0;}
+  .sub,.mono{font-family:"Spline Sans Mono",monospace;}
+  .sub{font-size:0.72rem;color:var(--accent2);text-transform:uppercase;letter-spacing:0.14em;}
+  .demo{margin-left:auto;font-family:"Spline Sans Mono",monospace;font-size:0.72rem;color:var(--red);}
+  button{font-family:"Spline Sans Mono",monospace;font-size:0.78rem;text-transform:uppercase;letter-spacing:0.08em;
+    background:transparent;border:1.5px solid var(--line);color:var(--line);padding:9px 16px;border-radius:2px;cursor:pointer;}
+  button:hover{background:rgba(43,58,54,0.08);}
+  button.primary{border-color:var(--accent);color:var(--accent);}
+  button.on{background:var(--line);color:var(--paper);}
+  button.danger{border-color:var(--red);color:var(--red);}
+  button:disabled{opacity:.35;pointer-events:none;}
+
+  #debut{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;text-align:center;}
+  #debut .big{font-size:1.6rem;font-style:italic;color:var(--line);}
+  #seance{flex:1;min-height:0;display:none;grid-template-columns:270px 1fr;}
+  #seance.on{display:grid;}
+  aside{border-right:1px solid var(--faint);padding:18px 20px;display:flex;flex-direction:column;gap:14px;overflow-y:auto;}
+  aside h3{margin:0;font-family:"Spline Sans Mono",monospace;font-size:0.7rem;letter-spacing:0.14em;text-transform:uppercase;color:var(--accent2);}
+  .code{font-family:"Spline Sans Mono",monospace;font-size:2.8rem;letter-spacing:0.18em;color:var(--accent);line-height:1;}
+  #qr svg{width:170px;height:170px;display:block;}
+  .url{font-family:"Spline Sans Mono",monospace;font-size:0.66rem;word-break:break-all;color:var(--line);}
+  .acts{display:flex;flex-direction:column;gap:6px;}
+  .acts button{text-align:left;}
+  main{padding:18px 26px;overflow-y:auto;display:flex;flex-direction:column;gap:14px;}
+  main h2{margin:0;font-size:1.5rem;font-weight:600;}
+  .etat{font-family:"Spline Sans Mono",monospace;font-size:0.8rem;color:var(--line);}
+  .seats{display:flex;flex-wrap:wrap;gap:5px;}
+  .seat{font-family:"Spline Sans Mono",monospace;font-size:0.75rem;padding:3px 7px;border:1px solid var(--accent2);color:var(--accent2);border-radius:2px;}
+  .barre{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
+  .vue{display:grid;grid-template-columns:minmax(320px,1.1fr) minmax(280px,1fr);gap:22px;align-items:start;}
+  .vue svg{width:100%;height:auto;background:#fffaf2;border:1px solid var(--faint);}
+  table.t{border-collapse:collapse;font-size:0.95rem;width:100%;}
+  table.t th{font-family:"Spline Sans Mono",monospace;font-size:0.7rem;text-transform:uppercase;letter-spacing:0.08em;
+    color:var(--accent2);text-align:right;padding:4px 8px;border-bottom:1.5px solid var(--line);}
+  table.t td{font-family:"Spline Sans Mono",monospace;text-align:right;padding:3px 8px;border-bottom:1px solid var(--grid);}
+  table.t tr.moy td{border-top:1.5px solid var(--line);font-weight:600;color:var(--accent);}
+  .cache{font-size:1.3rem;font-style:italic;color:var(--line);padding:40px 0;}
+  .encadre{border:2px solid var(--accent);border-radius:10px;padding:12px 16px;background:rgba(194,65,12,0.06);font-size:1.15rem;}
+</style>
+</head>
+<body>
+<header>
+  <h1>Le triangle rectangle</h1>
+  <span class="sub">Atelier en classe · enseignant</span>
+  <span class="demo" id="demo"></span>
+</header>
+
+<div id="debut">
+  <div class="big">Lancer une séance pour la classe.</div>
+  <div class="barre" style="justify-content:center">
+    <button class="primary" id="nouvelle">Nouvelle séance</button>
+    <button id="reprendre" style="display:none"></button>
+  </div>
+  <div class="mono" id="msgDebut" style="color:var(--red);font-size:0.8rem"></div>
+</div>
+
+<div id="seance">
+  <aside>
+    <div><h3>Code</h3><div class="code" id="code"></div></div>
+    <div id="qr"></div>
+    <div class="url" id="url"></div>
+    <div><h3>Activité affichée</h3></div>
+    <div class="acts" id="acts"></div>
+    <div style="margin-top:auto"><button class="danger" id="terminer">Terminer et effacer</button></div>
+  </aside>
+  <main>
+    <h2 id="titre"></h2>
+    <div class="etat" id="etat"></div>
+    <div class="seats" id="seats"></div>
+    <div class="barre" id="barre"></div>
+    <div id="contenu"></div>
+  </main>
+</div>
+
+<script type="module">
+import { ACTIVITES, mesures, fmt, stockage, MODE_LOCAL, derniersEnvois, ANGLE_ACT3 } from "./atelier-trigo-commun.js";
+const $ = id => document.getElementById(id);
+let st, code, act = 0, envois = [], niveau = { 1: 0, 2: 0, 3: 0, 4: 0 };
+
+if (MODE_LOCAL) $("demo").textContent = "Mode démo local : Firebase non configuré";
+
+// ---------- début
+(async () => {
+  st = await stockage();
+  const ancien = localStorage.getItem("atelier-trigo-prof");
+  if (ancien) { $("reprendre").style.display = ""; $("reprendre").textContent = "Reprendre " + ancien; $("reprendre").onclick = () => ouvrir(ancien); }
+})();
+$("nouvelle").onclick = async () => {
+  try { ouvrir(await st.creerSeance()); }
+  catch (e) { console.error(e); $("msgDebut").textContent = "Création impossible : " + e.message; }
+};
+
+function ouvrir(c) {
+  code = c;
+  $("debut").style.display = "none"; $("seance").classList.add("on");
+  $("code").textContent = c;
+  const url = new URL("atelier-trigo-eleve.html", location.href); url.search = "?s=" + c;
+  $("url").textContent = url.href;
+  try { const q = qrcode(0, "M"); q.addData(url.href); q.make(); $("qr").innerHTML = q.createSvgTag({ cellSize: 4, margin: 2, scalable: true }); }
+  catch { $("qr").textContent = ""; }
+  $("acts").innerHTML = "";
+  [0, 1, 2, 3, 4].forEach(a => {
+    const b = document.createElement("button");
+    b.textContent = a ? `${a}. ${ACTIVITES[a].court}` : "0. Attente";
+    b.onclick = () => st.changerActivite(code, a);
+    b.dataset.act = a; $("acts").appendChild(b);
+  });
+  st.suivreSeance(c, s => {
+    if (!s) { location.reload(); return; }
+    act = s.act || 0;
+    [...$("acts").children].forEach(b => b.classList.toggle("on", +b.dataset.act === act));
+    rendre();
+  });
+  st.suivreEnvois(c, e => { envois = e; rendre(); });
+}
+$("terminer").onclick = async () => {
+  if (!confirm("Terminer la séance et effacer tous les envois ?")) return;
+  await st.terminerSeance(code); location.reload();
+};
+
+// ---------- affichage
+function rendre() {
+  if (!code) return;
+  if (!act) {
+    $("titre").textContent = "En attente";
+    $("etat").textContent = "Les élèves voient l'écran d'attente. Choisissez une activité à gauche.";
+    $("seats").innerHTML = ""; $("barre").innerHTML = ""; $("contenu").innerHTML = ""; return;
+  }
+  const liste = derniersEnvois(envois, act);
+  $("titre").textContent = `${act}. ${ACTIVITES[act].titre}`;
+  $("etat").textContent = `${liste.length} envoi${liste.length > 1 ? "s" : ""}` + (liste.length ? " : n°" : "");
+  $("seats").innerHTML = liste.map(e => `<span class="seat">${e.seat}</span>`).join("");
+  const n = niveau[act];
+  const etapes = { 1: ["Révéler", null], 2: ["Révéler", "Tracer y = x"], 3: ["Révéler", "Droites par l'origine", "Comparer à la calculatrice"],
+                   4: ["Révéler", "Valeurs exactes"] }[act].filter(Boolean);
+  $("barre").innerHTML = "";
+  etapes.forEach((t, i) => {
+    const b = document.createElement("button"); b.textContent = t;
+    if (i === 0) b.classList.add("primary");
+    b.disabled = i > n || !liste.length; if (i < n) b.classList.add("on");
+    b.onclick = () => { niveau[act] = Math.max(niveau[act], i + 1); rendre(); };
+    $("barre").appendChild(b);
+  });
+  if (n > 0) { const b = document.createElement("button"); b.textContent = "Masquer"; b.onclick = () => { niveau[act] = 0; rendre(); }; $("barre").appendChild(b); }
+  if (!n) { $("contenu").innerHTML = `<div class="cache">Résultats masqués : ${liste.length} triangle${liste.length > 1 ? "s" : ""} reçu${liste.length > 1 ? "s" : ""}.</div>`; return; }
+  const data = liste.map(e => ({ seat: e.seat, param: e.param, ...mesures(e.A, e.B, e.C, e.u || 1) }));
+  $("contenu").innerHTML = [vue1, vue2, vue3, vue4][act - 1](data, n);
+}
+
+// ---------- outils graphiques
+const W = 520, Hh = 400, M = 44;
+function cadre(xmax, ymax, xlab, ylab) {
+  const sx = x => M + x / xmax * (W - M - 16), sy = y => Hh - M + 6 - y / ymax * (Hh - M - 16);
+  let s = `<line x1="${M}" y1="${sy(0)}" x2="${W - 10}" y2="${sy(0)}" stroke="#2b3a36"/><line x1="${M}" y1="${sy(0)}" x2="${M}" y2="12" stroke="#2b3a36"/>`;
+  const pas = v => { const p = Math.pow(10, Math.floor(Math.log10(v))); return v / p > 5 ? p * 2 : v / p > 2 ? p : p / 2; };
+  for (let x = pas(xmax); x <= xmax * 1.0001; x += pas(xmax))
+    s += `<line x1="${sx(x)}" y1="${sy(0)}" x2="${sx(x)}" y2="12" stroke="#e4ddcf"/><text x="${sx(x)}" y="${sy(0) + 16}" font-size="11" text-anchor="middle" font-family="Spline Sans Mono">${fmtn(x)}</text>`;
+  for (let y = pas(ymax); y <= ymax * 1.0001; y += pas(ymax))
+    s += `<line x1="${M}" y1="${sy(y)}" x2="${W - 10}" y2="${sy(y)}" stroke="#e4ddcf"/><text x="${M - 6}" y="${sy(y) + 4}" font-size="11" text-anchor="end" font-family="Spline Sans Mono">${fmtn(y)}</text>`;
+  s += `<text x="${W - 12}" y="${sy(0) - 8}" font-size="13" text-anchor="end" font-style="italic">${xlab}</text>`;
+  s += `<text x="${M + 8}" y="22" font-size="13" font-style="italic">${ylab}</text>`;
+  return { s, sx, sy };
+}
+const fmtn = v => (Math.round(v * 100) / 100).toString().replace(".", ",");
+const svg = inner => `<svg viewBox="0 0 ${W} ${Hh}" xmlns="http://www.w3.org/2000/svg" font-family="Fraunces, Georgia, serif">${inner}</svg>`;
+const table = (tete, lignes, moy) => `<table class="t"><tr>${tete.map(h => `<th>${h}</th>`).join("")}</tr>` +
+  lignes.map(l => `<tr>${l.map(c => `<td>${c}</td>`).join("")}</tr>`).join("") +
+  (moy ? `<tr class="moy">${moy.map(c => `<td>${c}</td>`).join("")}</tr>` : "") + `</table>`;
+const moyenne = t => t.reduce((s, x) => s + x, 0) / (t.length || 1);
+
+// 1. superposition des triangles, angle droit en bas à gauche
+function vue1(d) {
+  const mx = Math.max(...d.map(t => Math.max(t.a, t.b))) * 1.08;
+  const { s, sx, sy } = cadre(mx, mx, "AC", "BC");
+  let g = s;
+  d.forEach((t, i) => {
+    const col = `hsl(${(i * 47) % 360} 55% 42%)`;
+    g += `<polygon points="${sx(0)},${sy(0)} ${sx(t.b)},${sy(0)} ${sx(0)},${sy(t.a)}" fill="${col}" fill-opacity="0.07" stroke="${col}" stroke-width="1.6"/>`;
+    g += `<text x="${sx(t.b / 2) + 4}" y="${sy(t.a / 2) - 4}" font-size="11" fill="${col}" font-family="Spline Sans Mono">${t.seat}</text>`;
+  });
+  const lignes = d.map(t => [t.seat, fmt(t.A, 1) + "°", fmt(t.B, 1) + "°", fmt(t.A + t.B, 1) + "°", fmt(t.C, 1) + "°"]);
+  return `<div class="vue">${svg(g)}<div>${table(["n°", "Â", "B̂", "Â + B̂", "Ĉ"], lignes)}
+    <p style="font-style:italic">Tous les triangles ont été placés avec l'angle droit en bas à gauche.
+    Qu'ont-ils en commun ? Qu'est-ce qui change d'un triangle à l'autre ?</p></div></div>`;
+}
+// 2. Pythagore : c² en fonction de a² + b²
+function vue2(d, n) {
+  const pts = d.map(t => ({ x: t.a * t.a + t.b * t.b, y: t.c * t.c, seat: t.seat }));
+  const mx = Math.max(...pts.map(p => Math.max(p.x, p.y))) * 1.08;
+  const { s, sx, sy } = cadre(mx, mx, "a² + b²", "c²");
+  let g = s;
+  if (n >= 2) g += `<line x1="${sx(0)}" y1="${sy(0)}" x2="${sx(mx)}" y2="${sy(mx)}" stroke="#c2410c" stroke-width="2" stroke-dasharray="6 4"/><text x="${sx(mx * 0.82)}" y="${sy(mx * 0.82) - 10}" fill="#c2410c" font-size="15" font-style="italic">y = x</text>`;
+  pts.forEach(p => { g += `<circle cx="${sx(p.x)}" cy="${sy(p.y)}" r="5" fill="#0e7c6b"/>`; });
+  const lignes = d.map(t => [t.seat, fmt(t.a), fmt(t.b), fmt(t.c), fmt(t.a * t.a + t.b * t.b, 1), fmt(t.c * t.c, 1)]);
+  const conclu = n >= 2 ? `<div class="encadre">Pour tous les triangles rectangles en C : &nbsp;<b>a² + b² = c²</b></div>` : "";
+  return `<div class="vue">${svg(g)}<div>${table(["n°", "a", "b", "c", "a² + b²", "c²"], lignes)}${conclu}</div></div>`;
+}
+// 3. angle de 35° : côtés en fonction de l'hypoténuse
+function vue3(d, n) {
+  const mx = Math.max(...d.map(t => t.c)) * 1.1;
+  const { s, sx, sy } = cadre(mx, mx, "AB (hypoténuse)", "BC, AC");
+  const ka = moyenne(d.map(t => t.a / t.c)), kb = moyenne(d.map(t => t.b / t.c)), kt = moyenne(d.map(t => t.a / t.b));
+  let g = s;
+  if (n >= 2) {
+    g += `<line x1="${sx(0)}" y1="${sy(0)}" x2="${sx(mx)}" y2="${sy(mx * ka)}" stroke="#0e7c6b" stroke-width="1.6" stroke-dasharray="6 4"/>`;
+    g += `<line x1="${sx(0)}" y1="${sy(0)}" x2="${sx(mx / Math.max(kb, 1))}" y2="${sy(mx / Math.max(kb, 1) * kb)}" stroke="#c2410c" stroke-width="1.6" stroke-dasharray="6 4"/>`;
+  }
+  d.forEach(t => { g += `<circle cx="${sx(t.c)}" cy="${sy(t.a)}" r="5" fill="#0e7c6b"/><rect x="${sx(t.c) - 4.5}" y="${sy(t.b) - 4.5}" width="9" height="9" fill="#c2410c"/>`; });
+  g += `<circle cx="${M + 20}" cy="40" r="5" fill="#0e7c6b"/><text x="${M + 30}" y="44" font-size="12">BC (côté opposé à Â)</text>`;
+  g += `<rect x="${M + 15.5}" y="55.5" width="9" height="9" fill="#c2410c"/><text x="${M + 30}" y="64" font-size="12">AC (côté adjacent à Â)</text>`;
+  const lignes = d.map(t => [t.seat, fmt(t.c), fmt(t.a), fmt(t.b), fmt(t.a / t.c, 3), fmt(t.b / t.c, 3), fmt(t.a / t.b, 3)]);
+  const moy = n >= 2 ? ["moy.", "", "", "", fmt(ka, 3), fmt(kb, 3), fmt(kt, 3)] : null;
+  const r = Math.PI / 180 * ANGLE_ACT3;
+  const calc = n >= 3 ? `<div class="encadre">Calculatrice : &nbsp;sin 35° ≈ ${fmt(Math.sin(r), 3)} &nbsp; cos 35° ≈ ${fmt(Math.cos(r), 3)} &nbsp; tan 35° ≈ ${fmt(Math.tan(r), 3)}<br>
+    Les rapports ne dépendent que de l'angle, pas de la taille du triangle.</div>` : "";
+  return `<div class="vue">${svg(g)}<div>${table(["n°", "AB", "BC", "AC", "BC/AB", "AC/AB", "BC/AC"], lignes, moy)}${calc}</div></div>`;
+}
+// 4. valeurs remarquables : moyennes par angle
+function vue4(d, n) {
+  const ex = { 30: ["1/2 = 0,500", "√3/2 ≈ 0,866", "√3/3 ≈ 0,577"], 45: ["√2/2 ≈ 0,707", "√2/2 ≈ 0,707", "1"],
+               60: ["√3/2 ≈ 0,866", "1/2 = 0,500", "√3 ≈ 1,732"] };
+  const lignes = [30, 45, 60].map(al => {
+    const g = d.filter(t => t.param === al);
+    if (!g.length) return [al + "°", "0", "", "", ""].concat(n >= 2 ? ex[al] : []);
+    const a = moyenne(g.map(t => t.a)), b = moyenne(g.map(t => t.b));
+    const base = [al + "°", g.length, fmt(a, 3), fmt(b, 3), fmt(a / b, 3)];
+    return n >= 2 ? [...base, ...ex[al]] : base;
+  });
+  const tete = ["Â", "nb", "BC (moy.)", "AC (moy.)", "BC/AC"].concat(n >= 2 ? ["sin Â", "cos Â", "tan Â"] : []);
+  const det = d.map(t => [t.seat, t.param + "°", fmt(t.a, 3), fmt(t.b, 3)]);
+  return `<div>${table(tete, lignes)}
+    <p style="font-style:italic">Hypoténuse 1 : BC = sin Â, AC = cos Â et BC/AC = tan Â.</p></div>
+    <div style="max-width:560px">${table(["n°", "Â", "BC", "AC"], det)}</div>`;
+}
+</script>
+</body>
+</html>

@@ -8,14 +8,14 @@
 // ---- 1. Configuration Firebase --------------------------------
 // Coller ici l'objet « firebaseConfig » de la console Firebase
 // (Paramètres du projet > Vos applications > Application Web).
-// Laisser apiKey vide : mode démo local (un seul navigateur, plusieurs onglets).
+// apiKey vide = mode démo local (un seul navigateur, plusieurs onglets).
 export const FIREBASE_CONFIG = {
-  apiKey: "",
-  authDomain: "",
-  projectId: "",
-  storageBucket: "",
-  messagingSenderId: "",
-  appId: ""
+  apiKey: "AIzaSyAlTFvPC0b-WCcf6D8YVc0lSpozaKP2Yfc",
+  authDomain: "atelier-trigo.firebaseapp.com",
+  projectId: "atelier-trigo",
+  storageBucket: "atelier-trigo.firebasestorage.app",
+  messagingSenderId: "61529021123",
+  appId: "1:61529021123:web:dcd58f473abfd3ce242076"
 };
 
 const FB_VERSION = "10.12.2";

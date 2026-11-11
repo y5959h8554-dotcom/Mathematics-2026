@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Suivi de la classe</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,400&family=Spline+Sans+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+<style>
+  :root{ --paper:#f4efe6; --ink:#1c2321; --line:#2b3a36; --accent:#c2410c; --accent2:#0e7c6b;
+         --red:#c0392b; --purple:#7d3cb5; --faint:#c9c0b1; --grid:#e4ddcf; }
+  *{box-sizing:border-box;}
+  html,body{margin:0;}
+  body{background:var(--paper);color:var(--ink);font-family:"Fraunces",Georgia,serif;}
+  header{padding:18px 24px 12px;border-bottom:1px solid var(--faint);display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;}
+  header h1{font-size:1.5rem;font-weight:600;margin:0;}
+  .mono{font-family:"Spline Sans Mono",monospace;}
+  .etat{margin-left:auto;font-family:"Spline Sans Mono",monospace;font-size:0.72rem;letter-spacing:0.08em;}
+  button{font-family:"Spline Sans Mono",monospace;font-size:0.78rem;text-transform:uppercase;letter-spacing:0.08em;
+    background:transparent;border:1.5px solid var(--line);color:var(--line);padding:10px 18px;border-radius:2px;cursor:pointer;}
+  button.primary{border-color:var(--accent);color:var(--accent);}
+  button.on{background:var(--line);color:var(--paper);}
+  button.danger{border-color:var(--red);color:var(--red);}
+  .msg{font-family:"Spline Sans Mono",monospace;font-size:0.8rem;color:var(--red);min-height:1.2em;}
+  #debut{padding:60px 24px;display:flex;flex-direction:column;align-items:center;gap:18px;text-align:center;}
+  #debut .grand{font-size:1.5rem;font-style:italic;}
+  #debut .choix{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;}
+  #seance{display:none;padding:16px 24px 40px;}
+  .barre{display:flex;align-items:center;gap:22px;flex-wrap:wrap;padding-bottom:14px;border-bottom:1px solid var(--faint);}
+  .code{font-family:"Spline Sans Mono",monospace;font-size:2.6rem;font-weight:500;letter-spacing:0.12em;line-height:1;}
+  .kicker{font-family:"Spline Sans Mono",monospace;font-size:0.7rem;letter-spacing:0.14em;text-transform:uppercase;color:var(--accent2);}
+  .url{font-family:"Spline Sans Mono",monospace;font-size:0.72rem;color:var(--line);word-break:break-all;max-width:360px;}
+  #qr svg{width:110px;height:110px;display:block;}
+  .outils{margin-left:auto;display:flex;gap:10px;flex-wrap:wrap;}
+  .resume{font-family:"Spline Sans Mono",monospace;font-size:0.82rem;margin:14px 0 10px;}
+  .mur{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px;}
+  .carte{border:1.5px solid var(--faint);border-radius:6px;padding:8px 10px 10px;background:rgba(255,255,255,0.35);}
+  .carte.inactif{opacity:0.55;}
+  .carte .tete{display:flex;justify-content:space-between;align-items:baseline;font-family:"Spline Sans Mono",monospace;font-size:0.78rem;}
+  .carte .tete b{font-size:0.95rem;}
+  .carte canvas{display:block;width:100%;height:150px;}
+  .xp{position:relative;display:flex;gap:2px;height:18px;margin-top:8px;}
+  .xp .seg{flex:1;border-radius:2px;background:rgba(47,158,68,0.13);}
+  .xp .seg.on{background:#2f9e44;}
+  .xp-n{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-family:"Spline Sans Mono",monospace;
+    font-size:0.66rem;color:#2f9e44;background:var(--paper);border:1.5px solid #2f9e44;border-radius:9px;padding:0 7px;white-space:nowrap;}
+  .tag{font-family:"Spline Sans Mono",monospace;font-size:0.66rem;color:#8a6a00;border:1px dashed #eab308;border-radius:3px;padding:0 4px;margin-left:6px;}
+  .carte .lignes{font-family:"Spline Sans Mono",monospace;font-size:0.72rem;line-height:1.55;}
+  .ok{color:var(--accent2);} .ko{color:var(--red);} .gris{color:#8d8577;}
+  .opp{color:var(--red);} .adj{color:var(--purple);} .hyp{color:var(--ink);}
+  h2{font-size:1.15rem;margin:26px 0 8px;font-weight:600;}
+  table{border-collapse:collapse;font-family:"Spline Sans Mono",monospace;font-size:0.8rem;}
+  th{text-align:left;font-weight:500;padding:6px 14px 6px 0;border-bottom:1.5px solid var(--line);white-space:nowrap;}
+  td{padding:5px 14px 5px 0;border-bottom:1px solid var(--faint);white-space:nowrap;}
+  body.anonyme .num{visibility:hidden;}
+  body.anonyme #tableau{display:none;}
+</style>
+</head>
+<body>
+<header>
+  <h1>Suivi de la classe</h1>
+  <span class="etat" id="etat"></span>
+</header>
+
+<div id="debut">
+  <div class="grand">Quelle page les élèves vont-ils utiliser ?</div>
+  <div class="choix" id="choix"></div>
+  <button id="reprendre" style="display:none"></button>
+  <div class="msg" id="msgDebut"></div>
+</div>
+
+<div id="seance">
+  <div class="barre">
+    <div><div class="kicker">Code</div><div class="code" id="code"></div></div>
+    <div id="qr"></div>
+    <div><div class="kicker" id="titrePage"></div><div class="url" id="url"></div></div>
+    <div class="outils">
+      <button id="anonyme" title="Pour projeter le mur : masque les numéros et le tableau">Masquer les numéros</button>
+      <button class="danger" id="terminer">Terminer et effacer</button>
+    </div>
+  </div>
+  <div class="resume" id="resume"></div>
+  <div class="mur" id="mur"></div>
+  <div id="tableau"><h2>Progression</h2><div id="table"></div></div>
+</div>
+
+<script type="module">
+import { stockage, MODE_LOCAL, PAGES } from "./suivi-commun.js?v=1";
+const $ = id => document.getElementById(id);
+let st, code, seance = null, eleves = [];
+const C = { ink: "#1c2321", line: "#2b3a36", red: "#c0392b", purple: "#7d3cb5", accent: "#c2410c", accent2: "#0e7c6b", faint: "#c9c0b1", grid: "#e4ddcf" };
+
+$("etat").textContent = MODE_LOCAL ? "Mode démo local (Firebase non configuré)" : "Firebase";
+$("etat").style.color = MODE_LOCAL ? C.red : C.accent2;
+
+// ---------- début
+(async () => {
+  try { st = await stockage(); } catch (e) { $("msgDebut").textContent = "Connexion impossible : " + e.message; return; }
+  $("choix").innerHTML = Object.entries(PAGES).map(([id, p]) => `<button class="primary" data-page="${id}">${p.titre}</button>`).join("");
+  $("choix").querySelectorAll("button").forEach(b => b.onclick = async () => {
+    $("msgDebut").textContent = "";
+    try { ouvrir(await st.creerSeance(b.dataset.page)); }
+    catch (e) { console.error(e); $("msgDebut").textContent = explication(e); }
+  });
+  const ancien = localStorage.getItem("suivi-prof");
+  if (ancien) { $("reprendre").style.display = ""; $("reprendre").textContent = "Reprendre la séance " + ancien; $("reprendre").onclick = () => ouvrir(ancien); }
+})();
+function explication(e) {
+  const m = String(e && (e.code || e.message) || e);
+  if (/permission/i.test(m)) return "Firebase refuse l'accès : les règles de suivi ne sont pas publiées (Firestore > Règles > coller firestore.rules > Publier), ou la connexion anonyme est désactivée.";
+  return "Création impossible : " + m;
+}
+
+function ouvrir(c) {
+  code = c;
+  $("debut").style.display = "none"; $("seance").style.display = "block";
+  $("code").textContent = c;
+  st.suivreSeance(c, s => {
+    if (!s) { localStorage.removeItem("suivi-prof"); location.reload(); return; }
+    seance = s;
+    const url = new URL(PAGES[s.page].fichier, location.href); url.search = "?s=" + c;
+    $("titrePage").textContent = PAGES[s.page].titre;
+    $("url").textContent = url.href;
+    try { const q = qrcode(0, "M"); q.addData(url.href); q.make(); $("qr").innerHTML = q.createSvgTag({ cellSize: 3, margin: 1, scalable: true }); }
+    catch { $("qr").textContent = ""; }
+    rendre();
+  }, e => { $("resume").textContent = explication(e); });
+  st.suivreEleves(c, l => { eleves = l.sort((a, b) => (+a.seat) - (+b.seat)); rendre(); }, e => { $("resume").textContent = explication(e); });
+}
+$("anonyme").onclick = () => { document.body.classList.toggle("anonyme"); $("anonyme").classList.toggle("on"); };
+$("terminer").onclick = async () => {
+  if (!confirm("Terminer la séance et effacer le travail des élèves ?")) return;
+  await st.terminer(code); location.reload();
+};
+setInterval(() => { if (seance) rendreTemps(); }, 5000);
+
+// ---------- affichage
+const depuis = t => { const s = Math.max(0, Math.round((Date.now() - t) / 1000)); return s < 60 ? `${s} s` : `${Math.floor(s / 60)} min`; };
+function rendreTemps() { document.querySelectorAll("[data-t]").forEach(el => el.textContent = depuis(+el.dataset.t)); }
+
+function rendre() {
+  if (!seance) return;
+  const n = eleves.length;
+  $("resume").textContent = "";
+  $("mur").innerHTML = eleves.map(e => `
+    <div class="carte${Date.now() - e.t > 180000 ? " inactif" : ""}">
+      <div class="tete"><b class="num">n° ${e.seat}</b><span>${seance.page === "trigo" && e.prog?.h ? `<span class="tag">indice</span>` : ""} <span class="gris" data-t="${e.t}">${depuis(e.t)}</span></span></div>
+      <canvas data-seat="${e.seat}"></canvas>
+      <div class="lignes">${lignes(e)}</div>${seance.page === "trigo" ? barreXP(e) : ""}
+    </div>`).join("");
+  document.querySelectorAll(".carte canvas").forEach(cv => {
+    const e = eleves.find(x => x.seat === cv.dataset.seat); let etat = null;
+    try { etat = JSON.parse(e.etat); } catch {}
+    const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
+    cv.width = r.width * dpr; cv.height = r.height * dpr;
+    const ctx = cv.getContext("2d"); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    if (etat) (seance.page === "trigo" ? dessinerTriangle : dessinerCercles)(ctx, r.width, r.height, etat);
+  });
+  $("tableau").style.display = seance.page === "trigo" ? "none" : "";
+  $("table").innerHTML = seance.page === "trigo" ? "" : tableRadian();
+}
+
+// ---------- triangle (même convention que trigo-triangle.html : angle droit en C)
+function lignes(e) {
+  let etat = null; try { etat = JSON.parse(e.etat); } catch {}
+  if (seance.page === "radian") {
+    const d = etat?.d || [];
+    return d.map((x, i) => x > 0 ? `r = ${i + 1} : ${x}°, arc ${((i + 1) * x * Math.PI / 180).toFixed(3).replace(".", ",")}` : `<span class="gris">r = ${i + 1} : —</span>`).join("<br>");
+  }
+  if (!etat || !etat.pts) return `<span class="gris">pas encore de triangle</span>`;
+  const p = e.prog || {}, ph = etat.ph ?? -1;
+  if (ph === 9) return `<b>étape 2</b> : ${p.p ?? 0} / ${NPROP} propriétés justes`;
+  return `<b>${ETAPES[ph] ?? ""}</b>`;
+}
+// même barre que chez l'élève : tracé, 8 étapes de la partie 1, 7 propriétés
+const NB_ETAPES = 16;
+function barreXP(e) {
+  const p = e.prog || {}, ph = p.ph ?? -1;
+  const k = !p.tri || ph < 0 ? 0 : ph === 9 ? 9 + (p.p ?? 0) : 1 + ph;
+  return `<div class="xp">${Array.from({ length: NB_ETAPES }, (_, i) => `<span class="seg${i < k ? " on" : ""}"></span>`).join("")}<span class="xp-n">${k} / ${NB_ETAPES}</span></div>`;
+}
+const NPROP = 7;
+const ETAPES = ["nomme les sommets", "cherche l'hypoténuse", "cherche le côté adjacent à l'angle α", "cherche le côté opposé à l'angle α", "sin, cos, tan de l'angle α",
+  "cherche le côté adjacent à l'angle β", "cherche le côté opposé à l'angle β", "sin, cos, tan de l'angle β", "étape 1 terminée", "étape 2"];
+function labelsSommets(p, ri) {        // copie de vertexLabels() de trigo-triangle.html
+  const C0 = p[ri], i1 = (ri + 1) % 3, i2 = (ri + 2) % 3;
+  const ax = p[i1][0] - C0[0], ay = -(p[i1][1] - C0[1]), bx = p[i2][0] - C0[0], by = -(p[i2][1] - C0[1]);
+  const l = [null, null, null]; l[ri] = "C";
+  if (ax * by - ay * bx > 0) { l[i1] = "B"; l[i2] = "A"; } else { l[i2] = "B"; l[i1] = "A"; }
+  return l;
+}
+function dessinerTriangle(ctx, W, H, etat) {
+  if (!etat.pts) return;
+  const xs = etat.pts.map(p => p[0]), ys = etat.pts.map(p => p[1]);
+  const m = 22, bw = Math.max(...xs) - Math.min(...xs) || 1, bh = Math.max(...ys) - Math.min(...ys) || 1;
+  const k = Math.min((W - 2 * m) / bw, (H - 2 * m) / bh);
+  const ox = (W - bw * k) / 2 - Math.min(...xs) * k, oy = (H - bh * k) / 2 - Math.min(...ys) * k;
+  const P = etat.pts.map(p => ({ x: ox + p[0] * k, y: oy + p[1] * k }));
+  const lab = Array.isArray(etat.lab) ? etat.lab : labelsSommets(etat.pts, etat.ri), idx = {}; lab.forEach((l, i) => { if (l) idx[l] = i; });
+  const complet = idx.A !== undefined && idx.B !== undefined && idx.C !== undefined;
+  const ph = etat.ph ?? -1;
+  if (!complet) {                       // sommets pas encore tous nommés
+    ctx.fillStyle = "rgba(14,124,107,0.06)"; ctx.strokeStyle = C.ink; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(P[0].x, P[0].y); ctx.lineTo(P[1].x, P[1].y); ctx.lineTo(P[2].x, P[2].y); ctx.closePath(); ctx.fill(); ctx.stroke();
+    const g0 = { x: (P[0].x + P[1].x + P[2].x) / 3, y: (P[0].y + P[1].y + P[2].y) / 3 };
+    ctx.font = "600 13px Fraunces, Georgia, serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillStyle = C.ink;
+    lab.forEach((l, i) => { if (!l) return; const dx = P[i].x - g0.x, dy = P[i].y - g0.y, d = Math.hypot(dx, dy) || 1; ctx.fillText(l, P[i].x + dx / d * 12, P[i].y + dy / d * 12); });
+    return;
+  }
+  const A = P[idx.A], B = P[idx.B], Cc = P[idx.C];
+  // côtés colorés une fois identifiés (comme chez l'élève)
+  const cAB = C.ink, cAC = ph >= 3 ? C.purple : C.ink, cBC = ph >= 4 ? C.red : C.ink;
+  const seg = (a, b, col) => { ctx.strokeStyle = col; ctx.lineWidth = col === C.ink ? 2 : 3; ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke(); };
+  ctx.fillStyle = "rgba(14,124,107,0.06)"; ctx.beginPath(); ctx.moveTo(P[0].x, P[0].y); ctx.lineTo(P[1].x, P[1].y); ctx.lineTo(P[2].x, P[2].y); ctx.fill();
+  seg(A, B, cAB); seg(A, Cc, cAC); seg(B, Cc, cBC);
+  const u = n => { const d = Math.hypot(n.x, n.y) || 1; return { x: n.x / d, y: n.y / d }; };
+  const ua = u({ x: A.x - Cc.x, y: A.y - Cc.y }), ub = u({ x: B.x - Cc.x, y: B.y - Cc.y }), s = 8;
+  ctx.strokeStyle = C.ink; ctx.lineWidth = 1.2; ctx.beginPath();
+  ctx.moveTo(Cc.x + ua.x * s, Cc.y + ua.y * s); ctx.lineTo(Cc.x + (ua.x + ub.x) * s, Cc.y + (ua.y + ub.y) * s); ctx.lineTo(Cc.x + ub.x * s, Cc.y + ub.y * s); ctx.stroke();
+  if (ph >= 1) [["A", A, B, C.purple], ["B", B, A, C.red]].forEach(([nom, V, W2, col]) => {   // α violet en A, β rouge en B
+    const a1 = Math.atan2(Cc.y - V.y, Cc.x - V.x), a2 = Math.atan2(W2.y - V.y, W2.x - V.x);
+    let d = a2 - a1; while (d > Math.PI) d -= 2 * Math.PI; while (d < -Math.PI) d += 2 * Math.PI;
+    ctx.strokeStyle = col; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(V.x, V.y, 14, a1, a1 + d, d < 0); ctx.stroke();
+  });
+  const g = { x: (P[0].x + P[1].x + P[2].x) / 3, y: (P[0].y + P[1].y + P[2].y) / 3 };
+  ctx.font = "600 13px Fraunces, Georgia, serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillStyle = C.ink;
+  lab.forEach((l, i) => { const d = u({ x: P[i].x - g.x, y: P[i].y - g.y }); ctx.fillText(l, P[i].x + d.x * 12, P[i].y + d.y * 12); });
+}
+
+// ---------- quatre cercles (radian-cercle.html)
+function dessinerCercles(ctx, W, H, etat) {
+  const d = etat.d || [0, 0, 0, 0], gap = 8;
+  const k = Math.min((W - 3 * gap - 8) / 20, (H - 30) / 8);          // somme des diamètres = 20 rayons
+  let x = (W - (20 * k + 3 * gap)) / 2;
+  d.forEach((deg, i) => {
+    const r = (i + 1) * k, cx = x + r, cy = H / 2 - 4; x += 2 * r + gap;
+    const t = deg * Math.PI / 180;
+    ctx.strokeStyle = C.line; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.arc(cx, cy, r, 0, 2 * Math.PI); ctx.stroke();
+    if (deg > 0) {
+      ctx.strokeStyle = C.accent; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(cx, cy, r, 0, -t, true); ctx.stroke();
+      ctx.strokeStyle = C.accent2; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + r, cy);
+      ctx.moveTo(cx, cy); ctx.lineTo(cx + r * Math.cos(t), cy - r * Math.sin(t)); ctx.stroke();
+    }
+    ctx.fillStyle = deg > 0 ? C.accent2 : C.faint; ctx.font = "500 10px 'Spline Sans Mono', monospace"; ctx.textAlign = "center";
+    ctx.fillText(deg > 0 ? deg + "°" : "—", cx, H - 6);
+  });
+}
+
+// ---------- tableaux de progression
+function tableRadian() {
+  const lignesR = eleves.map(e => {
+    let etat = null; try { etat = JSON.parse(e.etat); } catch {}
+    const d = etat?.d || [0, 0, 0, 0];
+    return `<tr><td class="num">${e.seat}</td>${d.map((x, i) => `<td>${x > 0 ? `${x}°, arc ${((i + 1) * x * Math.PI / 180).toFixed(3).replace(".", ",")}` : "—"}</td>`).join("")}
+      <td>${new Set(d.filter(x => x > 0)).size === 1 && d.every(x => x > 0) ? `<span class="ok">même angle</span>` : ""}</td><td class="gris" data-t="${e.t}">${depuis(e.t)}</td></tr>`;
+  }).join("");
+  return `<table><tr><th>n°</th><th>r = 1</th><th>r = 2</th><th>r = 3</th><th>r = 4</th><th></th><th>dernière action</th></tr>${lignesR}</table>`;
+}
+</script>
+</body>
+</html>

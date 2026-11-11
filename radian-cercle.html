@@ -25,7 +25,7 @@
     display:flex;flex-direction:column;touch-action:none;
     user-select:none;-webkit-user-select:none;
   }
-  header{padding:18px 24px 12px;border-bottom:1px solid var(--faint);}
+  header{padding:18px 24px 12px;border-bottom:1px solid var(--faint);display:flex;align-items:baseline;gap:14px;}
   header h1{font-size:1.5rem;font-weight:600;margin:0;letter-spacing:-0.01em;}
   .main{flex:1;min-height:0;display:flex;flex-direction:row;}
   .stage{position:relative;flex:1;min-width:0;}
@@ -120,7 +120,8 @@ function layout(){
     const cx=x+R;
     x+=2*R+gap;
     const keep = circles[i] ? circles[i].theta : 0;
-    return { r:rad, cx, cy:H*0.54, theta:keep };
+    const raw  = circles[i] ? circles[i].raw : 0;
+    return { r:rad, cx, cy:H*0.54, theta:keep, raw };
   });
   draw();
 }
@@ -183,15 +184,18 @@ function drawCircle(c){
 
   // measurements centered above this circle (kept within its own column)
   if(theta>0.0001){
+    // l'angle est un nombre entier de degrés (aimanté) : l'arc affiché correspond
+    // exactement à l'angle affiché, et l'arc est donné à 0,001 près, si bien que
+    // les rapports arc / rayon d'un même angle concordent sur les quatre cercles
     const deg=Math.round(theta*180/Math.PI);
-    const s=c.r*theta;
+    const s=c.r*deg*Math.PI/180;
     const ty=Math.max(16, cy-R-34);
     ctx.textAlign='center';ctx.textBaseline='alphabetic';
     ctx.font='600 13px "Spline Sans Mono", monospace';
     ctx.fillStyle=getCSS('--vert');
     ctx.fillText('angle : '+deg+'°', cx, ty);
     ctx.fillStyle=getCSS('--accent');
-    ctx.fillText('arc : '+fmt(s,2), cx, ty+18);
+    ctx.fillText('arc : '+fmt(s,3), cx, ty+18);
   }
 }
 
@@ -221,6 +225,7 @@ cv.addEventListener('pointerdown',e=>{
     if(d<bd){bd=d;best=c;}
   }
   if(best){
+    best.raw = best.theta;
     drag={circle:best, lastRaw:rawAngle(best,p)};
     try{cv.setPointerCapture(e.pointerId);}catch(_){}
   }
@@ -232,16 +237,32 @@ cv.addEventListener('pointermove',e=>{
   let d=raw-drag.lastRaw;
   if(d>Math.PI) d-=Math.PI*2;
   if(d<-Math.PI) d+=Math.PI*2;
-  c.theta=Math.max(0, Math.min(Math.PI*2, c.theta+d));
+  c.raw=Math.max(0, Math.min(Math.PI*2, c.raw+d));
+  c.theta=Math.round(c.raw*180/Math.PI)*Math.PI/180;      // degré entier
   drag.lastRaw=raw;
   draw();
 });
 cv.addEventListener('pointerup',e=>{
   if(!drag)return;drag=null;
   try{cv.releasePointerCapture(e.pointerId);}catch(_){}
+  publierSuivi();
 });
 
+// ---- suivi de classe : angles choisis, publiés pour la page de l'enseignant ----
+function publierSuivi(){
+  if(!window.SUIVI) return;
+  const d=circles.map(c=>Math.round(c.theta*180/Math.PI));
+  window.SUIVI.publier({d}, {n:d.filter(x=>x>0).length});
+}
+window.publierSuivi=publierSuivi;
+
 layout();
+</script>
+<script type="module">
+// Suivi de classe : sans code de séance, la page fonctionne comme avant.
+import { brancherSuivi } from "./suivi-commun.js?v=1";
+window.SUIVI = brancherSuivi("radian");
+window.publierSuivi();
 </script>
 </body>
 </html>

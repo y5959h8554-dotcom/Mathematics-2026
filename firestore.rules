@@ -1,40 +1,35 @@
 rules_version = '2';
-// Règles Firestore de l'atelier « Triangle rectangle » (atelier-trigo-*.html)
-// - séance : lisible par tous (code + activité affichée), modifiable par son créateur seulement
-// - envois : les élèves peuvent seulement en créer (séance ouverte, format contrôlé) ;
-//   seul le créateur de la séance peut les lire et les effacer
+// Règles Firestore du suivi de classe (suivi-prof.html, trigo-triangle.html, radian-cercle.html)
+// - séance suivi/{code} : lisible par tous (les élèves vérifient le code), modifiable par son créateur
+// - travail d'un élève suivi/{code}/eleves/{numéro} : l'élève l'écrit (séance ouverte, format contrôlé) ;
+//   seul le créateur de la séance peut le lire et l'effacer
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    match /sessions/{code} {
+    match /suivi/{code} {
       allow read: if true;
       allow create: if request.auth != null
         && code.size() == 4
-        && request.resource.data.keys().hasOnly(['owner', 'act', 'open', 'created'])
+        && request.resource.data.keys().hasOnly(['owner', 'page', 'open', 'created'])
         && request.resource.data.owner == request.auth.uid
-        && request.resource.data.act == 0
+        && request.resource.data.page in ['trigo', 'radian']
         && request.resource.data.open == true;
       allow update: if request.auth != null
         && resource.data.owner == request.auth.uid
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['act', 'open'])
-        && request.resource.data.act is int
-        && request.resource.data.act >= 0 && request.resource.data.act <= 4;
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['open']);
       allow delete: if request.auth != null && resource.data.owner == request.auth.uid;
 
-      match /submissions/{id} {
-        function seance() { return get(/databases/$(database)/documents/sessions/$(code)).data; }
-        function point(p) { return p is list && p.size() == 2 && p[0] is number && p[1] is number; }
-        allow create: if seance().open == true
-          && request.resource.data.keys().hasOnly(['act', 'seat', 'A', 'B', 'C', 'param', 'u', 't'])
-          && request.resource.data.act is int
-          && request.resource.data.act >= 1 && request.resource.data.act <= 4
-          && request.resource.data.seat is string && request.resource.data.seat.size() <= 3
-          && point(request.resource.data.A) && point(request.resource.data.B) && point(request.resource.data.C)
-          && (request.resource.data.param == null || request.resource.data.param is number)
-          && request.resource.data.u is number
+      match /eleves/{seat} {
+        function seance() { return get(/databases/$(database)/documents/suivi/$(code)).data; }
+        allow create, update: if seance().open == true
+          && seat.matches('[0-9]{1,2}')
+          && request.resource.data.keys().hasOnly(['seat', 'page', 'etat', 'prog', 't'])
+          && request.resource.data.seat == seat
+          && request.resource.data.page == seance().page
+          && request.resource.data.etat is string && request.resource.data.etat.size() < 3000
+          && request.resource.data.prog is map && request.resource.data.prog.size() <= 10
           && request.resource.data.t == request.time;
         allow read, delete: if request.auth != null && seance().owner == request.auth.uid;
-        allow update: if false;
       }
     }
   }

@@ -260,6 +260,26 @@
   body.stage2 .ratio::after{display:none;}
   body.stage2 .colonne{gap:10px;}
   .pfixe{font-style:italic;text-align:center;}
+  /* petits écrans (iPad mini, barre de Safari) : partie 2 resserrée pour tenir sans défilement */
+  @media (max-height:860px){
+    body.stage2 .props{gap:9px;margin:12px 18px;padding:12px 16px;}
+    body.stage2 .props h2{margin:0;}
+    body.stage2 .props .consigne{padding:5px 12px;}
+    body.stage2 .prop{padding:4px 8px;}
+    body.stage2 .ratios{padding:14px 18px 6px;gap:4px 32px;}
+    body.stage2 .colonne{gap:4px;}
+    body.stage2 .ratio{padding:3px 10px;}
+  }
+  @media (max-height:720px){
+    body.stage2 .props{gap:6px;margin:8px 14px;padding:10px 14px;}
+    body.stage2 .props .quant{font-size:0.95rem;}
+    body.stage2 .prop{padding:2px 8px;font-size:0.98rem;}
+    body.stage2 .pbox{height:30px;}
+    body.stage2 .pinput{height:30px;}
+    body.stage2 .box{min-height:30px;}
+    body.stage2 .ratio .fn, body.stage2 .ratio .eq{font-size:1.1rem;}
+    body.stage2 .ratios{padding:8px 18px 4px;}
+  }
   /* floating drag chip */
   #dragChip{
     position:fixed;pointer-events:none;z-index:50;display:none;

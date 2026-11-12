@@ -39,7 +39,9 @@
   .carte .tete{display:flex;justify-content:space-between;align-items:baseline;font-family:"Spline Sans Mono",monospace;font-size:0.78rem;}
   .carte .tete b{font-size:0.95rem;}
   .carte canvas{display:block;width:100%;height:150px;}
-  .xp{position:relative;display:flex;gap:2px;height:18px;margin-top:8px;}
+  .xpg{display:flex;align-items:center;gap:6px;margin-top:6px;}
+  .xp-lab{font-family:"Spline Sans Mono",monospace;font-size:0.62rem;color:#2f9e44;white-space:nowrap;}
+  .xp{position:relative;display:flex;gap:2px;height:18px;flex:1;}
   .xp .seg{flex:1;border-radius:2px;background:rgba(47,158,68,0.13);}
   .xp .seg.on{background:#2f9e44;}
   .xp-n{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-family:"Spline Sans Mono",monospace;
@@ -144,7 +146,7 @@ function rendre() {
   $("resume").textContent = "";
   $("mur").innerHTML = eleves.map(e => `
     <div class="carte${Date.now() - e.t > 180000 ? " inactif" : ""}">
-      <div class="tete"><b class="num">n° ${e.seat}</b><span>${seance.page === "trigo" && e.prog?.h ? `<span class="tag">indice</span>` : ""} <span class="gris" data-t="${e.t}">${depuis(e.t)}</span></span></div>
+      <div class="tete"><b class="num">n° ${e.seat}</b><span>${seance.page === "trigo" && e.prog?.h ? `<span class="tag">indice 1</span>` : ""}${seance.page === "trigo" && e.prog?.h2 ? `<span class="tag">indice 2</span>` : ""} <span class="gris" data-t="${e.t}">${depuis(e.t)}</span></span></div>
       <canvas data-seat="${e.seat}"></canvas>
       <div class="lignes">${lignes(e)}</div>${seance.page === "trigo" ? barreXP(e) : ""}
     </div>`).join("");
@@ -173,11 +175,14 @@ function lignes(e) {
   return `<b>${ETAPES[ph] ?? ""}</b>`;
 }
 // même barre que chez l'élève : tracé, 8 étapes de la partie 1, 7 propriétés
-const NB_ETAPES = 16;
+// mêmes barres que chez l'élève : partie 1 (tracé + 8 étapes), partie 2 (7 propriétés), l'une sous l'autre
+function barre(k, n, nom) {
+  return `<div class="xpg"><span class="xp-lab">${nom}</span><div class="xp">${Array.from({ length: n }, (_, i) => `<span class="seg${i < k ? " on" : ""}"></span>`).join("")}<span class="xp-n">${k} / ${n}</span></div></div>`;
+}
 function barreXP(e) {
   const p = e.prog || {}, ph = p.ph ?? -1;
-  const k = !p.tri || ph < 0 ? 0 : ph === 9 ? 9 + (p.p ?? 0) : 1 + ph;
-  return `<div class="xp">${Array.from({ length: NB_ETAPES }, (_, i) => `<span class="seg${i < k ? " on" : ""}"></span>`).join("")}<span class="xp-n">${k} / ${NB_ETAPES}</span></div>`;
+  const k1 = !p.tri || ph < 0 ? 0 : ph === 9 ? 9 : 1 + ph, k2 = ph === 9 ? (p.p ?? 0) : 0;
+  return barre(k1, 9, "Partie 1") + barre(k2, NPROP, "Partie 2");
 }
 const NPROP = 7;
 const ETAPES = ["nomme les sommets", "cherche l'hypoténuse", "cherche le côté adjacent à l'angle α", "cherche le côté opposé à l'angle α", "sin, cos, tan de l'angle α",

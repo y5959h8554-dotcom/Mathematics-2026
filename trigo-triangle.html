@@ -32,9 +32,9 @@
   header{
     padding:18px 24px 12px;
     border-bottom:1px solid var(--faint);
-    display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;
+    display:flex;align-items:baseline;gap:14px;flex-wrap:nowrap;
   }
-  header h1{
+  header h1{flex:none;white-space:nowrap;
     font-size:1.5rem;font-weight:600;margin:0;letter-spacing:-0.01em;
   }
   header .sub{
@@ -218,7 +218,11 @@
   #dragChip.rond{width:48px;height:48px;border-radius:50%;padding:0;align-items:center;justify-content:center;
     font-size:22px;border-color:var(--ink);color:var(--ink);}
   /* barre de progression */
-  .xp{position:relative;display:flex;gap:3px;height:22px;flex:0 1 460px;min-width:220px;margin-left:auto;align-self:center;}
+  .xps{display:flex;gap:18px;flex:1 1 auto;max-width:600px;min-width:0;margin-left:auto;align-self:center;}
+  .xpg{display:flex;align-items:center;gap:7px;min-width:0;flex:9 1 0;}
+  .xpg.p2{flex:7 1 0;}
+  .xp-lab{font-family:"Spline Sans Mono",monospace;font-size:0.66rem;color:var(--xp);white-space:nowrap;letter-spacing:0.04em;}
+  .xp{position:relative;display:flex;gap:3px;height:22px;flex:1 1 0;min-width:0;}
   .xp .seg{flex:1;border-radius:3px;background:rgba(47,158,68,0.13);transition:background .5s;}
   .xp .seg.on{background:var(--xp);}
   .xp-n{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
@@ -233,6 +237,11 @@
     box-shadow:0 8px 24px rgba(0,0,0,0.15);font-family:"Fraunces",Georgia,serif;font-weight:600;font-size:1.5rem;
     letter-spacing:0.06em;white-space:nowrap;color:var(--ink);}
   .indice-pop.vu{display:block;}
+  .indice-btn,#indice{border:1.5px dashed rgb(var(--glow));color:#8a6a00;}
+  .prop .indice-wrap{margin-left:14px;}
+  .indice-btn{padding:6px 10px;font-size:0.7rem;}
+  .indice-pop.texte{left:auto;right:0;width:270px;white-space:normal;font-size:1.02rem;font-weight:400;
+    letter-spacing:0;line-height:1.4;font-style:italic;}
   /* case à remplir au clavier (propriétés) */
   .pinput{width:58px;height:34px;border:2px dotted var(--faint);border-radius:6px;background:transparent;
     font-family:"Fraunces",Georgia,serif;font-size:1.05rem;text-align:center;color:var(--ink);
@@ -265,7 +274,10 @@
 <body>
 <header>
   <h1>Trigonométrie dans un triangle rectangle</h1>
-  <div class="xp" id="xp" title="Progression"><span class="xp-n" id="xpN"></span></div>
+  <div class="xps">
+    <div class="xpg"><span class="xp-lab">Partie 1</span><div class="xp" id="xp1"><span class="xp-n"></span></div></div>
+    <div class="xpg p2"><span class="xp-lab">Partie 2</span><div class="xp" id="xp2"><span class="xp-n"></span></div></div>
+  </div>
 </header>
 
 <div class="main" id="main">
@@ -322,7 +334,7 @@ let snapTarget=null;
 const PHASES=['noms','hyp','adjA','oppA','ratA','adjB','oppB','ratB','fini'];
 let phase='noms';
 let placement=[null,null,null];        // lettre posée sur chaque sommet (étape noms)
-let indiceVu=false;
+let indiceVu=false, indice2Vu=false;
 // « l'angle α » en mauve, « l'angle β » en rouge
 const ANG={A:`<span class="ang-a">l'angle α</span>`, B:`<span class="ang-b">l'angle β</span>`};
 // côté attendu à chaque clic, et étiquette affichée quand il est trouvé
@@ -821,7 +833,7 @@ function buildPanel(){
   refreshBoxes();
 }
 function majIndice(){
-  const vis = stage2() || (triangle && mode==='snapped' && (phase==='ratA' || phase==='ratB'));
+  const vis = !stage2() && triangle && mode==='snapped' && (phase==='ratA' || phase==='ratB');
   document.getElementById('indiceWrap').style.display = vis ? 'inline-block' : 'none';
   if(!vis) document.getElementById('indicePop').classList.remove('vu');
 }
@@ -831,7 +843,8 @@ document.getElementById('indice').addEventListener('click',ev=>{
   if(pop.classList.contains('vu') && !indiceVu){ indiceVu=true; publierSuivi(); }
 });
 document.addEventListener('pointerdown',ev=>{
-  if(!ev.target.closest('#indiceWrap')) document.getElementById('indicePop').classList.remove('vu');
+  const w=ev.target.closest('.indice-wrap');
+  document.querySelectorAll('.indice-pop.vu').forEach(pp=>{ if(!w || !w.contains(pp)) pp.classList.remove('vu'); });
 });
 
 // ---- étape noms : faire glisser A, B, C sur les sommets ----
@@ -929,9 +942,6 @@ const texteJeton = t => { const {fn,a}=jeton(t); return `${fn}(${SYM[a]})`; };
 function propTemplates(){
   const sinOuCos = t => ['sin','cos'].includes(jeton(t).fn);
   return [
-    {id:'pyth', n:3, parts:['', {b:0}, {sup:'2'}, ' + ', {b:1}, {sup:'2'}, ' = ', {saisie:2}],
-     check:st=>{ const x=jeton(st[0]), y=jeton(st[1]);
-       return x.a===y.a && x.fn!==y.fn && sinOuCos(st[0]) && sinOuCos(st[1]) && Number(String(st[2]).replace(',','.'))===1; }},
     // deux encadrements par ligne : un pour chaque angle
     {id:'r1', n:2, parts:['0 < ', {b:0}, ' < 1', {ecart:1}, '0 < ', {b:1}, ' < 1'],
      check:st=>sinOuCos(st[0]) && sinOuCos(st[1]) && jeton(st[0]).a!==jeton(st[1]).a},
@@ -947,6 +957,10 @@ function propTemplates(){
     {id:'tan', n:6, parts:['', {b:0}, ' = ', {frac:[1,2]}, {ecart:1}, '', {b:3}, ' = ', {frac:[4,5]}],
      check:st=>{ const un=k=>{ const [t,s,c]=st.slice(k,k+3).map(jeton); return t.fn==='tan' && s.fn==='sin' && c.fn==='cos' && t.a===s.a && s.a===c.a; };
        return un(0) && un(3) && jeton(st[0]).a!==jeton(st[3]).a; }},
+    // identité fondamentale, en dernier
+    {id:'pyth', n:3, parts:['', {b:0}, {sup:'2'}, ' + ', {b:1}, {sup:'2'}, ' = ', {saisie:2}, {indice:true}],
+     check:st=>{ const x=jeton(st[0]), y=jeton(st[1]);
+       return x.a===y.a && x.fn!==y.fn && sinOuCos(st[0]) && sinOuCos(st[1]) && Number(String(st[2]).replace(',','.'))===1; }},
   ];
 }
 let propState=null;   // {id: [jeton|null, …]}
@@ -982,6 +996,15 @@ function buildProps(){
         f.append(un, bar, den); row.append(f);
       }
       else if(part.b!==undefined){ row.append(mkPBox(t.id, part.b)); }
+      else if(part.indice){                        // indice propre à cette ligne
+        const w=document.createElement('span'); w.className='indice-wrap';
+        const bt=document.createElement('button'); bt.type='button'; bt.className='indice-btn'; bt.textContent='? Indice';
+        const pop=document.createElement('span'); pop.className='indice-pop texte';
+        pop.innerHTML='Sur une feuille de brouillon, calcule sin(<span class="ang-a">α</span>)<sup>2</sup> + cos(<span class="ang-a">α</span>)<sup>2</sup>.';
+        bt.addEventListener('click',ev=>{ ev.stopPropagation(); pop.classList.toggle('vu');
+          if(pop.classList.contains('vu') && !indice2Vu){ indice2Vu=true; publierSuivi(); } });
+        w.append(bt,pop); row.append(w);
+      }
       else if(part.ecart){ const e=document.createElement('span'); e.className='ecart'; row.append(e); }
       else if(part.saisie!==undefined){            // nombre tapé au clavier
         const inp=document.createElement('input'); inp.className='pinput'; inp.type='text';
@@ -1090,7 +1113,7 @@ document.getElementById('continue').addEventListener('click',()=>{
   // chaque côté de l'angle droit porte ses deux rôles
   rev={AB:'AB', AC:'AC', BC:'BC'};
   propState=null;
-  buildPanel(); buildProps(); enableFnDrag();
+  buildPanel(); buildProps(); enableFnDrag(); majIndice();
   requestAnimationFrame(()=>{ impulser(document.getElementById('consigne2')); document.querySelectorAll('.ratio .fn').forEach(impulser); });
   requestAnimationFrame(()=>{ resize(); fitTriangleToCanvas(); draw(); publierSuivi(); });
 });
@@ -1115,7 +1138,7 @@ function reset(){
   document.body.classList.remove('stage2');
   document.getElementById('continue').style.display='none';
   document.getElementById('props').innerHTML='';
-  indiceVu=false;
+  indiceVu=false; indice2Vu=false;
   buildPanel(); majXP();
   promptEl.style.opacity=1;
   draw();
@@ -1123,29 +1146,32 @@ function reset(){
 
 // ---- suivi de classe (suivi-commun.js) : état publié pour la page de l'enseignant ----
 // barre de progression : tracé, 8 étapes de la partie 1, 7 propriétés
-const NB_ETAPES=16;
-let xpAvant=0;
+// barres de progression : partie 1 (tracé + 8 étapes), partie 2 (7 propriétés)
+const BARRES=[{id:'xp1', n:9, nom:'Partie 1'}, {id:'xp2', n:7, nom:'Partie 2'}];
+const xpAvant=[0,0];
 function nbFaites(){
   if(stage2()){
     const ok = propState ? propTemplates().filter(t=>{const v=propState[t.id]; return v.every(x=>x!==null) && t.check(v);}).length : 0;
-    return 9+ok;
+    return [9, ok];
   }
-  if(!triangle || mode!=='snapped') return 0;
-  return 1+PHASES.indexOf(phase);
+  if(!triangle || mode!=='snapped') return [0,0];
+  return [1+PHASES.indexOf(phase), 0];
 }
 function majXP(){
-  const xp=document.getElementById('xp');
-  if(xp.querySelectorAll('.seg').length!==NB_ETAPES){
-    for(let i=0;i<NB_ETAPES;i++){ const sg=document.createElement('span'); sg.className='seg'; xp.insertBefore(sg, document.getElementById('xpN')); }
-  }
-  const k=nbFaites(), segs=xp.querySelectorAll('.seg'), n=document.getElementById('xpN');
-  segs.forEach((sg,i)=>sg.classList.toggle('on', i<k));
-  if(k>xpAvant){
-    for(let i=xpAvant;i<k;i++){ const sg=segs[i]; sg.classList.remove('flash'); void sg.offsetWidth; sg.classList.add('flash'); }
-    n.classList.remove('flash'); void n.offsetWidth; n.classList.add('flash');
-  }
-  xpAvant=k;
-  n.textContent=`${k} / ${NB_ETAPES}`;
+  const ks=nbFaites();
+  BARRES.forEach((B,j)=>{
+    const xp=document.getElementById(B.id), n=xp.querySelector('.xp-n');
+    if(xp.querySelectorAll('.seg').length!==B.n)
+      for(let i=0;i<B.n;i++){ const sg=document.createElement('span'); sg.className='seg'; xp.insertBefore(sg, n); }
+    const k=ks[j], segs=xp.querySelectorAll('.seg');
+    segs.forEach((sg,i)=>sg.classList.toggle('on', i<k));
+    if(k>xpAvant[j]){
+      for(let i=xpAvant[j];i<k;i++){ const sg=segs[i]; sg.classList.remove('flash'); void sg.offsetWidth; sg.classList.add('flash'); }
+      n.classList.remove('flash'); void n.offsetWidth; n.classList.add('flash');
+    }
+    xpAvant[j]=k;
+    n.textContent=`${k} / ${B.n}`;
+  });
 }
 function publierSuivi(){
   majXP();
@@ -1159,7 +1185,7 @@ function publierSuivi(){
                ph: tri ? phaseIdx() : -1, b, p: st2 ? propState : null };
   let pOk=0;
   if(st2 && propState) pOk=propTemplates().filter(t=>{const v=propState[t.id]; return v.every(x=>x!==null) && t.check(v);}).length;
-  window.SUIVI.publier(etat, {tri:!!tri, ph: tri ? phaseIdx() : -1, ec, e:err1, p:pOk, e2:err2, h:indiceVu?1:0});
+  window.SUIVI.publier(etat, {tri:!!tri, ph: tri ? phaseIdx() : -1, ec, e:err1, p:pOk, e2:err2, h:indiceVu?1:0, h2:indice2Vu?1:0});
 }
 window.publierSuivi=publierSuivi;
 

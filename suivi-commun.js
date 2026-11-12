@@ -119,6 +119,7 @@ async function stockageFirebase() {
 //   const suivi = brancherSuivi("trigo");   puis   suivi.publier(etat, prog)
 // La page fonctionne comme avant sans séance ; avec ?s=CODE dans l'adresse,
 // l'élève entre son numéro et l'enseignant voit son travail.
+const INVITE = "PIA";   // code invité : l'activité marche, sans apparaître dans le suivi
 export function brancherSuivi(page) {
   const params = new URLSearchParams(location.search);
   let st = null, code = null, seat = null, attente = null, dernier = 0, minuteur = null, actif = false;
@@ -163,6 +164,13 @@ export function brancherSuivi(page) {
 
   async function rejoindre() {
     const c = $("suivi-code").value.trim().toUpperCase(), n = parseInt($("suivi-num").value, 10);
+    // code invité « pia » (tutrice) : même activité, rien n'est envoyé, absente de l'écran de l'enseignant
+    if (c === INVITE) {
+      actif = false; attente = null;
+      fond.classList.remove("on");
+      badge.textContent = "Invitée (non suivie)"; badge.className = "suivi-badge";
+      return;
+    }
     if (c.length !== 4) { $("suivi-msg").textContent = "Le code a 4 caractères."; return; }
     if (!(n >= 1 && n <= 40)) { $("suivi-msg").textContent = "Un numéro entre 1 et 40."; return; }
     $("suivi-msg").textContent = "Connexion…";

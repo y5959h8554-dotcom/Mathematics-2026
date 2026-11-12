@@ -939,33 +939,44 @@ function hideChip(){ dragChip.style.display='none'; }
 // jetons : « sin:A » = sin(α), « cos:B » = cos(β), …
 const jeton = t => { const [fn,a]=t.split(':'); return {fn, a}; };
 const texteJeton = t => { const {fn,a}=jeton(t); return `${fn}(${SYM[a]})`; };
+// valeur numérique d'un jeton pour un angle α donné (β = 90° − α) : une égalité est
+// acceptée si elle est vraie pour deux angles quelconques (pas d'ordre imposé)
+function valeur(t, a){ const {fn, a:ang}=jeton(t), x=(ang==='A'?a:90-a)*Math.PI/180;
+  return fn==='sin'?Math.sin(x):fn==='cos'?Math.cos(x):Math.tan(x); }
+const toujours = f => [37, 22.5].every(a=>Math.abs(f(a))<1e-9);
+const DEJA = "Correct… mais tu as déjà écrit cela.";
 function propTemplates(){
   const sinOuCos = t => ['sin','cos'].includes(jeton(t).fn);
+  // encadrements : sin ou cos de n'importe quel angle, sans doublon (dans la ligne, ni avec la ligne au-dessus)
+  const doublons = (st, avant) => st[0]===st[1] || (avant||[]).some(t=>t && st.includes(t));
+  const encadre = st => sinOuCos(st[0]) && sinOuCos(st[1]);
+  // a = b / c, vrai pour tout angle
+  const quotient = (st,k) => toujours(a=>valeur(st[k],a)-valeur(st[k+1],a)/valeur(st[k+2],a));
+  const memeTriple = st => st.slice(0,3).join()===st.slice(3,6).join();
   return [
-    // deux encadrements par ligne : un pour chaque angle
+    // deux encadrements par ligne
     {id:'r1', n:2, parts:['0 < ', {b:0}, ' < 1', {ecart:1}, '0 < ', {b:1}, ' < 1'],
-     check:st=>sinOuCos(st[0]) && sinOuCos(st[1]) && jeton(st[0]).a!==jeton(st[1]).a},
+     check:st=>encadre(st) && !doublons(st),
+     presque:st=>encadre(st) && doublons(st) ? DEJA : null},
     {id:'r2', n:2, parts:['0 < ', {b:0}, ' < 1', {ecart:1}, '0 < ', {b:1}, ' < 1'],
-     check:st=>sinOuCos(st[0]) && sinOuCos(st[1]) && jeton(st[0]).a!==jeton(st[1]).a && !memePaire(st, propState.r1),
-     presque:st=>memePaire(st, propState.r1) ? "Correct… mais c'est déjà écrit sur la ligne au-dessus." : null},
+     check:st=>encadre(st) && !doublons(st, propState.r1),
+     presque:st=>encadre(st) && doublons(st, propState.r1) ? DEJA : null},
     {id:'c1', n:1, parts:['', {b:0}, ' = cos(β)'], check:st=>st[0]==='sin:A',
      presque:st=>st[0]==='cos:B' ? "Correct… mais chaque nombre est égal à soi-même." : null},
     {id:'c2', n:1, parts:['', {b:0}, ' = sin(β)'], check:st=>st[0]==='cos:A',
      presque:st=>st[0]==='sin:B' ? "Correct… mais chaque nombre est égal à soi-même." : null},
     {id:'c3', n:1, parts:['', {b:0}, ' = ', {frac1:'tan(β)'}], check:st=>st[0]==='tan:A'},
-    // tan = sin / cos, une fois pour chaque angle
+    // deux quotients vrais (tan α = sin α / cos α, cos α = sin α / tan α, …), pas deux fois le même
     {id:'tan', n:6, parts:['', {b:0}, ' = ', {frac:[1,2]}, {ecart:1}, '', {b:3}, ' = ', {frac:[4,5]}],
-     check:st=>{ const un=k=>{ const [t,s,c]=st.slice(k,k+3).map(jeton); return t.fn==='tan' && s.fn==='sin' && c.fn==='cos' && t.a===s.a && s.a===c.a; };
-       return un(0) && un(3) && jeton(st[0]).a!==jeton(st[3]).a; }},
-    // identité fondamentale, en dernier
+     check:st=>quotient(st,0) && quotient(st,3) && !memeTriple(st),
+     presque:st=>quotient(st,0) && quotient(st,3) && memeTriple(st) ? DEJA : null},
+    // identité fondamentale, en dernier : vraie pour tout angle avec le nombre tapé
     {id:'pyth', n:3, parts:['', {b:0}, {sup:'2'}, ' + ', {b:1}, {sup:'2'}, ' = ', {saisie:2}, {indice:true}],
-     check:st=>{ const x=jeton(st[0]), y=jeton(st[1]);
-       return x.a===y.a && x.fn!==y.fn && sinOuCos(st[0]) && sinOuCos(st[1]) && Number(String(st[2]).replace(',','.'))===1; }},
+     check:st=>{ const v=Number(String(st[2]).replace(',','.'));
+       return Number.isFinite(v) && toujours(a=>valeur(st[0],a)**2+valeur(st[1],a)**2-v); }},
   ];
 }
 let propState=null;   // {id: [jeton|null, …]}
-// même ensemble de deux jetons (dans n'importe quel ordre)
-function memePaire(a,b){ return !!(b && a.every(Boolean) && b.every(Boolean) && [...a].sort().join()===[...b].sort().join()); }
 
 function buildProps(){
   const tmpl=propTemplates();
@@ -1194,7 +1205,7 @@ resize();
 </script>
 <script type="module">
 // Suivi de classe : sans code de séance, la page fonctionne comme avant.
-import { brancherSuivi } from "./suivi-commun.js?v=1";
+import { brancherSuivi } from "./suivi-commun.js?v=2";
 window.SUIVI = brancherSuivi("trigo");
 window.publierSuivi();
 </script>

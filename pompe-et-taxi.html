@@ -1,0 +1,855 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>La pompe et le taxi</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:opsz,wght@9..40,400;9..40,600&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+  /* À gauche la scène où l'élève agit, à droite une seule consigne à la fois.
+     Trois niveaux par scène : agir, représenter, abstraire. */
+  :root{
+    --fond:#12172b;
+    --panneau:#fdf6e6;
+    --feuille:#fffdf6;
+    --encre:#1a1c2c;
+    --gris:#6c6a7c;
+    --trait:#d9cfb8;
+    --g1:#0c7f81;          /* grandeur 1 : litres, kilomètres */
+    --g2:#b06a00;          /* grandeur 2 : le prix */
+    --lcd1:#5ef2c2;
+    --lcd2:#ffc93c;
+    --jaune:#ffc93c;       /* ce qu'il faut faire maintenant */
+    --rouge:#d8432b;       /* tampon IMPOSTEUR */
+    --vert:#1b8a55;        /* tampon PROPORTIONNEL */
+    --alerte:#ff7a00;      /* l'élève bloque */
+    --titre:"Bebas Neue","Arial Narrow",Impact,sans-serif;
+    --texte:"DM Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+    --lcd:"Share Tech Mono","Courier New",monospace;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  [hidden]{display:none !important;}
+  html{font-size:17px;background:var(--fond);}
+  body{margin:0;min-height:100vh;background:var(--fond);color:var(--encre);font-family:var(--texte);line-height:1.45;touch-action:manipulation;}
+  body.alerte::after{content:"";position:fixed;inset:0;border:12px solid var(--alerte);pointer-events:none;z-index:50;}
+
+  .barre{display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding:14px 24px;color:var(--panneau);}
+  .marque{font-family:var(--titre);font-size:1.6rem;letter-spacing:0.04em;line-height:1;}
+  .parcours{margin:0 0 0 auto;padding:0;list-style:none;display:flex;gap:6px;font-family:var(--lcd);font-size:0.78rem;}
+  .parcours li{padding:5px 12px;border-radius:99px;border:1.5px solid #4a5173;color:#8d93b3;}
+  .parcours li.fait{background:#4a5173;color:var(--panneau);}
+  .parcours li.ici{background:var(--jaune);border-color:var(--jaune);color:var(--encre);}
+
+  main{max-width:1280px;margin:0 auto;padding:6px 24px 40px;display:grid;grid-template-columns:minmax(0,1fr);gap:20px;align-items:start;}
+  @media (min-width:860px){ main{grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);} }
+  @media (max-width:480px){ .barre{padding:12px 16px;} main{padding:4px 16px 32px;} }
+  .gauche,.droite{display:flex;flex-direction:column;gap:14px;min-width:0;}
+
+  /* ---- la scène ---- */
+  .cadre{position:relative;container-type:inline-size;border-radius:14px;overflow:hidden;box-shadow:0 14px 34px rgba(0,0,0,0.5);background:#1f2a52;}
+  .bulle{
+    position:absolute;background:#fffdf6;color:var(--encre);border-radius:14px;padding:0.5em 0.8em 0.55em;
+    font-size:0.9rem;font-size:clamp(0.68rem,2.75cqw,1.12rem);line-height:1.22;font-weight:600;box-shadow:0 4px 12px rgba(0,0,0,0.35);
+  }
+  .bulle b{display:block;font-family:var(--lcd);font-weight:400;font-size:0.72em;letter-spacing:0.08em;text-transform:uppercase;color:var(--gris);}
+  .bulle::after{content:"";position:absolute;top:100%;border:0.7em solid transparent;border-top-color:#fffdf6;border-bottom:0;margin-top:-1px;}
+  .bulle.pompe{right:3%;top:13%;width:38%;} .bulle.pompe::after{right:18%;}
+  .bulle.taxi{left:3%;top:27%;width:54%;} .bulle.taxi::after{left:37%;}
+  #scene{display:block;width:100%;height:auto;}
+  .lcd{font-family:var(--lcd);}
+  #flux{stroke-dasharray:10 12;animation:coule 0.5s linear infinite;}
+  @keyframes coule{to{stroke-dashoffset:-22;}}
+  @media (prefers-reduced-motion:reduce){ #flux{animation:none;} }
+  /* commandes dans la scène : pistolet, bouton DÉPART, accélérateur */
+  .commande{cursor:pointer;touch-action:none;-webkit-touch-callout:none;user-select:none;-webkit-user-select:none;outline:none;}
+  .commande:focus-visible .anneau{stroke:#fff;stroke-width:4;}
+  .halo{animation:halo 1.2s ease-in-out infinite;transform-box:fill-box;transform-origin:center;}
+  @keyframes halo{0%,100%{opacity:0.25;transform:scale(0.9);}50%{opacity:0.7;transform:scale(1.12);}}
+  @media (prefers-reduced-motion:reduce){ .halo{animation:none;opacity:0.6;} }
+
+  /* ---- les tickets de caisse ---- */
+  .tickets{list-style:none;margin:0;padding:0 0 10px;display:grid;grid-template-columns:repeat(2,minmax(0,158px));gap:12px;}
+  .tickets > li{filter:drop-shadow(0 5px 8px rgba(40,30,10,0.35));min-width:0;}
+  .tickets > li:nth-child(n+3){margin-top:-36px;}   /* la deuxième rangée recouvre le bas de la première, comme une pile de tickets */
+  .tickets > li.neuf{animation:imprime 0.7s ease-out both, lueurTicket 6s ease-out both;}
+  @keyframes imprime{from{clip-path:inset(-40px -40px 100% -40px);transform:translateY(-14px);}to{clip-path:inset(-40px);transform:none;}}
+  @keyframes lueurTicket{
+    0%,70%{filter:drop-shadow(0 0 5px var(--jaune)) drop-shadow(0 0 16px var(--jaune)) drop-shadow(0 5px 8px rgba(40,30,10,0.35));}
+    100%{filter:drop-shadow(0 0 0 rgba(255,201,60,0)) drop-shadow(0 0 0 rgba(255,201,60,0)) drop-shadow(0 5px 8px rgba(40,30,10,0.35));}
+  }
+  @media (prefers-reduced-motion:reduce){ .tickets > li.neuf{animation:lueurTicket 6s ease-out both;} }
+
+  /* tout nouvel élément utile brille un instant */
+  .bloc{display:flex;flex-direction:column;gap:14px;border-radius:10px;}
+  .bloc:empty{display:none;}
+  .nouveau{animation:lueur 2s ease-out both;}
+  @keyframes lueur{
+    0%,35%{box-shadow:0 0 0 5px rgba(255,201,60,0.95), 0 0 26px 10px rgba(255,201,60,0.8);background-color:rgba(255,201,60,0.28);}
+    100%{box-shadow:0 0 0 5px rgba(255,201,60,0), 0 0 26px 10px rgba(255,201,60,0);}
+  }
+  td.nouveau{animation-name:lueurCase;}
+  @keyframes lueurCase{0%,40%{background-color:var(--jaune);}100%{background-color:#f6edd6;}}
+  .bulle.nouveau{animation-name:lueurBulle;}
+  @keyframes lueurBulle{
+    0%,35%{box-shadow:0 0 0 4px rgba(255,201,60,0.95), 0 0 24px 10px rgba(255,201,60,0.85);}
+    100%{box-shadow:0 4px 12px rgba(0,0,0,0.35);}
+  }
+  .papier.nouveau,.carte.nouveau{animation-name:lueurCarte;}
+  @keyframes lueurCarte{
+    0%,35%{box-shadow:0 0 0 5px rgba(255,201,60,0.95), 0 0 30px 12px rgba(255,201,60,0.8);}
+    100%{box-shadow:0 14px 34px rgba(0,0,0,0.5);}
+  }
+  .eclat{animation:eclat 2s ease-out both;}
+  @keyframes eclat{0%,40%{filter:drop-shadow(0 0 6px #fff) drop-shadow(0 0 14px var(--jaune));}100%{filter:none;}}
+
+  /* annonces au centre de l'écran : pari gagné, pari perdu, coche verte */
+  .annonce{
+    position:fixed;left:50%;top:50%;z-index:60;transform:translate(-50%,-50%);pointer-events:none;white-space:nowrap;
+    font-family:var(--titre);font-size:clamp(2.2rem,8vw,4.6rem);letter-spacing:0.05em;line-height:1;
+    background:var(--vert);color:#fff;padding:0.3em 0.6em 0.2em;border-radius:16px;
+    box-shadow:0 0 0 6px #fffdf6, 0 16px 44px rgba(0,0,0,0.6);animation:annonce 2s ease both;
+  }
+  .annonce.perdu{background:var(--rouge);color:#fff;}
+  .annonce.coche{
+    background:var(--vert);color:#fff;width:2.1em;height:2.1em;padding:0;border-radius:50%;
+    display:grid;place-items:center;font-family:var(--texte);font-weight:600;letter-spacing:0;animation:coche 1.1s ease both;
+  }
+  @keyframes annonce{0%{opacity:0;transform:translate(-50%,-50%) scale(0.6) rotate(-4deg);}12%,82%{opacity:1;transform:translate(-50%,-50%) scale(1) rotate(-4deg);}100%{opacity:0;transform:translate(-50%,-58%) scale(1) rotate(-4deg);}}
+  @keyframes coche{0%{opacity:0;transform:translate(-50%,-50%) scale(0.4);}18%{opacity:1;transform:translate(-50%,-50%) scale(1.12);}30%,45%{opacity:1;transform:translate(-50%,-50%) scale(1);}38%{opacity:0.35;}70%{opacity:1;transform:translate(-50%,-50%) scale(1);}100%{opacity:0;transform:translate(-50%,-50%) scale(1);}}
+  @media (prefers-reduced-motion:reduce){ .annonce,.annonce.coche{animation:annonceCalme 2s linear both;} @keyframes annonceCalme{0%,85%{opacity:1;}100%{opacity:0;}} }
+
+  .ticket{
+    --dent:5px;background:#fff;color:#2a2a2a;font-family:var(--lcd);text-align:center;line-height:1.12;
+    padding:8px 5px 13px;display:flex;flex-direction:column;align-items:center;gap:2px;
+    -webkit-mask:conic-gradient(from -45deg at bottom,#0000,#000 1deg 89deg,#0000 90deg) 50%/calc(2*var(--dent)) 100%;
+            mask:conic-gradient(from -45deg at bottom,#0000,#000 1deg 89deg,#0000 90deg) 50%/calc(2*var(--dent)) 100%;
+  }
+  .ticket .enseigne{font-size:0.5rem;letter-spacing:0.08em;color:#555;}
+  .ticket .enseigne b{display:block;font-size:0.74rem;font-weight:400;color:#111;letter-spacing:0.04em;}
+  .ticket .ligne{font-size:0.54rem;color:#777;}
+  .ticket .trait{align-self:stretch;border-top:2px dashed #999;margin:2px 3px;}
+  .ticket .q1{font-size:3.5rem;line-height:0.92;color:var(--g1);}
+  .ticket .q2{font-size:2.5rem;line-height:1.02;color:var(--g2);white-space:nowrap;}
+  .ticket small{font-size:1.05rem;}
+  .ticket .barres{align-self:stretch;height:11px;margin:1px 12px 0;background:repeating-linear-gradient(90deg,#222 0 2px,#fff 2px 3px,#222 3px 4px,#fff 4px 7px,#222 7px 10px,#fff 10px 12px);}
+  .ticket .merci{font-size:0.48rem;color:#777;}
+  /* tickets réduits, alignés au-dessus des colonnes du tableau */
+  .mini{filter:drop-shadow(0 3px 5px rgba(40,30,10,0.3));}
+  .mini .ticket{--dent:4px;padding:5px 2px 10px;gap:1px;}
+  .mini .ticket .enseigne b{font-size:0.46rem;letter-spacing:0;}
+  .mini .ticket .q1{font-size:1.7rem;} .mini .ticket .q2{font-size:1.1rem;} .mini .ticket small{font-size:0.6rem;}
+  .mini.vide{filter:none;border:2px dashed var(--trait);border-radius:6px;color:var(--gris);font-family:var(--lcd);font-size:1.5rem;padding:22px 0;}
+  .tickets .attente{grid-column:1 / -1;filter:none;border:2px dashed var(--trait);border-radius:8px;padding:16px 12px;font-family:var(--lcd);font-size:0.8rem;color:var(--gris);text-align:center;}
+
+  /* ---- le panneau de droite ---- */
+  .carte{background:var(--panneau);border-radius:14px;padding:22px 22px 24px;display:flex;flex-direction:column;gap:14px;box-shadow:0 14px 34px rgba(0,0,0,0.5);}
+  .niveau{font-family:var(--lcd);font-size:0.76rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--gris);margin:0;}
+  .demande{font-family:var(--titre);font-size:1.8rem;line-height:1.02;letter-spacing:0.02em;margin:0;text-wrap:balance;}
+  .consigne{font-size:1.08rem;font-weight:600;margin:0;text-wrap:balance;}
+  .consigne mark,.statut mark{background:linear-gradient(transparent 55%, var(--jaune) 55%);color:inherit;padding:0 2px;}
+  .statut{margin:0;font-size:1.02rem;}
+  .statut.verdict{padding:10px 14px;border-radius:10px;font-weight:600;color:#fff;}
+  .statut.verdict.gagne{background:var(--vert);} .statut.verdict.perdu{background:var(--rouge);}
+  .petit{font-family:var(--lcd);font-size:0.8rem;color:var(--gris);margin:0;}
+  .bandeau{background:var(--alerte);color:#fff;border-radius:10px;padding:12px 16px;font-weight:600;display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;}
+  .bandeau button{min-height:38px;padding:6px 12px;background:transparent;color:#fff;border:2px solid #fff;font-size:0.85rem;}
+
+  button{font-family:var(--texte);font-size:1rem;min-height:50px;padding:10px 16px;border-radius:10px;border:2px solid var(--encre);background:var(--feuille);color:var(--encre);cursor:pointer;text-align:left;}
+  button:disabled{opacity:0.35;cursor:default;}
+  button:focus-visible,summary:focus-visible,input:focus-visible{outline:3px solid var(--jaune);outline-offset:3px;}
+  .principal{background:var(--encre);color:var(--panneau);text-align:center;font-weight:600;font-size:1.05rem;align-self:flex-start;padding-inline:26px;}
+  .opt[aria-pressed="true"]{background:var(--encre);color:var(--panneau);}
+  .choix{display:grid;gap:8px;}
+
+  /* pavé numérique, volontairement compact */
+  .saisie{display:grid;grid-template-columns:minmax(0,1fr);gap:6px;}
+  .ecran{
+    font-family:var(--lcd);font-size:1.45rem;line-height:1;background:#10131f;color:var(--lcd2);border-radius:8px;
+    padding:9px 12px 7px;display:flex;justify-content:space-between;align-items:baseline;gap:8px;
+  }
+  .ecran small{font-size:0.72rem;color:#8d93b3;}
+  .pave{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px;}
+  .pave button{text-align:center;font-family:var(--lcd);font-size:1.15rem;min-height:42px;padding:0;border-radius:8px;}
+  .pave .ok{grid-column:1 / -1;min-height:44px;background:var(--encre);color:var(--panneau);font-family:var(--texte);font-size:1rem;font-weight:600;}
+
+  /* tableau, graphique */
+  .papier{background:var(--feuille);border-radius:14px;padding:20px;box-shadow:0 14px 34px rgba(0,0,0,0.5);display:flex;flex-direction:column;gap:18px;}
+  .papier h2{font-family:var(--titre);font-size:1.6rem;font-weight:400;letter-spacing:0.03em;margin:0;line-height:1;}
+  .defile{overflow-x:auto;max-width:100%;align-self:stretch;}
+  table{border-collapse:collapse;font-family:var(--lcd);font-size:1.15rem;font-variant-numeric:tabular-nums;}
+  table.aligne{width:100%;min-width:520px;table-layout:fixed;font-size:1.3rem;}
+  table.aligne th{width:9.6em;}
+  tr.recus th,tr.recus td{border:none;padding:0 5px 12px;vertical-align:bottom;background:none;}
+  .frac{display:inline-flex;flex-direction:column;align-items:center;line-height:1.2;}
+  .frac span + span{border-top:2px solid currentColor;margin-top:3px;padding-top:3px;}
+  th,td{border:2px solid var(--trait);padding:10px 16px;text-align:center;white-space:nowrap;}
+  th{text-align:left;font-weight:400;font-size:0.9rem;}
+  tr.a th,tr.a td{color:var(--g1);} tr.b th,tr.b td{color:var(--g2);} tr.q th,tr.q td{color:var(--encre);background:#f6edd6;}
+  td.trou,tr.q td.trou{background:var(--jaune);color:var(--encre);font-weight:700;}
+  #graphique{width:100%;max-width:460px;height:auto;display:block;}
+
+  /* tampons */
+  .tampons{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px;}
+  .tampon{
+    font-family:var(--titre);font-size:1.6rem;letter-spacing:0.07em;text-transform:uppercase;text-align:center;line-height:1;
+    min-height:72px;padding:12px 6px 8px;background:transparent;border:4px solid currentColor;border-radius:8px;
+    box-shadow:inset 0 0 0 3px var(--panneau), inset 0 0 0 5px currentColor;
+  }
+  .tampon.vert{color:var(--vert);} .tampon.rouge{color:var(--rouge);}
+  button.tampon{opacity:0.6;}
+  button.tampon[aria-pressed="true"]{opacity:1;background:var(--feuille);box-shadow:inset 0 0 0 3px var(--feuille), inset 0 0 0 5px currentColor, 0 0 0 4px var(--jaune);}
+  .tampon.pose{display:inline-block;align-self:flex-start;font-size:2.7rem;padding:14px 22px 8px;transform:rotate(-6deg);animation:frappe 0.38s cubic-bezier(.2,1.5,.4,1) both;margin:8px 0 6px 4px;}
+  @keyframes frappe{from{opacity:0;transform:rotate(-6deg) scale(2.3);}to{opacity:1;transform:rotate(-6deg) scale(1);}}
+  @media (prefers-reduced-motion:reduce){ .tampon.pose{animation:none;} }
+  .retour{margin:0;padding:10px 14px;background:var(--feuille);border-left:5px solid var(--alerte);font-size:0.98rem;border-radius:0 8px 8px 0;}
+  .formule{font-family:var(--lcd);font-size:1.15rem;background:#10131f;color:var(--lcd2);border-radius:10px;padding:12px 16px;margin:0;align-self:flex-start;}
+
+  /* bilan, billet, code */
+  .seul{grid-column:1 / -1;max-width:760px;width:100%;margin:0 auto;}
+  .duo{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(260px,100%),1fr));gap:16px;}
+  .duo > div{min-width:0;background:var(--feuille);border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:12px;align-items:flex-start;border:2px solid var(--trait);}
+  .duo h3{font-family:var(--titre);font-size:1.4rem;font-weight:400;margin:0;line-height:1;}
+  .duo table.aligne{font-size:0.95rem;min-width:330px;} .duo th,.duo td{padding:6px 5px;} .duo table.aligne th{width:5.6em;}
+  .duo .tampon{font-size:1.15rem;min-height:0;padding:7px 12px 4px;border-width:3px;box-shadow:none;transform:rotate(-3deg);}
+  .question{background:var(--feuille);border-radius:10px;padding:16px 18px;display:flex;flex-direction:column;gap:12px;border:2px solid var(--trait);}
+  .question h3{margin:0;font-size:1.05rem;font-weight:600;}
+  .code{background:#10131f;border-radius:14px;padding:26px 18px 20px;text-align:center;}
+  .code output{display:block;font-family:var(--lcd);font-size:3.6rem;line-height:1;letter-spacing:0.14em;color:var(--lcd2);user-select:all;-webkit-user-select:all;}
+  details{border:2px dashed var(--trait);border-radius:10px;padding:12px 16px;}
+  summary{font-family:var(--lcd);font-size:0.82rem;cursor:pointer;}
+  details .rangee{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px;align-items:center;}
+  details input{font-family:var(--lcd);font-size:1.2rem;padding:10px;width:8em;letter-spacing:0.1em;text-transform:uppercase;border:2px solid var(--encre);border-radius:10px;background:#fff;color:var(--encre);}
+  details ul{margin:12px 0 0;padding-left:1.1em;font-family:var(--lcd);font-size:0.86rem;}
+  details li{margin:4px 0;}
+</style>
+</head>
+<body>
+
+<header class="barre">
+  <span class="marque">La pompe et le taxi</span>
+  <ol class="parcours" id="parcours" aria-label="Progression"></ol>
+</header>
+
+<main id="app"></main>
+
+<script>
+(() => {
+"use strict";
+
+// ---------------------------------------------------------------
+//  Deux scènes jumelles : même geste, mais une seule est proportionnelle.
+//  f donne le prix, inv la quantité pour un prix donné.
+// ---------------------------------------------------------------
+const SCENES = [
+  { id:"pompe", nom:"La pompe", du:"de la pompe", onglet:"Pompe", prop:true,
+    g1:{nom:"Volume", le:"le volume", unite:"L", mot:"litres", max:10, pas:2},
+    g2:{nom:"Prix", le:"le prix", unite:"€", max:15, pas:5},
+    f:x => 1.5*x, inv:y => y/1.5,
+    enseigne:["STATION-SERVICE", "PROPORTIONALIS"], guichet:"Pompe 3", merci:"MERCI, BONNE ROUTE", zero:"Remettre la pompe à zéro",
+    prise:"Décroche le pistolet et glisse-le dans le réservoir.", tenir:"maintiens le levier de la pompe",
+    faire:x => `Sers ${x} litres`, jusqua:y => `Sers jusqu'à ce que la pompe affiche ${y} €`,
+    constat:(x, y) => `${x} litres coûtent ${y} €.`,
+    manches:[
+      { client:"Sam", dit:"Bonjour ! 2 litres pour mon scooter, s'il vous plaît.", x:2 },
+      { client:"Lina", dit:"4 litres, s'il vous plaît.", x:4, pari:"y", question:"Avant d'appuyer : combien cela va-t-il coûter ?" },
+      { client:"Noé", dit:"Je voudrais 6 litres.", x:6, pari:"y", question:"Avant d'appuyer : combien cela va-t-il coûter ?" },
+      { client:"Inès", dit:"J'ai 15 € en poche. Je mets tout dans le réservoir !", y:15, pari:"x", question:"Avant d'appuyer : combien de litres cela fait-il ?" }
+    ],
+    trou:{ x:8, texte:"Un nouveau client veut 8 litres. La pompe est fermée : complète le tableau.",
+           aide:"Compare avec le ticket de 4 litres : 8 litres, c'est le double." },
+    retenir:"Le prix vaut toujours 1,5 fois le volume. Le coefficient de proportionnalité, 1,5, c'est le prix d'un litre.",
+    formule:"prix = 1,5 × volume", suite:"Monter dans le taxi" },
+  { id:"taxi", nom:"Le taxi", du:"du taxi", onglet:"Taxi", prop:false,
+    g1:{nom:"Distance", le:"la distance", unite:"km", mot:"kilomètres", max:10, pas:2},
+    g2:{nom:"Prix", le:"le prix", unite:"€", max:25, pas:5},
+    f:x => 4 + 2*x, inv:y => (y - 4)/2,
+    enseigne:["TAXI", "AFFINIS"], guichet:"Voiture 7", merci:"MERCI, À BIENTÔT", zero:"Revenir au départ",
+    prise:"Le client est monté : appuie sur DÉPART pour lancer le taximètre.", tenir:"maintiens l'accélérateur appuyé",
+    faire:x => `Roule ${x} km`, jusqua:y => `Roule jusqu'à ce que le taximètre affiche ${y} €`,
+    constat:(x, y) => `${x} km coûtent ${y} €.`,
+    manches:[
+      { client:"Sam", dit:"À la gare, s'il vous plaît. C'est à 2 km.", x:2 },
+      { client:"Lina", dit:"Au lycée ! C'est à 4 km.", x:4, pari:"y", question:"Avant de rouler : combien cela va-t-il coûter ?" },
+      { client:"Noé", dit:"À la piscine, à 8 km d'ici.", x:8, pari:"y", question:"Avant de rouler : combien cela va-t-il coûter ?" },
+      { client:"Inès", dit:"J'ai 24 € en poche. Jusqu'où pouvez-vous m'emmener ?", y:24, pari:"x", question:"Avant de rouler : combien de kilomètres cela fait-il ?" }
+    ],
+    trou:{ x:5, texte:"Un nouveau client va à 5 km. Le taxi est au garage : complète le tableau.",
+           aide:"Compare les tickets de 2 km et de 4 km : combien coûte chaque kilomètre en plus ?" },
+    retenir:"Le taxi fait payer 4 € avant même de rouler. Le prix augmente régulièrement, mais il n'est pas proportionnel à la distance.",
+    formule:"prix = 4 + 2 × distance", suite:"Voir le bilan" }
+];
+const PREUVES = [
+  ["egaux", "Tous les quotients sont égaux."],
+  ["differents", "Les quotients ne sont pas tous égaux."],
+  ["augmente", "Quand une grandeur augmente, l'autre augmente aussi."]
+];
+const VITESSE = 0.6;     // vitesse de croisière, en unités par seconde
+
+// Billet de sortie : trois questions, une seule réponse, pas de correction affichée.
+const BILLET = [
+  { q:"Ce tableau est-il un tableau de proportionnalité ?",
+    table:[["Grandeur 1", 2, 5, 8], ["Grandeur 2", 6, 15, 24]],
+    options:["Oui, le coefficient est 4", "Non", "Oui, le coefficient est 3", "On ne peut pas savoir"], juste:2 },
+  { q:"Pour 9 personnes, il faut 6 œufs. Combien d'œufs faut-il pour 18 personnes ?",
+    options:["15 œufs", "12 œufs", "9 œufs", "24 œufs"], juste:1 },
+  { q:"Un club de sport demande 20 € d'inscription, puis 10 € par mois. Le prix total est-il proportionnel au nombre de mois ?",
+    options:["Oui, car le prix augmente chaque mois", "Oui, car on ajoute toujours 10 €",
+             "Non, car pour 0 mois on paie déjà 20 €", "Non, car le prix n'augmente pas régulièrement"], juste:2 }
+];
+
+// ---------------------------------------------------------------
+const $ = id => document.getElementById(id);
+const fr = n => String(Math.round(n*100)/100).replace(".", ",");
+const lcd = (n, d) => n.toFixed(d).replace(".", ",");
+const G = { k:0, alertes:0, predOK:0, paris:[], billet:[null, null, null], tables:[] };   // toute l'activité
+let E = null;                                                                             // la scène en cours
+const sc = () => SCENES[G.k];
+// tout ce qui apparaît pour la première fois brille un instant
+const vus = new Set();
+const neuf = cle => vus.has(cle) ? "" : (vus.add(cle), " nouveau");
+function briller(el, classe = "nouveau"){ if (!el) return; el.classList.remove(classe); void el.getBoundingClientRect(); el.classList.add(classe); }
+const manche = () => sc().manches[E.m];
+const cibleX = () => { const m = manche(); return m.x !== undefined ? m.x : Math.round(sc().inv(m.y)*100)/100; };
+
+function parcours(ici){
+  const noms = [...SCENES.map(s => s.onglet), "Bilan"];
+  $("parcours").innerHTML = noms.map((n, k) => `<li class="${k < ici ? "fait" : k === ici ? "ici" : ""}">${n}</li>`).join("");
+}
+const bandeau = () => `<div class="bandeau" id="bandeau" ${document.body.classList.contains("alerte") ? "" : "hidden"}>
+    <span>Lève la main : ton professeur va passer.</span><button type="button" id="vu">Le professeur est passé</button></div>`;
+function brancherBandeau(){
+  const b = $("vu"); if (b) b.onclick = () => { document.body.classList.remove("alerte"); $("bandeau").hidden = true; };
+}
+function alerter(){
+  if (!E.alerte){ E.alerte = true; G.alertes++; }
+  document.body.classList.add("alerte"); const b = $("bandeau"); if (b) b.hidden = false;
+}
+
+// ---------- les deux décors ----------------------------------------
+const CIEL = `<defs><linearGradient id="ciel" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0" stop-color="#1f2a52"/><stop offset="0.72" stop-color="#b8527a"/><stop offset="1" stop-color="#f6a05c"/></linearGradient></defs>
+  <rect width="640" height="440" fill="url(#ciel)"/>
+  ${[[60,40],[150,70],[250,30],[330,84],[470,34],[560,74],[610,28],[30,110],[410,120],[200,130]].map(([x, y]) => `<circle cx="${x}" cy="${y}" r="1.6" fill="#fdf6e6" opacity="0.8"/>`).join("")}`;
+// un afficheur à deux compteurs, chiffres alignés à droite ; taille = hauteur des chiffres
+const afficheur = (x, y, w, titre, taille = 44) => `<rect x="${x}" y="${y}" width="${w}" height="${Math.round(32 + 2.27*taille)}" rx="10" fill="#10131f" stroke="#3a4162" stroke-width="2"/>
+  <text x="${x+12}" y="${y+19}" class="lcd" font-size="10" fill="#8d93b3">${titre}</text>
+  <text x="${x+w-12-taille*0.6}" y="${y+20+1.05*taille}" class="lcd" font-size="${taille}" fill="var(--lcd1)" text-anchor="end" id="aff1"></text>
+  <text x="${x+w-10}" y="${y+20+1.05*taille}" class="lcd" font-size="${taille*0.36}" fill="var(--lcd1)" text-anchor="end" id="unite1"></text>
+  <text x="${x+w-12-taille*0.6}" y="${y+20+2.19*taille}" class="lcd" font-size="${taille}" fill="var(--lcd2)" text-anchor="end" id="aff2"></text>
+  <text x="${x+w-10}" y="${y+20+2.19*taille}" class="lcd" font-size="${taille*0.36}" fill="var(--lcd2)" text-anchor="end">€</text>`;
+
+const HX = 350, HY = 306, TX = 518, TY = 288;      // bec du pistolet : dans son support, puis dans le réservoir
+// les quatre clients, dessinés très simplement
+const CLIENTS = {
+  "Sam":{ peau:"#f1c9a5", cheveux:"#3b2a20", haut:"#ffc93c" },
+  "Lina":{ peau:"#c98d5f", cheveux:"#1a1c2c", haut:"#ff7eb6", long:true },
+  "Noé":{ peau:"#f6d7b8", cheveux:"#c9772b", haut:"#7fd1ff" },
+  "Inès":{ peau:"#8d5a3b", cheveux:"#2b1a12", haut:"#b79cff", long:true }
+};
+const tete = (c, x, y, r) => `${c.long ? `<rect x="${x-r-1}" y="${y-r*0.3}" width="${2*r+2}" height="${r*1.9}" rx="${r*0.7}" fill="${c.cheveux}"/>` : ""}
+  <circle cx="${x}" cy="${y}" r="${r}" fill="${c.peau}"/>
+  <path d="M${x-r-1} ${y-r*0.15} a${r+1} ${r+1} 0 0 1 ${2*r+2} 0 q${-r-1} ${-r*0.75} ${-2*r-2} 0z" fill="${c.cheveux}"/>
+  <circle cx="${x-r*0.36}" cy="${y+r*0.12}" r="${r*0.11}" fill="#1a1c2c"/><circle cx="${x+r*0.36}" cy="${y+r*0.12}" r="${r*0.11}" fill="#1a1c2c"/>
+  <path d="M${x-r*0.3} ${y+r*0.48} q${r*0.3} ${r*0.26} ${r*0.6} 0" fill="none" stroke="#1a1c2c" stroke-width="1.6" stroke-linecap="round"/>`;
+function dessinerClient(){
+  const c = CLIENTS[manche().client];
+  $("client").innerHTML = sc().id === "pompe"
+    ? `<path d="M558 216 L530 268" stroke="#2a2d3e" stroke-width="10" stroke-linecap="round"/><rect x="518" y="264" width="20" height="8" rx="4" fill="#10131f"/>
+       <rect x="550" y="170" width="30" height="50" rx="12" fill="${c.haut}"/>${tete(c, 565, 152, 16)}`
+    : `<rect x="59" y="39" width="26" height="6" rx="3" fill="${c.haut}"/>${tete(c, 72, 29, 10)}`;
+}
+// la bulle : le client dit ce qu'il veut, puis réagit
+function parler(){
+  const m = manche();
+  const texte = E.etat === "servi" ? "Merci, bonne journée !" : E.etat === "trop" ? "Oh ! C'est trop." : m.dit;
+  const b = $("bulle");
+  if (b.dataset.texte === m.client + texte) return;
+  b.dataset.texte = m.client + texte; b.innerHTML = `<b>${m.client}</b>${texte}`;
+  b.classList.remove("nouveau"); if (texte === m.dit) briller(b);
+}
+function decorPompe(){
+  return `${CIEL}
+    <rect y="360" width="640" height="80" fill="#262a3d"/><rect y="360" width="640" height="5" fill="#3a4162"/>
+    <rect x="18" y="46" width="12" height="314" fill="#cfc6b0"/><rect x="8" y="20" width="344" height="28" rx="5" fill="#fdf6e6"/>
+    <rect x="8" y="38" width="344" height="10" fill="var(--rouge)"/>
+    <rect x="44" y="66" width="278" height="294" rx="14" fill="var(--rouge)"/><rect x="44" y="342" width="278" height="18" fill="#a8321f"/>
+    ${afficheur(56, 82, 214, "POMPE N° 3", 58)}
+    <text x="62" y="280" class="lcd" font-size="12" fill="#fdf6e6">PRIX AU LITRE</text>
+    <g transform="rotate(-4 110 308)"><rect x="62" y="290" width="96" height="34" rx="4" fill="#fdf6e6"/><text x="110" y="314" class="lcd" font-size="19" text-anchor="middle" fill="#1a1c2c">? ? ?</text></g>
+    <rect x="306" y="324" width="24" height="22" rx="5" fill="#10131f"/>
+    <rect x="322" y="294" width="42" height="26" rx="7" fill="#a8321f"/>
+    <g id="levier" class="commande" tabindex="0" role="button" aria-label="Levier de la pompe : maintenir pour servir">
+      <circle id="haloLevier" class="halo" cx="350" cy="136" r="46" fill="var(--jaune)"/>
+      <circle class="anneau" cx="344" cy="140" r="52" fill="transparent"/>
+      <rect x="284" y="112" width="26" height="32" rx="6" fill="#10131f"/>
+      <g id="bras"><path d="M297 128 H348" stroke="#cfc6b0" stroke-width="10" stroke-linecap="round"/>
+        <circle cx="354" cy="128" r="17" fill="var(--jaune)" stroke="#10131f" stroke-width="4"/></g>
+    </g>
+    <g transform="translate(0 60)">
+      <circle cx="452" cy="294" r="24" fill="#10131f"/><circle cx="452" cy="294" r="9" fill="#cfc6b0"/>
+      <circle cx="566" cy="294" r="24" fill="#10131f"/><circle cx="566" cy="294" r="9" fill="#cfc6b0"/>
+      <path d="M452 290 L462 206" stroke="#17a2a4" stroke-width="10" stroke-linecap="round"/>
+      <path d="M444 204 H480" stroke="#10131f" stroke-width="7" stroke-linecap="round"/><circle cx="458" cy="222" r="8" fill="var(--jaune)"/>
+      <rect x="462" y="270" width="72" height="13" rx="6" fill="#17a2a4"/>
+      <rect x="500" y="226" width="90" height="58" rx="20" fill="#17a2a4"/><rect x="536" y="214" width="52" height="15" rx="7" fill="#10131f"/>
+      <g id="client"></g>
+      <circle cx="${TX}" cy="${TY-60}" r="7" fill="#10131f"/>
+      <circle id="cible" class="halo" cx="${TX}" cy="${TY-60-6}" r="30" fill="none" stroke="var(--jaune)" stroke-width="4" stroke-dasharray="7 7" hidden/>
+    </g>
+    <path id="tuyau" fill="none" stroke="#10131f" stroke-width="9" stroke-linecap="round"/>
+    <path id="flux" fill="none" stroke="var(--jaune)" stroke-width="3" stroke-linecap="round" hidden/>
+    <g id="pistolet" class="commande" tabindex="0" role="button" aria-label="Pistolet de la pompe">
+      <circle id="halo" class="halo" cx="-34" cy="-27" r="40" fill="var(--jaune)"/>
+      <circle class="anneau" cx="-34" cy="-27" r="48" fill="transparent"/>
+      <g transform="scale(0.78)">
+        <path d="M0 0 Q-4 -24 -30 -40" fill="none" stroke="#cfc6b0" stroke-width="8" stroke-linecap="round"/>
+        <path d="M-38 -30 Q-46 -10 -62 -21 L-64 -42" fill="none" stroke="#1d3a8a" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M-44 -35 L-57 -27" stroke="#cfc6b0" stroke-width="4" stroke-linecap="round"/>
+        <path d="M-32 -41 L-70 -53" stroke="#1d3a8a" stroke-width="18" stroke-linecap="round"/>
+      </g>
+    </g>`;
+}
+const IMMEUBLES = [[0,70,120],[78,50,170],[136,84,96],[228,56,150],[292,90,110],[390,48,186],[446,76,128],[530,60,160],[598,42,104]];
+function decorTaxi(){
+  const ville = d => IMMEUBLES.map(([x, w, h]) => `<rect x="${x+d}" y="${270-h}" width="${w}" height="${h}" fill="#141a33"/>` +
+    [0, 1, 2].map(r => `<rect x="${x+d+10}" y="${270-h+14+r*26}" width="9" height="11" fill="var(--jaune)" opacity="${(x + r) % 3 ? 0.75 : 0.15}"/>
+      <rect x="${x+d+w-20}" y="${270-h+14+r*26}" width="9" height="11" fill="var(--jaune)" opacity="${(x + r) % 2 ? 0.15 : 0.7}"/>`).join("")).join("");
+  return `${CIEL}
+    <g transform="translate(0 60)">
+      <g id="ville">${ville(0)}${ville(640)}</g>
+      <rect y="270" width="640" height="110" fill="#262a3d"/><rect y="270" width="640" height="5" fill="#3a4162"/>
+      <g id="tirets">${Array.from({length:10}, (_, i) => `<rect x="${i*80}" y="334" width="42" height="6" rx="3" fill="#fdf6e6" opacity="0.75"/>`).join("")}</g>
+      <g id="bornes"></g>
+      <g transform="translate(96 204)">
+        <rect x="82" y="-10" width="30" height="16" rx="3" fill="#10131f"/><text x="97" y="2" class="lcd" font-size="10" text-anchor="middle" fill="var(--jaune)">TAXI</text>
+        <path d="M34 48 L58 6 H134 L160 48 Z" fill="var(--jaune)"/><path d="M62 14 H92 V44 H46 Z" fill="#bfe3ff"/><path d="M100 14 H130 L148 44 H100 Z" fill="#bfe3ff"/>
+        <g id="client"></g>
+        <rect x="0" y="44" width="194" height="46" rx="15" fill="var(--jaune)"/><rect x="0" y="62" width="194" height="8" fill="#10131f"/>
+        <rect x="184" y="52" width="10" height="9" rx="3" fill="#fff7c2"/>
+        <g id="roue1"><circle cx="46" cy="92" r="20" fill="#10131f"/><circle cx="46" cy="92" r="8" fill="#cfc6b0"/><rect x="44" y="74" width="4" height="36" fill="#cfc6b0"/></g>
+        <g id="roue2"><circle cx="150" cy="92" r="20" fill="#10131f"/><circle cx="150" cy="92" r="8" fill="#cfc6b0"/><rect x="148" y="74" width="4" height="36" fill="#cfc6b0"/></g>
+      </g>
+    </g>
+    ${afficheur(392, 12, 238, "TAXIMÈTRE", 58)}
+    <g id="depart" class="commande" tabindex="0" role="button" aria-label="Lancer le taximètre">
+      <rect id="haloDepart" class="halo" x="386" y="180" width="250" height="50" rx="16" fill="var(--jaune)"/>
+      <rect id="fondDepart" class="anneau" x="392" y="186" width="238" height="38" rx="10" fill="var(--vert)"/>
+      <text id="texteDepart" x="511" y="211" text-anchor="middle" class="lcd" font-size="17" fill="#fdf6e6">DÉPART</text>
+    </g>
+    <g id="pedale" class="commande" tabindex="0" role="button" aria-label="Accélérateur" transform="translate(572 374)">
+      <circle id="haloPedale" class="halo" r="50" fill="var(--jaune)"/>
+      <circle class="anneau" r="42" fill="#10131f" stroke="#fdf6e6" stroke-width="3"/>
+      <rect x="-14" y="-25" width="28" height="50" rx="8" fill="#cfc6b0"/>
+      ${[-12, -2, 8].map(y => `<rect x="-9" y="${y}" width="18" height="4" rx="2" fill="#10131f"/>`).join("")}
+    </g>`;
+}
+// met la scène à jour pour la quantité x
+function peindre(x, actif){
+  const s = sc(), eteint = s.id === "taxi" && !E.compteur;
+  const xd = dixieme(x);
+  $("aff1").textContent = eteint ? "-,-" : lcd(xd, 1); $("unite1").textContent = s.g1.unite;
+  $("aff2").textContent = eteint ? "-,--" : lcd(s.f(xd), 2);
+  if (s.id === "pompe"){
+    $("flux").toggleAttribute("hidden", !actif);
+  } else {
+    $("ville").setAttribute("transform", `translate(${-(x*34 % 640)} 0)`);
+    $("tirets").setAttribute("transform", `translate(${-(x*130 % 80)} 0)`);
+    $("roue1").setAttribute("transform", `rotate(${x*300 % 360} 46 92)`);
+    $("roue2").setAttribute("transform", `rotate(${x*300 % 360} 150 92)`);
+    let h = "";
+    for (let k = Math.max(0, Math.floor(x) - 2); k <= Math.min(s.g1.max, Math.floor(x) + 3); k++){
+      const bx = 290 + (k - x)*130;
+      h += `<rect x="${bx-2}" y="232" width="4" height="40" fill="#cfc6b0"/><rect x="${bx-24}" y="208" width="48" height="26" rx="5" fill="#fdf6e6"/>
+            <text x="${bx}" y="226" class="lcd" font-size="13" text-anchor="middle" fill="#1a1c2c">${k} km</text>`;
+    }
+    $("bornes").innerHTML = h;
+  }
+}
+// place le bec du pistolet et redessine le tuyau ; au repos le pistolet pend, poignée vers le haut
+function placer(x, y, repos = false){
+  E.nx = x; E.ny = y;
+  const a = repos ? 53 : 0, r = a*Math.PI/180;
+  $("pistolet").setAttribute("transform", `translate(${x} ${y}) rotate(${a})`);
+  const bx = x - 58*Math.cos(r) + 42*Math.sin(r), by = y - 58*Math.sin(r) - 42*Math.cos(r);     // arrière de la poignée
+  const d = `M318 336 Q ${(318 + bx)/2 + 30} ${Math.max(336, by) + 72} ${bx} ${by}`;
+  $("tuyau").setAttribute("d", d); $("flux").setAttribute("d", d);
+}
+// montre ce qui est actif dans la scène selon l'étape
+function etatScene(){
+  const s = sc(), prise = E.etat === "prise", pret = E.etat === "pret";
+  if (s.id === "pompe"){
+    $("cible").toggleAttribute("hidden", !prise);
+    $("halo").toggleAttribute("hidden", !prise);
+    $("haloLevier").toggleAttribute("hidden", !pret);
+    $("levier").setAttribute("opacity", pret ? 1 : 0.45);
+  } else {
+    $("haloDepart").toggleAttribute("hidden", !prise);
+    $("fondDepart").setAttribute("fill", E.compteur ? "#3a4162" : "var(--vert)");
+    $("texteDepart").textContent = E.compteur ? "EN COURSE" : "DÉPART";
+    $("haloPedale").toggleAttribute("hidden", !pret);
+    $("pedale").setAttribute("opacity", pret ? 1 : 0.45);
+  }
+}
+
+// une annonce brève au centre de l'écran : "gagne", "perdu" ou "coche"
+function annoncer(texte, genre = "gagne", duree = 2000){
+  document.querySelectorAll(".annonce").forEach(e => e.remove());
+  const a = document.createElement("div"); a.className = `annonce ${genre}`; a.textContent = texte; a.setAttribute("role", "status");
+  document.body.appendChild(a); setTimeout(() => a.remove(), duree);
+}
+const cocher = () => annoncer("✓", "coche", 1100);
+
+// ---------- niveau 1 : agir ------------------------------------------
+function ouvrir(k){
+  G.k = k; vus.clear();
+  E = { niveau:1, m:0, x:0, etat:"", pari:null, saisie:"", tickets:[], essais:0, alerte:false,
+        classe:null, preuve:null, retour:null, compteur:false, nx:HX, ny:HY };
+  const s = sc();
+  parcours(k);
+  $("app").innerHTML = `<div class="gauche">
+      <div class="cadre"><svg id="scene" viewBox="0 0 640 440" role="img" aria-label="${s.nom}">${s.id === "pompe" ? decorPompe() : decorTaxi()}</svg>
+        <div class="bulle ${s.id}" id="bulle"></div></div>
+    </div>
+    <div class="droite">${bandeau()}<div class="carte" id="carte" aria-live="polite"></div></div>`;
+  brancherBandeau(); brancherScene();
+  nouvelleManche(0);
+  window.scrollTo({top:0});
+}
+function nouvelleManche(m){
+  E.m = m; E.x = 0; E.pari = null; E.saisie = ""; E.compteur = false; E.etat = "prise";
+  if (sc().id === "pompe") placer(HX, HY, true);
+  dessinerClient(); peindre(0, false); etatScene(); carte();
+}
+// l'élève a branché le pistolet, ou lancé le taximètre
+function priseFaite(){
+  E.compteur = true;
+  E.etat = manche().pari ? "pari" : "pret";
+  peindre(0, false); etatScene(); carte();
+  if (sc().id === "taxi"){ briller($("aff1"), "eclat"); briller($("aff2"), "eclat"); }
+}
+function brancherScene(){
+  const svg = $("scene"), s = sc();
+  const point = e => { const r = svg.getBoundingClientRect(); return { x:(e.clientX - r.left)*640/r.width, y:(e.clientY - r.top)*440/r.height }; };
+  const touche = e => (e.key === " " || e.key === "Enter") && !e.repeat;
+  const maintien = el => {          // une commande qu'on maintient appuyée
+    el.addEventListener("pointerdown", e => { if (E.etat !== "pret") return; e.preventDefault(); el.setPointerCapture(e.pointerId); appuyer(); });
+    ["pointerup", "pointercancel", "lostpointercapture"].forEach(t => el.addEventListener(t, relacher));
+    el.addEventListener("keydown", e => { if (touche(e) && E.etat === "pret"){ e.preventDefault(); appuyer(); } });
+    el.addEventListener("keyup", e => { if (e.key === " " || e.key === "Enter") relacher(); });
+    el.addEventListener("contextmenu", e => e.preventDefault());
+  };
+  if (s.id === "pompe"){
+    const p = $("pistolet"); let glisse = false;
+    p.addEventListener("pointerdown", e => { if (E.etat !== "prise") return; e.preventDefault(); p.setPointerCapture(e.pointerId); glisse = true; });
+    p.addEventListener("pointermove", e => { if (!glisse) return; const q = point(e); placer(Math.max(60, Math.min(620, q.x + 34)), Math.max(60, Math.min(410, q.y + 27))); });
+    ["pointerup", "pointercancel"].forEach(t => p.addEventListener(t, () => {
+      if (!glisse) return; glisse = false;
+      if (Math.hypot(E.nx - TX, E.ny - TY) < 70){ placer(TX, TY); priseFaite(); } else placer(HX, HY, true);
+    }));
+    p.addEventListener("keydown", e => { if (touche(e) && E.etat === "prise"){ e.preventDefault(); placer(TX, TY); priseFaite(); } });
+    maintien($("levier"));
+  } else {
+    const d = $("depart");
+    d.addEventListener("click", () => { if (E.etat === "prise") priseFaite(); });
+    d.addEventListener("keydown", e => { if (touche(e) && E.etat === "prise"){ e.preventDefault(); priseFaite(); } });
+    maintien($("pedale"));
+  }
+}
+function ticketsHTML(){
+  const s = sc();
+  if (!E.tickets.length) return `<ul class="tickets"><li class="attente">Les tickets des clients s'imprimeront ici.</li></ul>`;
+  return `<ul class="tickets" aria-label="Tickets des clients">${E.tickets.map((t, i) =>
+    `<li class="${neuf(`ticket-${i}`) ? "neuf" : ""}"><div class="ticket">
+      <span class="enseigne">${s.enseigne[0]}<b>${s.enseigne[1]}</b></span><span class="ligne">${s.guichet} · ${t.client}</span>
+      <span class="trait"></span>
+      <span class="q1">${fr(t.x)}<small> ${s.g1.unite}</small></span><span class="q2">${lcd(t.y, 2)}<small> €</small></span>
+      <span class="trait"></span><span class="barres"></span><span class="merci">${s.merci}</span></div></li>`).join("")}</ul>`;
+}
+
+// La commande maintenue fait avancer la quantité en continu. Elle démarre lentement puis accélère,
+// et s'arrête net au relâchement, au dixième affiché. Un appui court ajoute exactement 0,1.
+const dixieme = v => Math.floor(v*10 + 1e-6)/10;
+let appui = false, boucleId = null, avant = 0, debutAppui = 0, departX = 0;
+function appuyer(){
+  if (E.etat !== "pret" || appui) return;
+  appui = true; debutAppui = performance.now(); departX = E.x; bras();
+  if (!boucleId){ avant = debutAppui; boucleId = requestAnimationFrame(boucle); }
+}
+function relacher(){ appui = false; bras(); }
+function bras(){ const b = $("bras"); if (b) b.setAttribute("transform", appui ? "rotate(30 297 128)" : ""); }
+function boucle(t){
+  const s = sc(), dt = Math.min(0.05, (t - avant)/1000); avant = t;
+  if (appui){
+    const tenu = (t - debutAppui)/1000, elan = Math.max(0, Math.min(1, (tenu - 0.3)/1.2));
+    E.x = Math.min(s.g1.max, E.x + dt*(0.2 + (VITESSE - 0.2)*elan));
+    peindre(E.x, true);
+    boucleId = requestAnimationFrame(boucle);
+  } else {
+    E.x = Math.min(s.g1.max, Math.max(dixieme(E.x), Math.round((departX + 0.1)*10)/10));
+    boucleId = null; peindre(E.x, false); arret();
+  }
+}
+function arret(){
+  const s = sc(), m = manche(), c = cibleX();
+  if (Math.abs(E.x - c) < 1e-6){
+    E.x = c; E.etat = "servi";
+    E.tickets.push({ x:c, y:s.f(c), client:m.client });
+    if (m.pari){
+      const vrai = m.pari === "y" ? s.f(c) : c;
+      E.juste = E.pari === vrai; if (E.juste) G.predOK++;
+      annoncer(E.juste ? "Pari gagné !" : "Pari perdu", E.juste ? "gagne" : "perdu");
+      G.paris.push({ scene:s.id, x:c, pari:E.pari });
+    }
+  } else if (E.x > c) E.etat = "trop";
+  etatScene(); carte();
+}
+
+const TOUCHES = ["1","2","3","4","5","6","7","8","9",",","0","⌫"];
+const clavier = (etiq, unite, idOK, texteOK) => `<div class="saisie">
+    <div class="ecran"><small>${etiq}</small><span id="ecran">${E.saisie || "–"} ${unite}</span></div>
+    <div class="pave" id="pave">${TOUCHES.map(t => `<button type="button" data-t="${t}">${t}</button>`).join("")}
+      <button type="button" class="ok" id="${idOK}" ${E.saisie ? "" : "disabled"}>${texteOK}</button></div></div>`;
+
+function carte(){
+  const s = sc(), m = manche(), c = cibleX(), n = s.manches.length;
+  const unitePari = m.pari === "x" ? s.g1.unite : "€";
+  const quoi = m.x !== undefined ? s.faire(m.x) : s.jusqua(m.y);
+  parler();
+  const tk = ticketsHTML();
+  let h = "";
+  if (E.etat === "prise"){
+    h += `<p class="consigne"><mark>${s.prise}</mark></p>`;
+  } else if (E.etat === "pari"){
+    h += `<p class="consigne">${m.question}</p>${clavier("ton pari", unitePari, "parier", "Valider mon pari")}`;
+  } else if (E.etat === "pret"){
+    h += (m.pari ? `<p class="statut">Ton pari : <b>${fr(E.pari)} ${unitePari}</b>.</p>` : "") +
+      `<p class="consigne"><mark>${quoi}</mark> : ${s.tenir}${m.pari ? " pour vérifier" : ""}.</p>` +
+      (E.x > 0 ? `<p class="petit">Le compteur affiche ${fr(E.x)} ${s.g1.unite}. Un appui court ajoute 0,1 ${s.g1.unite}.</p>` : "");
+  } else if (E.etat === "trop"){
+    h += `<p class="statut">Trop loin : le compteur affiche ${fr(E.x)} ${s.g1.unite}${m.x !== undefined ? `, il en fallait ${fr(c)}` : ` et ${fr(s.f(E.x))} €`}.</p>
+      <button type="button" class="principal" id="zero">${s.zero}</button>`;
+  } else {
+    const y = s.f(c), dernier = E.m === n - 1;
+    h += !m.pari ? `<p class="statut">${s.constat(fr(c), fr(y))}</p>`
+      : E.juste ? `<p class="statut verdict gagne">Pari gagné : ${m.pari === "y" ? `${fr(y)} €` : `${fr(c)} ${s.g1.unite}`}.</p>`
+      : `<p class="statut verdict perdu">Tu avais parié ${fr(E.pari)} ${unitePari}. En réalité : ${m.pari === "y" ? `${fr(y)} €` : `${fr(c)} ${s.g1.unite}`}.</p>`;
+    h += `<button type="button" class="principal" id="suivant">${dernier ? "Ranger les tickets dans un tableau" : "Client suivant"}</button>`;
+  }
+  const discret = E.etat === "servi" && m.pari;      // le bandeau vert ou rouge suffit : pas de lueur en plus
+  $("carte").innerHTML = `${tk}<div class="bloc${discret ? "" : neuf(`manche-${E.m}-${E.etat}`)}">${h}</div>`;
+  if (E.etat === "pari") pave(v => { E.pari = v; E.etat = "pret"; etatScene(); carte(); });
+  if ($("zero")) $("zero").onclick = () => { E.x = 0; E.etat = "pret"; peindre(0, false); etatScene(); carte(); };
+  if ($("suivant")) $("suivant").onclick = () => E.m === n - 1 ? niveau2() : nouvelleManche(E.m + 1);
+}
+
+// pavé numérique : la saisie reste dans E.saisie
+function pave(valider){
+  const ok = $("parier") || $("repondre");
+  const ecran = $("ecran"), unite = ecran.textContent.split(" ").pop();
+  $("pave").querySelectorAll("[data-t]").forEach(b => b.onclick = () => {
+    const t = b.dataset.t;
+    if (t === "⌫") E.saisie = E.saisie.slice(0, -1);
+    else if (t === ","){ if (E.saisie && !E.saisie.includes(",")) E.saisie += ","; }
+    else if (E.saisie.replace(",", "").length < 4) E.saisie = E.saisie === "0" ? t : E.saisie + t;
+    ecran.textContent = `${E.saisie || "–"} ${unite}`;
+    ok.disabled = !E.saisie || E.saisie.endsWith(",");
+  });
+  ok.onclick = () => { const v = parseFloat(E.saisie.replace(",", ".")); E.saisie = ""; valider(v); };
+}
+
+// ---------- niveau 2 : représenter -----------------------------------
+// Les tickets restent visibles, alignés au-dessus des colonnes du tableau.
+const colonnes = avecTrou => { const xs = E.tickets.map(t => t.x); return [...new Set(avecTrou ? [...xs, sc().trou.x] : xs)].sort((a, b) => a - b); };
+const fraction = (haut, bas) => `<span class="frac"><span>${haut}</span><span>${bas}</span></span>`;
+function miniTicket(x){
+  const s = sc(), t = E.tickets.find(u => u.x === x);
+  if (!t) return `<div class="mini vide">?</div>`;
+  return `<div class="mini"><div class="ticket"><span class="enseigne"><b>${s.enseigne[1]}</b></span>
+    <span class="q1">${fr(t.x)}<small> ${s.g1.unite}</small></span><span class="q2">${lcd(t.y, 2)}<small> €</small></span></div></div>`;
+}
+function tableau2(){
+  const s = sc(), tous = colonnes(true), connu = x => E.tickets.some(t => t.x === x);
+  return `<div class="defile"><table class="aligne">
+    <tr class="recus"><th></th>${tous.map(x => `<td>${miniTicket(x)}</td>`).join("")}</tr>
+    <tr class="a"><th>${s.g1.nom} (${s.g1.unite})</th>${tous.map(x => `<td>${fr(x)}</td>`).join("")}</tr>
+    <tr class="b"><th>${s.g2.nom} (${s.g2.unite})</th>${tous.map(x => connu(x) ? `<td>${fr(s.f(x))}</td>` : `<td class="trou">?</td>`).join("")}</tr>
+  </table></div>`;
+}
+function niveau2(){
+  E.niveau = 2; E.saisie = ""; E.essais = 0; E.retour = null; vus.clear();
+  const s = sc();
+  $("app").innerHTML = `<div class="gauche"><div class="papier nouveau"><h2>Les tickets ${s.du}</h2>${tableau2()}</div></div>
+    <div class="droite">${bandeau()}<div class="carte" id="carte" aria-live="polite"></div></div>`;
+  brancherBandeau(); carte2(); window.scrollTo({top:0});
+}
+function carte2(){
+  const s = sc();
+  $("carte").innerHTML = `<p class="consigne">${s.trou.texte}</p>
+    ${E.retour ? `<p class="retour${neuf(`retour2-${E.essais}`)}">${E.retour}</p>` : ""}
+    ${clavier("prix", "€", "repondre", "Compléter le tableau")}`;
+  pave(v => {
+    if (v === s.f(s.trou.x)){ E.tickets.push({ x:s.trou.x, y:v, client:"" }); cocher(); niveau3(); return; }
+    E.essais++;
+    // pas d'indice au premier essai : l'élève cherche d'abord seul
+    E.retour = `${fr(v)} € : ce n'est pas le bon prix.${E.essais >= 2 ? " " + s.trou.aide : " Essaie encore."}`;
+    if (E.essais >= 2) alerter();
+    carte2();
+  });
+}
+
+// ---------- niveau 3 : abstraire -------------------------------------
+// Plus de scène ni de tickets : l'élève calcule lui-même la ligne des quotients, puis tranche.
+function tableau3(){
+  const s = sc(), tous = colonnes(false);
+  const q = i => i < E.q.length ? `<td class="${neuf(`q-${i}`) ? "nouveau" : ""}">${fr(E.q[i])}</td>` : i === E.q.length ? `<td class="trou">?</td>` : `<td></td>`;
+  return `<div class="defile"><table class="aligne">
+    <tr class="a"><th>${s.g1.nom} (${s.g1.unite})</th>${tous.map(x => `<td>${fr(x)}</td>`).join("")}</tr>
+    <tr class="b"><th>${s.g2.nom} (${s.g2.unite})</th>${tous.map(x => `<td>${fr(s.f(x))}</td>`).join("")}</tr>
+    <tr class="q"><th>${fraction(s.g2.nom, s.g1.nom)}</th>${tous.map((_, i) => q(i)).join("")}</tr>
+  </table></div>`;
+}
+function niveau3(){
+  E.niveau = 3; E.essais = 0; E.retour = null; E.classe = null; E.preuve = null; E.q = []; E.saisie = ""; vus.clear();
+  $("app").innerHTML = `<div class="gauche"><div class="papier nouveau"><h2>Plus de scène : seulement des nombres</h2><div id="table3">${tableau3()}</div></div></div>
+    <div class="droite">${bandeau()}<div class="carte" id="carte" aria-live="polite"></div></div>`;
+  brancherBandeau(); carte3(); window.scrollTo({top:0});
+}
+function carte3(){
+  const s = sc(), tous = colonnes(false);
+  if (E.q.length < tous.length){                      // d'abord, la ligne des quotients
+    const x = tous[E.q.length], y = s.f(x);
+    $("carte").innerHTML = `<p class="consigne">Complète la dernière ligne : divise ${s.g2.le} par ${s.g1.le}.</p>
+      <p class="statut">Case jaune : <b>${fr(y)} ÷ ${fr(x)}</b>. Arrondis au centième si nécessaire.</p>
+      ${E.retour ? `<p class="retour${neuf(`retourq-${E.q.length}-${E.essais}`)}">${E.retour}</p>` : ""}
+      ${clavier("quotient", "", "repondre", "Écrire dans le tableau")}`;
+    pave(v => {
+      if (Math.abs(v - y/x) < 0.006){ E.q.push(v); E.essais = 0; E.retour = null; cocher(); $("table3").innerHTML = tableau3(); carte3(); return; }
+      E.essais++; E.retour = `${fr(v)} : ce n'est pas ce quotient.${E.essais >= 2 ? ` Divise ${fr(y)} par ${fr(x)}, à la calculatrice si besoin.` : " Essaie encore."}`;
+      if (E.essais >= 2) alerter();
+      carte3();
+    });
+    return;
+  }
+  const opt = ([k, t]) => `<button type="button" class="opt" data-preuve="${k}" aria-pressed="${E.preuve === k}">${t}</button>`;
+  $("carte").innerHTML = `<div class="bloc${neuf("verdict")}"><p class="consigne">${s.g2.nom} et ${s.g1.nom.toLowerCase()} : proportionnels ou non ?</p>
+    <div class="tampons">
+      <button type="button" class="tampon vert" data-classe="oui" aria-pressed="${E.classe === "oui"}">Proportionnel</button>
+      <button type="button" class="tampon rouge" data-classe="non" aria-pressed="${E.classe === "non"}">Imposteur</button>
+    </div></div>
+    ${E.classe ? `<div class="bloc${neuf("preuves")}"><p class="consigne">Quelle est ta preuve ?</p><div class="choix">${PREUVES.map(opt).join("")}</div></div>` : ""}
+    ${E.retour ? `<p class="retour${neuf(`retour3-${E.essais}`)}">${E.retour}</p>` : ""}
+    ${E.classe ? `<button type="button" class="principal" id="tamponner" ${E.preuve ? "" : "disabled"}>Tamponner</button>` : ""}`;
+  $("carte").querySelectorAll("[data-classe]").forEach(b => b.onclick = () => { E.classe = b.dataset.classe; E.retour = null; carte3(); });
+  $("carte").querySelectorAll("[data-preuve]").forEach(b => b.onclick = () => { E.preuve = b.dataset.preuve; E.retour = null; carte3(); });
+  if ($("tamponner")) $("tamponner").onclick = () => {
+    const bonneClasse = (E.classe === "oui") === s.prop, bonnePreuve = E.preuve === (s.prop ? "egaux" : "differents");
+    if (bonneClasse && bonnePreuve){ classe(); return; }
+    E.essais++; E.retour = conseil(s, bonneClasse);
+    if (E.essais >= 2) alerter();
+    carte3();
+  };
+}
+// Un conseil qui renvoie l'élève vers le tableau, sans donner la réponse.
+function conseil(s, bonneClasse){
+  const p = E.preuve;
+  if ((p === "differents" && E.classe === "oui") || (p === "egaux" && E.classe === "non"))
+    return "Ton tampon et ta preuve ne vont pas ensemble. Des quotients tous égaux, c'est justement la proportionnalité.";
+  if (p === "egaux" || p === "differents") return "Relis la ligne des quotients, colonne par colonne. Sont-ils vraiment tous égaux ?";
+  return bonneClasse
+    ? "C'est vrai, mais ce n'est pas une preuve. Quelle ligne du tableau permet d'être sûr ?"
+    : `C'est vrai, le prix augmente avec ${s.g1.le}. Mais cela ne suffit pas pour décider : regarde les quotients.`;
+}
+function classe(){
+  const s = sc();
+  G.tables[G.k] = tableau3();
+  $("carte").innerHTML = `<p class="niveau">${s.nom} · dossier classé</p>
+    <span class="tampon pose ${s.prop ? "vert" : "rouge"}">${s.prop ? "Proportionnel" : "Imposteur"}</span>
+    <div class="bloc nouveau"><p class="statut">${s.retenir}</p><p class="formule">${s.formule}</p></div>
+    <button type="button" class="principal" id="suite">${s.suite}</button>`;
+  $("suite").onclick = () => G.k === SCENES.length - 1 ? bilan() : ouvrir(G.k + 1);
+}
+
+// Le graphique est laissé de côté pour l'instant ; la fonction reste disponible.
+function graphique(){
+  const s = sc(), xs = E.tickets.map(t => t.x).sort((a, b) => a - b), L = 46, R = 326, T = 18, B = 206;
+  const X = v => L + v/s.g1.max*(R-L), Y = v => B - v/s.g2.max*(B-T);
+  const txt = (x, y, t, o = "") => `<text x="${x}" y="${y}" class="lcd" font-size="11" ${o}>${t}</text>`;
+  let h = "";
+  for (let v = 0; v <= s.g1.max; v += s.g1.pas){
+    h += `<line x1="${X(v)}" y1="${T}" x2="${X(v)}" y2="${B}" stroke="var(--trait)"/>` + txt(X(v), B+17, v, `text-anchor="middle" fill="var(--gris)"`);
+  }
+  for (let v = 0; v <= s.g2.max; v += s.g2.pas){
+    h += `<line x1="${L}" y1="${Y(v)}" x2="${R}" y2="${Y(v)}" stroke="var(--trait)"/>` + txt(L-8, Y(v)+4, v, `text-anchor="end" fill="var(--gris)"`);
+  }
+  h += `<line x1="${L}" y1="${B}" x2="${R}" y2="${B}" stroke="var(--encre)" stroke-width="2"/><line x1="${L}" y1="${T}" x2="${L}" y2="${B}" stroke="var(--encre)" stroke-width="2"/>`;
+  h += txt(R, B+36, `${s.g1.nom} (${s.g1.unite})`, `text-anchor="end" fill="var(--g1)"`) + txt(L+8, T+8, `${s.g2.nom} (${s.g2.unite})`, `fill="var(--g2)"`);
+  h += `<line x1="${X(0)}" y1="${Y(s.f(0))}" x2="${X(s.g1.max)}" y2="${Y(s.f(s.g1.max))}" stroke="var(--encre)" stroke-width="1.5" stroke-dasharray="5 4"/>`;
+  xs.forEach(x => { h += `<circle cx="${X(x)}" cy="${Y(s.f(x))}" r="6" fill="var(--g2)" stroke="var(--feuille)" stroke-width="2"/>`; });
+  return `<svg id="graphique" viewBox="0 0 340 250" role="img" aria-label="Graphique des tickets">${h}</svg>`;
+}
+
+// ---------- bilan, billet de sortie, code ----------------------------
+function page(h){
+  document.body.classList.remove("alerte"); parcours(SCENES.length);
+  vus.clear();
+  $("app").innerHTML = `<div class="carte seul nouveau">${h}</div>`; window.scrollTo({top:0});
+}
+function bilan(){
+  page(`<p class="niveau">Bilan</p><p class="demande">Même geste, deux résultats</p>
+    <div class="duo">${SCENES.map((s, k) => `<div><h3>${s.nom}</h3>${G.tables[k]}<p class="formule">${s.formule}</p>
+      <span class="tampon ${s.prop ? "vert" : "rouge"}">${s.prop ? "Proportionnel" : "Imposteur"}</span></div>`).join("")}</div>
+    <p class="statut">À la pompe, le prix part de 0 et les quotients sont tous égaux. Dans le taxi, le prix part de 4 € : il augmente régulièrement, sans être proportionnel.</p>
+    <p class="petit">Tes paris : ${G.predOK} justes sur ${G.paris.length}.</p>
+    <button type="button" class="principal" id="versBillet">Passer au billet de sortie</button>`);
+  $("versBillet").onclick = billet;
+}
+
+// Le code de 4 caractères contient : les 3 réponses, le nombre d'alertes
+// et le nombre de paris justes, plus une somme de contrôle.
+const ALPHABET = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
+const controle = p => ((p % 251) * 7 + (p >> 8) * 13 + 41) & 255;
+function coder(){
+  const [a, b, c] = G.billet;
+  const p = a | b << 2 | c << 4 | Math.min(G.alertes, 7) << 6 | Math.min(G.predOK, 7) << 9;
+  const n = p | controle(p) << 12;
+  return [15, 10, 5, 0].map(d => ALPHABET[n >> d & 31]).join("");
+}
+function decoder(texte){
+  const t = texte.toUpperCase().replace(/\s/g, "").replace(/O/g, "0").replace(/[IL]/g, "1");
+  if (t.length !== 4 || [...t].some(ch => !ALPHABET.includes(ch))) return null;
+  const n = [...t].reduce((acc, ch) => acc << 5 | ALPHABET.indexOf(ch), 0), p = n & 4095;
+  if (n >> 12 !== controle(p)) return null;
+  return { reponses:[p & 3, p >> 2 & 3, p >> 4 & 3], alertes:p >> 6 & 7, predOK:p >> 9 & 7 };
+}
+function billet(){
+  page(`<p class="niveau">Billet de sortie</p><p class="demande">Trois questions, seul et sans aide</p>
+    <p class="statut">Choisis une réponse par question. Tu ne verras pas la correction ici : ton professeur la regardera.</p>
+    ${BILLET.map((q, k) => `<div class="question"><h3>${k+1}. ${q.q}</h3>
+      ${q.table ? `<table>${q.table.map(l => `<tr><th>${l[0]}</th>${l.slice(1).map(v => `<td>${v}</td>`).join("")}</tr>`).join("")}</table>` : ""}
+      <div class="choix">${q.options.map((o, j) => `<button type="button" class="opt" data-q="${k}" data-o="${j}" aria-pressed="${G.billet[k] === j}">${o}</button>`).join("")}</div></div>`).join("")}
+    <button type="button" class="principal" id="obtenir" ${G.billet.every(v => v !== null) ? "" : "disabled"}>Obtenir mon code</button>`);
+  $("app").querySelectorAll("[data-q]").forEach(b => b.onclick = () => { const pos = window.scrollY; G.billet[+b.dataset.q] = +b.dataset.o; billet(); window.scrollTo({top:pos}); });
+  $("obtenir").onclick = fin;
+}
+function fin(){
+  page(`<p class="niveau">Terminé</p><p class="demande">Voici ton code</p>
+    <div class="code"><output id="code">${coder().replace(/(..)(..)/, "$1 $2")}</output></div>
+    <p class="statut">Recopie-le sur ton billet, avec ton numéro, puis rends l'iPad.</p>
+    <details><summary>Espace professeur : décoder un billet</summary>
+      <div class="rangee"><input id="saisie" maxlength="5" autocomplete="off" aria-label="Code du billet"><button type="button" id="lire">Décoder</button></div>
+      <ul id="resultat"></ul></details>
+    <button type="button" id="recommencer">Recommencer</button>`);
+  $("lire").onclick = () => {
+    const d = decoder($("saisie").value);
+    $("resultat").innerHTML = !d ? "<li>Code invalide : vérifie la copie.</li>" :
+      d.reponses.map((r, k) => `<li>Question ${k+1} : « ${BILLET[k].options[r]} » (${r === BILLET[k].juste ? "juste" : "faux"})</li>`).join("") +
+      `<li>Alertes pendant l'activité : ${d.alertes}</li><li>Paris justes : ${d.predOK} sur 6</li>`;
+  };
+  $("recommencer").onclick = () => { G.alertes = 0; G.predOK = 0; G.paris = []; G.tables = []; G.billet = [null, null, null]; ouvrir(0); };
+}
+
+ouvrir(0);
+})();
+</script>
+</body>
+</html>

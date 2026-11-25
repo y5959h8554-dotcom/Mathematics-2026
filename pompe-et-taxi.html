@@ -99,6 +99,9 @@
     0%,35%{box-shadow:0 0 0 5px rgba(255,201,60,0.95), 0 0 30px 12px rgba(255,201,60,0.8);}
     100%{box-shadow:0 14px 34px rgba(0,0,0,0.5);}
   }
+  .pulse{animation:pulse 0.8s ease-in-out infinite;}
+  @keyframes pulse{0%,100%{filter:drop-shadow(0 0 2px currentColor);}50%{filter:drop-shadow(0 0 5px #fff) drop-shadow(0 0 16px var(--jaune));}}
+  @media (prefers-reduced-motion:reduce){ .pulse{animation:none;filter:drop-shadow(0 0 10px var(--jaune));} }
   .eclat{animation:eclat 2s ease-out both;}
   @keyframes eclat{0%,40%{filter:drop-shadow(0 0 6px #fff) drop-shadow(0 0 14px var(--jaune));}100%{filter:none;}}
 
@@ -151,8 +154,6 @@
   .statut.verdict{padding:10px 14px;border-radius:10px;font-weight:600;color:#fff;}
   .statut.verdict.gagne{background:var(--vert);} .statut.verdict.perdu{background:var(--rouge);}
   .petit{font-family:var(--lcd);font-size:0.8rem;color:var(--gris);margin:0;}
-  .bandeau{background:var(--alerte);color:#fff;border-radius:10px;padding:12px 16px;font-weight:600;display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;}
-  .bandeau button{min-height:38px;padding:6px 12px;background:transparent;color:#fff;border:2px solid #fff;font-size:0.85rem;}
 
   button{font-family:var(--texte);font-size:1rem;min-height:50px;padding:10px 16px;border-radius:10px;border:2px solid var(--encre);background:var(--feuille);color:var(--encre);cursor:pointer;text-align:left;}
   button:disabled{opacity:0.35;cursor:default;}
@@ -315,15 +316,11 @@ function parcours(ici){
   const noms = [...SCENES.map(s => s.onglet), "Bilan"];
   $("parcours").innerHTML = noms.map((n, k) => `<li class="${k < ici ? "fait" : k === ici ? "ici" : ""}">${n}</li>`).join("");
 }
-const bandeau = () => `<div class="bandeau" id="bandeau" ${document.body.classList.contains("alerte") ? "" : "hidden"}>
-    <span>Lève la main : ton professeur va passer.</span><button type="button" id="vu">Le professeur est passé</button></div>`;
-function brancherBandeau(){
-  const b = $("vu"); if (b) b.onclick = () => { document.body.classList.remove("alerte"); $("bandeau").hidden = true; };
-}
 function alerter(){
   if (!E.alerte){ E.alerte = true; G.alertes++; }
-  document.body.classList.add("alerte"); const b = $("bandeau"); if (b) b.hidden = false;
+  document.body.classList.add("alerte");
 }
+const calmer = () => document.body.classList.remove("alerte");   // l'élève a trouvé : le cadre orange s'efface
 
 // ---------- les deux décors ----------------------------------------
 const CIEL = `<defs><linearGradient id="ciel" x1="0" y1="0" x2="0" y2="1">
@@ -480,13 +477,13 @@ function etatScene(){
   if (s.id === "pompe"){
     $("cible").toggleAttribute("hidden", !prise);
     $("halo").toggleAttribute("hidden", !prise);
-    $("haloLevier").toggleAttribute("hidden", !pret);
+    $("haloLevier").toggleAttribute("hidden", !pret || E.lance);
     $("levier").setAttribute("opacity", pret ? 1 : 0.45);
   } else {
     $("haloDepart").toggleAttribute("hidden", !prise);
     $("fondDepart").setAttribute("fill", E.compteur ? "#3a4162" : "var(--vert)");
     $("texteDepart").textContent = E.compteur ? "EN COURSE" : "DÉPART";
-    $("haloPedale").toggleAttribute("hidden", !pret);
+    $("haloPedale").toggleAttribute("hidden", !pret || E.lance);
     $("pedale").setAttribute("opacity", pret ? 1 : 0.45);
   }
 }
@@ -501,7 +498,7 @@ const cocher = () => annoncer("✓", "coche", 1100);
 
 // ---------- niveau 1 : agir ------------------------------------------
 function ouvrir(k){
-  G.k = k; vus.clear();
+  G.k = k; vus.clear(); calmer();
   E = { niveau:1, m:0, x:0, etat:"", pari:null, saisie:"", tickets:[], essais:0, alerte:false,
         classe:null, preuve:null, retour:null, compteur:false, nx:HX, ny:HY };
   const s = sc();
@@ -510,13 +507,13 @@ function ouvrir(k){
       <div class="cadre"><svg id="scene" viewBox="0 0 640 440" role="img" aria-label="${s.nom}">${s.id === "pompe" ? decorPompe() : decorTaxi()}</svg>
         <div class="bulle ${s.id}" id="bulle"></div></div>
     </div>
-    <div class="droite">${bandeau()}<div class="carte" id="carte" aria-live="polite"></div></div>`;
-  brancherBandeau(); brancherScene();
+    <div class="droite"><div class="carte" id="carte" aria-live="polite"></div></div>`;
+  brancherScene();
   nouvelleManche(0);
   window.scrollTo({top:0});
 }
 function nouvelleManche(m){
-  E.m = m; E.x = 0; E.pari = null; E.saisie = ""; E.compteur = false; E.etat = "prise";
+  E.m = m; E.x = 0; E.pari = null; E.saisie = ""; E.compteur = false; E.lance = false; E.etat = "prise";
   if (sc().id === "pompe") placer(HX, HY, true);
   dessinerClient(); peindre(0, false); etatScene(); carte();
 }
@@ -573,9 +570,12 @@ let appui = false, boucleId = null, avant = 0, debutAppui = 0, departX = 0;
 function appuyer(){
   if (E.etat !== "pret" || appui) return;
   appui = true; debutAppui = performance.now(); departX = E.x; bras();
+  if (!E.lance){ E.lance = true; etatScene(); }
+  pulser(true);
   if (!boucleId){ avant = debutAppui; boucleId = requestAnimationFrame(boucle); }
 }
-function relacher(){ appui = false; bras(); }
+function relacher(){ appui = false; bras(); pulser(false); }
+function pulser(oui){ ["aff1", "unite1", "aff2"].forEach(id => { const e = $(id); if (e){ if (oui) e.classList.remove("eclat"); e.classList.toggle("pulse", oui); } }); }
 function bras(){ const b = $("bras"); if (b) b.setAttribute("transform", appui ? "rotate(30 297 128)" : ""); }
 function boucle(t){
   const s = sc(), dt = Math.min(0.05, (t - avant)/1000); avant = t;
@@ -679,8 +679,8 @@ function niveau2(){
   E.niveau = 2; E.saisie = ""; E.essais = 0; E.retour = null; vus.clear();
   const s = sc();
   $("app").innerHTML = `<div class="gauche"><div class="papier nouveau"><h2>Les tickets ${s.du}</h2>${tableau2()}</div></div>
-    <div class="droite">${bandeau()}<div class="carte" id="carte" aria-live="polite"></div></div>`;
-  brancherBandeau(); carte2(); window.scrollTo({top:0});
+    <div class="droite"><div class="carte" id="carte" aria-live="polite"></div></div>`;
+  carte2(); window.scrollTo({top:0});
 }
 function carte2(){
   const s = sc();
@@ -688,7 +688,7 @@ function carte2(){
     ${E.retour ? `<p class="retour${neuf(`retour2-${E.essais}`)}">${E.retour}</p>` : ""}
     ${clavier("prix", "€", "repondre", "Compléter le tableau")}`;
   pave(v => {
-    if (v === s.f(s.trou.x)){ E.tickets.push({ x:s.trou.x, y:v, client:"" }); cocher(); niveau3(); return; }
+    if (v === s.f(s.trou.x)){ calmer(); E.tickets.push({ x:s.trou.x, y:v, client:"" }); cocher(); niveau3(); return; }
     E.essais++;
     // pas d'indice au premier essai : l'élève cherche d'abord seul
     E.retour = `${fr(v)} € : ce n'est pas le bon prix.${E.essais >= 2 ? " " + s.trou.aide : " Essaie encore."}`;
@@ -711,8 +711,8 @@ function tableau3(){
 function niveau3(){
   E.niveau = 3; E.essais = 0; E.retour = null; E.classe = null; E.preuve = null; E.q = []; E.saisie = ""; vus.clear();
   $("app").innerHTML = `<div class="gauche"><div class="papier nouveau"><h2>Plus de scène : seulement des nombres</h2><div id="table3">${tableau3()}</div></div></div>
-    <div class="droite">${bandeau()}<div class="carte" id="carte" aria-live="polite"></div></div>`;
-  brancherBandeau(); carte3(); window.scrollTo({top:0});
+    <div class="droite"><div class="carte" id="carte" aria-live="polite"></div></div>`;
+  carte3(); window.scrollTo({top:0});
 }
 function carte3(){
   const s = sc(), tous = colonnes(false);
@@ -723,7 +723,7 @@ function carte3(){
       ${E.retour ? `<p class="retour${neuf(`retourq-${E.q.length}-${E.essais}`)}">${E.retour}</p>` : ""}
       ${clavier("quotient", "", "repondre", "Écrire dans le tableau")}`;
     pave(v => {
-      if (Math.abs(v - y/x) < 0.006){ E.q.push(v); E.essais = 0; E.retour = null; cocher(); $("table3").innerHTML = tableau3(); carte3(); return; }
+      if (Math.abs(v - y/x) < 0.006){ E.q.push(v); E.essais = 0; E.retour = null; calmer(); cocher(); $("table3").innerHTML = tableau3(); carte3(); return; }
       E.essais++; E.retour = `${fr(v)} : ce n'est pas ce quotient.${E.essais >= 2 ? ` Divise ${fr(y)} par ${fr(x)}, à la calculatrice si besoin.` : " Essaie encore."}`;
       if (E.essais >= 2) alerter();
       carte3();
@@ -743,7 +743,7 @@ function carte3(){
   $("carte").querySelectorAll("[data-preuve]").forEach(b => b.onclick = () => { E.preuve = b.dataset.preuve; E.retour = null; carte3(); });
   if ($("tamponner")) $("tamponner").onclick = () => {
     const bonneClasse = (E.classe === "oui") === s.prop, bonnePreuve = E.preuve === (s.prop ? "egaux" : "differents");
-    if (bonneClasse && bonnePreuve){ classe(); return; }
+    if (bonneClasse && bonnePreuve){ calmer(); classe(); return; }
     E.essais++; E.retour = conseil(s, bonneClasse);
     if (E.essais >= 2) alerter();
     carte3();
@@ -843,7 +843,7 @@ function fin(){
     const d = decoder($("saisie").value);
     $("resultat").innerHTML = !d ? "<li>Code invalide : vérifie la copie.</li>" :
       d.reponses.map((r, k) => `<li>Question ${k+1} : « ${BILLET[k].options[r]} » (${r === BILLET[k].juste ? "juste" : "faux"})</li>`).join("") +
-      `<li>Alertes pendant l'activité : ${d.alertes}</li><li>Paris justes : ${d.predOK} sur 6</li>`;
+      `<li>Blocages (deux erreurs de suite) : ${d.alertes}</li><li>Paris justes : ${d.predOK} sur 6</li>`;
   };
   $("recommencer").onclick = () => { G.alertes = 0; G.predOK = 0; G.paris = []; G.tables = []; G.billet = [null, null, null]; ouvrir(0); };
 }

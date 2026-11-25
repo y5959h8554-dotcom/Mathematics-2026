@@ -99,11 +99,12 @@
     0%,35%{box-shadow:0 0 0 5px rgba(255,201,60,0.95), 0 0 30px 12px rgba(255,201,60,0.8);}
     100%{box-shadow:0 14px 34px rgba(0,0,0,0.5);}
   }
-  .pulse{animation:pulse 0.8s ease-in-out infinite;}
-  @keyframes pulse{0%,100%{filter:drop-shadow(0 0 2px currentColor);}50%{filter:drop-shadow(0 0 5px #fff) drop-shadow(0 0 16px var(--jaune));}}
-  @media (prefers-reduced-motion:reduce){ .pulse{animation:none;filter:drop-shadow(0 0 10px var(--jaune));} }
-  .eclat{animation:eclat 2s ease-out both;}
-  @keyframes eclat{0%,40%{filter:drop-shadow(0 0 6px #fff) drop-shadow(0 0 14px var(--jaune));}100%{filter:none;}}
+  /* lueur des compteurs : un liseré jaune et un léger halo derrière les chiffres, allumés tant que la commande est tenue.
+     Opacité seulement : Safari ne dessine pas les filtres CSS sur les éléments d'un SVG. */
+  .lueurAff{opacity:0;pointer-events:none;transition:opacity 0.5s ease-out;}
+  .lueurAff.allume{opacity:1;transition-duration:0.2s;}
+  .lueurAff.eclat{animation:eclat 2s ease-out both;}
+  @keyframes eclat{0%,40%{opacity:1;}100%{opacity:0;}}
 
   /* annonces au centre de l'écran : pari gagné, pari perdu, coche verte */
   .annonce{
@@ -142,7 +143,6 @@
   .mini .ticket .enseigne b{font-size:0.46rem;letter-spacing:0;}
   .mini .ticket .q1{font-size:1.7rem;} .mini .ticket .q2{font-size:1.1rem;} .mini .ticket small{font-size:0.6rem;}
   .mini.vide{filter:none;border:2px dashed var(--trait);border-radius:6px;color:var(--gris);font-family:var(--lcd);font-size:1.5rem;padding:22px 0;}
-  .tickets .attente{grid-column:1 / -1;filter:none;border:2px dashed var(--trait);border-radius:8px;padding:16px 12px;font-family:var(--lcd);font-size:0.8rem;color:var(--gris);text-align:center;}
 
   /* ---- le panneau de droite ---- */
   .carte{background:var(--panneau);border-radius:14px;padding:22px 22px 24px;display:flex;flex-direction:column;gap:14px;box-shadow:0 14px 34px rgba(0,0,0,0.5);}
@@ -328,12 +328,20 @@ const CIEL = `<defs><linearGradient id="ciel" x1="0" y1="0" x2="0" y2="1">
   <rect width="640" height="440" fill="url(#ciel)"/>
   ${[[60,40],[150,70],[250,30],[330,84],[470,34],[560,74],[610,28],[30,110],[410,120],[200,130]].map(([x, y]) => `<circle cx="${x}" cy="${y}" r="1.6" fill="#fdf6e6" opacity="0.8"/>`).join("")}`;
 // un afficheur à deux compteurs, chiffres alignés à droite ; taille = hauteur des chiffres
-const afficheur = (x, y, w, titre, taille = 44) => `<rect x="${x}" y="${y}" width="${w}" height="${Math.round(32 + 2.27*taille)}" rx="10" fill="#10131f" stroke="#3a4162" stroke-width="2"/>
+const afficheur = (x, y, w, titre, taille = 44) => {
+  const h = Math.round(32 + 2.27*taille), xa = x + w - 12 - taille*0.6, y1 = y + 20 + 1.05*taille, y2 = y + 20 + 2.19*taille;
+  const halo = (id, yy, larg, op) => `<text x="${xa}" y="${yy}" class="lcd ${id}" font-size="${taille}" text-anchor="end" fill="none" stroke="var(--jaune)" stroke-width="${larg}" stroke-linejoin="round" stroke-linecap="round" opacity="${op}"></text>`;
+  return `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="10" fill="#10131f" stroke="#3a4162" stroke-width="2"/>
+  <g id="lueurAff" class="lueurAff" aria-hidden="true">
+    <rect x="${x}" y="${y}" width="${w}" height="${h}" rx="10" fill="none" stroke="var(--jaune)" stroke-width="2.5" opacity="0.75"/>
+    ${halo("h1", y1, taille*0.2, 0.16)}${halo("h2", y2, taille*0.2, 0.16)}
+  </g>
   <text x="${x+12}" y="${y+19}" class="lcd" font-size="10" fill="#8d93b3">${titre}</text>
-  <text x="${x+w-12-taille*0.6}" y="${y+20+1.05*taille}" class="lcd" font-size="${taille}" fill="var(--lcd1)" text-anchor="end" id="aff1"></text>
-  <text x="${x+w-10}" y="${y+20+1.05*taille}" class="lcd" font-size="${taille*0.36}" fill="var(--lcd1)" text-anchor="end" id="unite1"></text>
-  <text x="${x+w-12-taille*0.6}" y="${y+20+2.19*taille}" class="lcd" font-size="${taille}" fill="var(--lcd2)" text-anchor="end" id="aff2"></text>
-  <text x="${x+w-10}" y="${y+20+2.19*taille}" class="lcd" font-size="${taille*0.36}" fill="var(--lcd2)" text-anchor="end">€</text>`;
+  <text x="${xa}" y="${y1}" class="lcd" font-size="${taille}" fill="var(--lcd1)" text-anchor="end" id="aff1"></text>
+  <text x="${x+w-10}" y="${y1}" class="lcd" font-size="${taille*0.36}" fill="var(--lcd1)" text-anchor="end" id="unite1"></text>
+  <text x="${xa}" y="${y2}" class="lcd" font-size="${taille}" fill="var(--lcd2)" text-anchor="end" id="aff2"></text>
+  <text x="${x+w-10}" y="${y2}" class="lcd" font-size="${taille*0.36}" fill="var(--lcd2)" text-anchor="end">€</text>`;
+};
 
 const HX = 350, HY = 306, TX = 518, TY = 288;      // bec du pistolet : dans son support, puis dans le réservoir
 // les quatre clients, dessinés très simplement
@@ -367,8 +375,9 @@ function parler(){
 function decorPompe(){
   return `${CIEL}
     <rect y="360" width="640" height="80" fill="#262a3d"/><rect y="360" width="640" height="5" fill="#3a4162"/>
-    <rect x="18" y="46" width="12" height="314" fill="#cfc6b0"/><rect x="8" y="20" width="344" height="28" rx="5" fill="#fdf6e6"/>
-    <rect x="8" y="38" width="344" height="10" fill="var(--rouge)"/>
+    <rect x="18" y="46" width="12" height="314" fill="#cfc6b0"/><rect x="610" y="46" width="12" height="314" fill="#cfc6b0"/>
+    <rect x="8" y="20" width="624" height="28" rx="5" fill="#fdf6e6"/>
+    <rect x="8" y="38" width="624" height="10" fill="var(--rouge)"/>
     <rect x="44" y="66" width="278" height="294" rx="14" fill="var(--rouge)"/><rect x="44" y="342" width="278" height="18" fill="#a8321f"/>
     ${afficheur(56, 82, 214, "POMPE N° 3", 58)}
     <text x="62" y="280" class="lcd" font-size="12" fill="#fdf6e6">PRIX AU LITRE</text>
@@ -446,6 +455,9 @@ function peindre(x, actif){
   const xd = dixieme(x);
   $("aff1").textContent = eteint ? "-,-" : lcd(xd, 1); $("unite1").textContent = s.g1.unite;
   $("aff2").textContent = eteint ? "-,--" : lcd(s.f(xd), 2);
+  const g = $("lueurAff");      // le halo reprend les mêmes chiffres
+  g.querySelectorAll(".h1").forEach(e => e.textContent = $("aff1").textContent);
+  g.querySelectorAll(".h2").forEach(e => e.textContent = $("aff2").textContent);
   if (s.id === "pompe"){
     $("flux").toggleAttribute("hidden", !actif);
   } else {
@@ -522,7 +534,7 @@ function priseFaite(){
   E.compteur = true;
   E.etat = manche().pari ? "pari" : "pret";
   peindre(0, false); etatScene(); carte();
-  if (sc().id === "taxi"){ briller($("aff1"), "eclat"); briller($("aff2"), "eclat"); }
+  if (sc().id === "taxi") briller($("lueurAff"), "eclat");
 }
 function brancherScene(){
   const svg = $("scene"), s = sc();
@@ -554,7 +566,7 @@ function brancherScene(){
 }
 function ticketsHTML(){
   const s = sc();
-  if (!E.tickets.length) return `<ul class="tickets"><li class="attente">Les tickets des clients s'imprimeront ici.</li></ul>`;
+  if (!E.tickets.length) return "";
   return `<ul class="tickets" aria-label="Tickets des clients">${E.tickets.map((t, i) =>
     `<li class="${neuf(`ticket-${i}`) ? "neuf" : ""}"><div class="ticket">
       <span class="enseigne">${s.enseigne[0]}<b>${s.enseigne[1]}</b></span><span class="ligne">${s.guichet} · ${t.client}</span>
@@ -575,7 +587,7 @@ function appuyer(){
   if (!boucleId){ avant = debutAppui; boucleId = requestAnimationFrame(boucle); }
 }
 function relacher(){ appui = false; bras(); pulser(false); }
-function pulser(oui){ ["aff1", "unite1", "aff2"].forEach(id => { const e = $(id); if (e){ if (oui) e.classList.remove("eclat"); e.classList.toggle("pulse", oui); } }); }
+function pulser(oui){ const g = $("lueurAff"); if (!g) return; if (oui) g.classList.remove("eclat"); g.classList.toggle("allume", oui); }
 function bras(){ const b = $("bras"); if (b) b.setAttribute("transform", appui ? "rotate(30 297 128)" : ""); }
 function boucle(t){
   const s = sc(), dt = Math.min(0.05, (t - avant)/1000); avant = t;
@@ -623,8 +635,7 @@ function carte(){
     h += `<p class="consigne">${m.question}</p>${clavier("ton pari", unitePari, "parier", "Valider mon pari")}`;
   } else if (E.etat === "pret"){
     h += (m.pari ? `<p class="statut">Ton pari : <b>${fr(E.pari)} ${unitePari}</b>.</p>` : "") +
-      `<p class="consigne"><mark>${quoi}</mark> : ${s.tenir}${m.pari ? " pour vérifier" : ""}.</p>` +
-      (E.x > 0 ? `<p class="petit">Le compteur affiche ${fr(E.x)} ${s.g1.unite}. Un appui court ajoute 0,1 ${s.g1.unite}.</p>` : "");
+      `<p class="consigne"><mark>${quoi}</mark> : ${s.tenir}${m.pari ? " pour vérifier" : ""}.</p>`;
   } else if (E.etat === "trop"){
     h += `<p class="statut">Trop loin : le compteur affiche ${fr(E.x)} ${s.g1.unite}${m.x !== undefined ? `, il en fallait ${fr(c)}` : ` et ${fr(s.f(E.x))} €`}.</p>
       <button type="button" class="principal" id="zero">${s.zero}</button>`;
